@@ -368,7 +368,11 @@ local function showReadableAura(frame, aura, spellID)
         local ok, value = pcall(GetSpellTexture, spellID)
         if ok and R.CanAccess(value) then texture = value end
     end
-    if texture then pcall(frame.icon.SetTexture, frame.icon, texture) end
+    if not texture then
+        hideReadableExact(frame)
+        return false
+    end
+    pcall(frame.icon.SetTexture, frame.icon, texture)
 
     local duration, durationReadable = R.ReadAuraField(aura, "duration")
     local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
@@ -585,7 +589,11 @@ end
 
 function R.DestroyHost(unit)
     local host = R.hosts[unit]
-    if not host then return end
+    if not host then return true end
+    if InCombatLockdown and InCombatLockdown() then
+        R.buildQueued = true
+        return false
+    end
     disableContainers(host)
     if host.testFrame then host.testFrame:Hide() end
     if host.readableHostileFrame then host.readableHostileFrame:Hide() end
@@ -596,17 +604,27 @@ function R.DestroyHost(unit)
     restorePortrait(host)
     if host.ownsLayer and host.layer then host.layer:Hide() end
     R.hosts[unit] = nil
+    return true
 end
 
 function R.DestroyAll()
+    if InCombatLockdown and InCombatLockdown() then
+        R.forceRebuildQueued = true
+        R.buildQueued = true
+        return false
+    end
     for _, unit in ipairs(R.TRACKED_UNITS) do R.DestroyHost(unit) end
+    return true
 end
 
 function R.CreateHost(unit)
     local existing = R.hosts[unit]
     if existing and hostStillCurrent(existing) then return existing end
+    if InCombatLockdown and InCombatLockdown() then
+        R.buildQueued = true
+        return nil
+    end
     if existing then R.DestroyHost(unit) end
-    if InCombatLockdown and InCombatLockdown() then return nil end
     if not R.SORT_METHOD or not R.SORT_DIRECTION then return nil end
 
     local portrait, portraitMask, unitFrame = R.GetPortrait(unit)
@@ -718,14 +736,27 @@ function R.CreateHost(unit)
     return host
 end
 
-local function setContainer(container, shown)
+local function setContainer(container, shown, forceRefresh)
     if not container then return end
+
+    local wasEnabled
+    if container.IsEnabled then
+        local ok, value = pcall(container.IsEnabled, container)
+        if ok and type(value) == "boolean" then wasEnabled = value end
+    end
+
     pcall(container.SetEnabled, container, shown)
     pcall(container.SetShown, container, shown)
-    if shown and container.UpdateAllAuras then pcall(container.UpdateAllAuras, container) end
+
+    -- SetEnabled and Show/Hide already refresh when state changes. Only force a
+    -- full refresh when the unit token's referent/relation changed underneath an
+    -- already-enabled container (target/focus/derived-token lifecycle events).
+    if forceRefresh and shown and wasEnabled == true and container.UpdateAllAuras then
+        pcall(container.UpdateAllAuras, container)
+    end
 end
 
-function R.UpdateHost(host)
+function R.UpdateHost(host, forceContainerRefresh)
     if not host then return end
     local base = R.IsUnitEnabled(host.unit) and not R.testMode
     local hostileUnit = R.IsHostileUnit(host.unit)
@@ -791,12 +822,15 @@ function R.UpdateHost(host)
         )
         host._welcomingCampfireDirect = directAvailable
 
-        -- Older/variant clients may not expose GetPlayerAuraBySpellID. Only in
-        -- that case fall back to the indexed helpful scan.
-        if not directAvailable then
-            aura, readable = scanReadableExactAura(
-                host.unit, "HELPFUL", WELCOMING_CAMPFIRE_SPELL_ID
+        -- Direct lookup is only an optimization/witness. If it does not produce
+        -- a usable exact aura, fall back to the indexed helpful stream as well.
+        -- INCLUDE_NAME_PLATE_ONLY is required for Forever's camping surface.
+        if not aura then
+            local indexedAura, indexedReadable = scanReadableExactAura(
+                host.unit, "HELPFUL|INCLUDE_NAME_PLATE_ONLY", WELCOMING_CAMPFIRE_SPELL_ID
             )
+            if indexedAura then aura = indexedAura end
+            readable = indexedReadable or readable
         end
 
         host._welcomingCampfireReadable = readable
@@ -816,10 +850,23 @@ function R.UpdateHost(host)
     -- The secure BaselineClass container remains active underneath as fallback.
     updateReadableBaseline(host, base)
 
+    local slowsTier = findTierByKey("Slows")
+    local slowsSecureAllowed = slowsTier and R.ExactFilterAllowed(
+        host.unit, false, slowsTier.spellIDs, slowsTier.allowNeverSecret
+    ) or false
+    local weakenedSoulTier = findTierByKey("WeakenedSoul")
+    local weakenedSoulSecureAllowed = weakenedSoulTier and R.ExactFilterAllowed(
+        host.unit, false, weakenedSoulTier.spellIDs, weakenedSoulTier.allowNeverSecret
+    ) or false
+
     for index, tier in ipairs(R.TIERS or {}) do
         local enabled = base
 
-        if tier.key == "HostileHelpful" then
+        if tier.key == "FrostArmorSignature" then
+            -- Use the semantic Frost Armor equivalence class only for hostile
+            -- NPCs after the directly readable hostile-helpful path disappears.
+            enabled = enabled and hostileUnit and not hostilePlayer and not hostileReadable
+        elseif tier.key == "HostileHelpful" then
             -- Exact readable identities win when available. If Forever seals
             -- them, fall back to Blizzard's broad secure HELPFUL stream.
             enabled = enabled and hostilePlayer and not hostileReadable
@@ -833,6 +880,14 @@ function R.UpdateHost(host)
                 and R.SMALL_UNITS[host.unit]
                 and assistReadable
                 and assistable
+        elseif tier.key == "ChilledSignature" then
+            -- Chilled's semantic signature is the last resort: exact secure
+            -- identity first, then the readable exact Slows witness, then shape.
+            enabled = enabled and not slowsSecureAllowed and not host._slowsReadable
+        elseif tier.key == "WeakenedSoulFallback" then
+            -- Do not run the broad short-harmful approximation where exact
+            -- Weakened Soul identity filtering is already legal.
+            enabled = enabled and not weakenedSoulSecureAllowed
         elseif tier.exact then
             if tier.key == "ResSickness" then
                 enabled = enabled and resSecureAllowed
@@ -854,7 +909,7 @@ function R.UpdateHost(host)
             enabled = false
         end
 
-        setContainer(host.containers[index], enabled)
+        setContainer(host.containers[index], enabled, forceContainerRefresh)
     end
 end
 
@@ -875,9 +930,13 @@ local function showTest(host)
     host.testFrame:Show()
 end
 
-function R.Refresh(unit)
+function R.Refresh(unit, forceContainerRefresh)
     local host = R.hosts[unit]
     if host and not hostStillCurrent(host) then
+        if InCombatLockdown and InCombatLockdown() then
+            R.buildQueued = true
+            return
+        end
         R.DestroyHost(unit)
         host = nil
     end
@@ -885,25 +944,26 @@ function R.Refresh(unit)
     if not host then return end
 
     if R.testMode and R.IsUnitEnabled(unit) then
-        R.UpdateHost(host)
+        R.UpdateHost(host, forceContainerRefresh)
         showTest(host)
     else
         if host.testFrame then host.testFrame:Hide() end
-        R.UpdateHost(host)
+        R.UpdateHost(host, forceContainerRefresh)
     end
 end
 
-function R.RefreshAll()
-    for _, unit in ipairs(R.TRACKED_UNITS) do R.Refresh(unit) end
+function R.RefreshAll(forceContainerRefresh)
+    for _, unit in ipairs(R.TRACKED_UNITS) do R.Refresh(unit, forceContainerRefresh) end
 end
 
 function R.BuildAll()
-    if not R.db or not R.db.enabled then
-        R.DestroyAll()
-        return
-    end
     if InCombatLockdown and InCombatLockdown() then
         R.buildQueued = true
+        return
+    end
+    if not R.db or not R.db.enabled then
+        R.DestroyAll()
+        R.buildQueued = false
         return
     end
     R.buildQueued = false
