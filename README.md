@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.29-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.30-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -17,8 +17,8 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 ## Current scale
 
 - 43 spell/effect categories
-- 820 category memberships
-- 786 unique spell IDs
+- 821 category memberships
+- 787 unique spell IDs
 - 46 priority lanes
 
 ## Files
@@ -89,3 +89,9 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - auraInstanceID is no longer treated as evidence that one BaselineClass aura is newer than another; it is used only as a deterministic tie-break when readable start times are equal.
 - If any competing BaselineClass aura lacks readable start time, the readable override abstains and leaves the secure lane underneath.
 - /bp debug now reports baselineTimingSource and baselineAppliedAt.
+
+
+### v0.1.30
+- Adds Forever fishing Well Fed aura 1249521 to the existing WellFed tier at priority 110.
+- Removes the previous policy exclusion for profession-oriented visible Well Fed variants.
+- No priority, geometry, rendering, semantic fallback, or event behavior changes.
