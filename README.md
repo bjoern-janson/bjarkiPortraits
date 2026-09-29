@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current live-tested baseline: **v0.1.22-clean**.
+Current source: **v0.1.23-clean**. Last live-tested baseline before this surgical hardening pass: **v0.1.22-clean**.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -16,10 +16,10 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 
 ## Current scale
 
-- 41 spell/effect categories
+- 42 spell/effect categories
 - 814 category memberships
-- 778 unique spell IDs
-- 44 priority lanes
+- 780 unique spell IDs
+- 45 priority lanes
 
 ## Files
 
@@ -58,3 +58,4 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - v0.1.20 uses direct player spell lookup for Welcoming Campfire.
 - v0.1.21 moves Elemental Blessing into the Plainsrunning priority lane.
 - v0.1.22 adds Walk on Air to Utility.
+- v0.1.23 repairs Welcoming Campfire fallback coverage, gates semantic approximations behind stronger evidence, moves Rapid Regeneration to Utility, canonicalizes Forbearance/Resurrection Sickness/Honorless Target data, removes redundant secure-container full refreshes from the UNIT_AURA hot path, and makes structural teardown combat-safe.
