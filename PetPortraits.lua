@@ -17,7 +17,10 @@ local HUNTER_NAMES = {
     ["Scorpid"]=true,["Turtle"]=true,["Bat"]=true,["Hyena"]=true,["Owl"]=true,["Wind Serpent"]=true,
 }
 local WARLOCK_IDS = { [23]=688, [16]=697, [17]=712, [15]=691 }
-local WARLOCK_NAMES = { Imp=true, Voidwalker=true, Succubus=true, Incubus=true, Felhunter=true, Infernal=true, Doomguard=true }
+local WARLOCK_NAMES = {
+    Imp=688, Voidwalker=697, Succubus=712, Incubus=713, Felhunter=691,
+    Infernal=1122, Doomguard=18540,
+}
 
 local function classToken(unit)
     if UnitClassBase then
@@ -85,7 +88,7 @@ local function foundationTexture(unit)
     if owner == "HUNTER" then
         return familyTexture(id) or (own and petActionTexture()) or spellTexture(2649)
     end
-    local summon = name == "Incubus" and 713 or WARLOCK_IDS[id]
+    local summon = WARLOCK_NAMES[name] or WARLOCK_IDS[id]
     return spellTexture(summon)
 end
 
