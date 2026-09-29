@@ -129,7 +129,10 @@ local function ensureLocalPetTexture()
     local portrait, mask, frame = getPetPortrait()
     if not portrait or not frame then return nil end
     local parent = portrait.GetParent and portrait:GetParent() or frame
-    local texture = parent:CreateTexture(nil, "ARTWORK", nil, 1)
+    -- PetFrame's native chrome is on the BORDER draw layer. Keep the custom
+    -- family foundation above the native BACKGROUND portrait but below that
+    -- chrome so the addon does not paint over the ring.
+    local texture = parent:CreateTexture(nil, "BACKGROUND", nil, 1)
     texture:SetAllPoints(portrait)
     texture:SetTexCoord(0, 1, 0, 1)
     if mask and texture.AddMaskTexture then pcall(texture.AddMaskTexture, texture, mask) end
