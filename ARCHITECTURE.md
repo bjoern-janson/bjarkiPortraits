@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.26-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.27-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -679,7 +679,7 @@ Higher numbers visually outrank lower numbers.
 330  Immunities
 ```
 
-There are 45 implementation lanes because some conceptual priorities have both exact and semantic mechanisms.
+There are 46 implementation lanes because some conceptual priorities have both exact and semantic mechanisms.
 
 ---
 
@@ -757,3 +757,14 @@ The core secrecy/secure-container model above remains the architecture. Later li
 - v0.1.26 adds Righteous Fury as an exact helpful lane immediately below that band.
 
 These are incremental policy/data/lifecycle changes, not a replacement of the two-plane readable/secure model.
+
+
+## 22. v0.1.27 epistemic hardening
+
+v0.1.27 tightens three evidence boundaries without changing the live selection policy:
+
+- a newly selected readable hostile aura must establish its own texture or the readable overlay is hidden;
+- exhausting a bounded 80-entry readable scan is not treated as observing the end of the aura stream;
+- a failed or inaccessible NeverSecret lookup fails closed for that check but is not cached as a durable negative fact.
+
+The unresolved hostile-visible completeness assumption is intentionally unchanged. A terminated, nonempty Lua-visible hostile stream whose exposed identities are all readable can still suppress broader secure fallbacks. That remains an empirical policy assumption to test adversarially rather than silently redesign.
