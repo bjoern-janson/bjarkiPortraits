@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.25-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.26-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -641,6 +641,7 @@ Higher numbers visually outrank lower numbers.
 30   Campfire Nearby
 40   Welcoming Campfire
 50   Travel Utility
+59   Righteous Fury
 60   Paladin Auras + Demon Skin/Armor + Stoneskin + Healing Stream
 70   Blood Pact
 80   Scrolls
@@ -752,6 +753,7 @@ The core secrecy/secure-container model above remains the architecture. Later li
 - Walk on Air in Utility;
 - v0.1.23 fallback repair for Welcoming Campfire, semantic-lane gating, canonical priority data, combat-safe structural teardown, and event-path refresh discipline;
 - v0.1.24 tri-state player identity, repaired ToT/FoT generic harmful admission, explicit Lua-visible-stream completeness, and unit-scoped high-frequency events;
-- v0.1.25 moves Stoneskin and Healing Stream into the persistent party-aura priority band.
+- v0.1.25 moves Stoneskin and Healing Stream into the persistent party-aura priority band;
+- v0.1.26 adds Righteous Fury as an exact helpful lane immediately below that band.
 
 These are incremental policy/data/lifecycle changes, not a replacement of the two-plane readable/secure model.
