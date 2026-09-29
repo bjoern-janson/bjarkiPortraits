@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.30-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.31-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -788,3 +788,15 @@ BaselineClass candidate has readable start time. `auraInstanceID` remains a
 deterministic tie-break for equal start times, but no longer carries recency
 semantics. If timing evidence is incomplete, the readable override abstains and
 the secure BaselineClass container remains underneath.
+
+
+## 24. Friendly Boosted Rest fallback
+
+Boosted Rest (1229451) exposed a relation asymmetry: a friendly player could show
+the debuff through ToT/FoT's broad secure HARMFUL surface while the same unit as
+a large target could not authorize the exact harmful-ID AuraContainer.
+
+v0.1.31 keeps the large-frame claim narrow. Player/target/focus gain a readable
+exact 1229451 witness only when the secure exact BoostedRest lane is unavailable.
+It renders at priority 20 and abstains if the aura identity is not directly
+readable. Large frames do not gain the generic SmallFriendlyHarmful lane.
