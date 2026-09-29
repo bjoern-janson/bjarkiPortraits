@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.31-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.32-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -101,3 +101,9 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - Adds a narrow readable exact fallback for Boosted Rest (1229451) on player/target/focus when friendly/self relation gating makes the secure exact HARMFUL filter unavailable.
 - The fallback retains Boosted Rest's real priority 20 and does not add a broad harmful lane to large frames.
 - /bp debug adds boostedRestReadable and boostedRestActive.
+
+
+### v0.1.32
+- Moves SmallFriendlyHarmful from priority 189 to priority 1.
+- The ToT/FoT generic secure HARMFUL surface is now a true last-resort fallback: any known tracked aura outranks it.
+- This preserves generic harmful visibility when no tracked state is available while preventing the small-frame fallback from overriding what target/focus would otherwise select.
