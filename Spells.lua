@@ -569,6 +569,9 @@ PT.categories = {
         [9756] = true, -- Thorns Rank 5 (Druid)
         [9910] = true, -- Thorns Rank 6 (Druid)
     },
+    buffs_righteous_fury = {
+        [25780] = true, -- Righteous Fury (Paladin)
+    },
     buffs_paladin_auras = {
         -- Passive Paladin aura states are the absolute-bottom tracked buffs.
         [19746] = true, -- Concentration Aura
