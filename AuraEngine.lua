@@ -598,3 +598,153 @@ function R.CreateHost(unit)
     end
     return host
 end
+
+local function setContainer(container, shown)
+    if not container then return end
+    pcall(container.SetEnabled, container, shown)
+    pcall(container.SetShown, container, shown)
+    if shown and container.UpdateAllAuras then pcall(container.UpdateAllAuras, container) end
+end
+
+function R.UpdateHost(host)
+    if not host then return end
+    local base = R.IsUnitEnabled(host.unit) and not R.testMode
+    local hostilePlayer = R.IsHostilePlayer(host.unit)
+    host._hostilePlayer = hostilePlayer
+
+    local hostileReadable = false
+    if hostilePlayer then
+        hostileReadable = updateReadableHostile(host, base, true)
+    else
+        clearReadableHostile(host)
+    end
+
+    -- Resurrection Sickness is a harmful aura commonly observed on self/friendly
+    -- units, where exact harmful-ID AuraContainer filters may be relation-gated.
+    -- If the secure exact lane is legal, it remains authoritative. Otherwise we
+    -- render only a directly readable exact 15007 witness and make no inference
+    -- when the aura stream or spell identity is inaccessible.
+    local resTier = findTierByKey("ResSickness")
+    local resSecureAllowed = resTier and R.ExactFilterAllowed(
+        host.unit, false, resTier.spellIDs, resTier.allowNeverSecret
+    ) or false
+    host._resSicknessReadable = false
+    host._resSicknessActive = false
+    if not R.SMALL_UNITS[host.unit] and base and resTier and not resSecureAllowed then
+        local aura, readable = scanReadableExactAura(host.unit, "HARMFUL", RES_SICKNESS_SPELL_ID)
+        host._resSicknessReadable = readable
+        if aura then
+            host._resSicknessActive = showReadableAura(
+                host.readableResSicknessFrame, aura, RES_SICKNESS_SPELL_ID
+            )
+        else
+            hideReadableExact(host.readableResSicknessFrame)
+        end
+    elseif host.readableResSicknessFrame then
+        hideReadableExact(host.readableResSicknessFrame)
+    end
+
+    -- Restore the established BaselineClass rule: newest application/refresh
+    -- wins within the tier whenever the whole candidate set is directly readable.
+    -- The secure BaselineClass container remains active underneath as fallback.
+    updateReadableBaseline(host, base)
+
+    for index, tier in ipairs(R.TIERS or {}) do
+        local enabled = base
+
+        if tier.key == "HostileHelpful" then
+            -- Exact readable identities win when available. If Forever seals
+            -- them, fall back to Blizzard's broad secure HELPFUL stream.
+            enabled = enabled and hostilePlayer and not hostileReadable
+        elseif tier.exact then
+            if tier.helpful and hostilePlayer then
+                -- Exact helpful spell-ID filters are not authorized for hostile
+                -- units. Never ask AuraContainer to pretend otherwise.
+                enabled = false
+            elseif tier.key == "ResSickness" then
+                enabled = enabled and resSecureAllowed
+            else
+                enabled = enabled and R.ExactFilterAllowed(
+                    host.unit, tier.helpful, tier.spellIDs, tier.allowNeverSecret
+                )
+            end
+        elseif hostilePlayer and hostileReadable
+            and (tier.key == "Important" or tier.key == "ExternalDef" or tier.key == "BigDef")
+        then
+            -- When every hostile helpful identity is readable, the exact scanner
+            -- already enforces our tracked whitelist. Suppress broad semantic
+            -- lanes so untracked maintenance buffs cannot replace it.
+            enabled = false
+        end
+
+        setContainer(host.containers[index], enabled)
+    end
+end
+
+local function showTest(host)
+    if not host or not host.testFrame then return end
+    local texture = 132298
+    if C_Spell and C_Spell.GetSpellTexture then
+        local ok, value = pcall(C_Spell.GetSpellTexture, 408)
+        if ok and value then texture = value end
+    elseif GetSpellTexture then
+        local ok, value = pcall(GetSpellTexture, 408)
+        if ok and value then texture = value end
+    end
+    host.testFrame.icon:SetTexture(texture)
+    if host.testFrame.cooldown and host.testFrame.cooldown.SetCooldown then
+        pcall(host.testFrame.cooldown.SetCooldown, host.testFrame.cooldown, GetTime(), 10)
+    end
+    host.testFrame:Show()
+end
+
+function R.Refresh(unit)
+    local host = R.hosts[unit]
+    if host and not hostStillCurrent(host) then
+        R.DestroyHost(unit)
+        host = nil
+    end
+    host = host or R.CreateHost(unit)
+    if not host then return end
+
+    if R.testMode and R.IsUnitEnabled(unit) then
+        R.UpdateHost(host)
+        showTest(host)
+    else
+        if host.testFrame then host.testFrame:Hide() end
+        R.UpdateHost(host)
+    end
+end
+
+function R.RefreshAll()
+    for _, unit in ipairs(R.TRACKED_UNITS) do R.Refresh(unit) end
+end
+
+function R.BuildAll()
+    if not R.db or not R.db.enabled then
+        R.DestroyAll()
+        return
+    end
+    if InCombatLockdown and InCombatLockdown() then
+        R.buildQueued = true
+        return
+    end
+    R.buildQueued = false
+    for _, unit in ipairs(R.TRACKED_UNITS) do R.CreateHost(unit) end
+    R.RefreshAll()
+end
+
+function R.ApplyPresentation()
+    R._formatter = nil
+    for _, host in pairs(R.hosts) do
+        for _, cooldown in ipairs(host.cooldowns or {}) do
+            if cooldown.SetDrawSwipe then pcall(cooldown.SetDrawSwipe, cooldown, R.db.showSwipe) end
+            local formatter = R.GetCountdownFormatter()
+            if formatter and cooldown.SetCountdownFormatter then
+                pcall(cooldown.SetCountdownFormatter, cooldown, formatter)
+            elseif cooldown.SetCountdownMillisecondsThreshold then
+                pcall(cooldown.SetCountdownMillisecondsThreshold, cooldown, R.db.showDecimals and 10 or 0)
+            end
+        end
+    end
+end
