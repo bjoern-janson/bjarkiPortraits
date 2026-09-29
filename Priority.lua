@@ -31,6 +31,7 @@ R.TIERS = {
     exact("CampfireNearby", "HELPFUL", 30, true, C.buffs_campfire_nearby),
     exact("WelcomingCampfire", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 40, true, C.buffs_welcoming_campfire),
     exact("TravelUtility", "HELPFUL", 50, true, C.buffs_travel_utility),
+    exact("RighteousFury", "HELPFUL", 59, true, C.buffs_righteous_fury),
     exact("PaladinAura", "HELPFUL", 60, true, union("buffs_paladin_auras", "buffs_warlock_armor")),
     exact("BloodPact", "HELPFUL", 70, true, C.buffs_blood_pact),
     exact("Scrolls", "HELPFUL", 80, true, C.buffs_scrolls),
