@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.23-clean"
+R.VERSION = "0.1.24-clean"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
@@ -170,22 +170,31 @@ function R.ExactFilterAllowed(unit, helpful, spellIDs, allowNeverSecret)
     return not assist
 end
 
-function R.IsPlayerUnit(unit)
-    if not unit then return false end
+function R.PlayerUnitState(unit)
+    if not unit then return nil, false end
 
     local player, readable = R.SafeBool(UnitIsPlayer, unit)
-    if readable then return player end
+    if readable then return player, true end
 
     -- Forever can protect UnitIsPlayer while leaving the GUID type readable.
+    -- A readable non-player GUID is positive evidence of "not a player"; an
+    -- inaccessible/missing GUID is UNKNOWN and must not be collapsed to false.
     if UnitGUID then
         local ok, guid = pcall(UnitGUID, unit)
         if ok and R.CanAccess(guid) and type(guid) == "string" then
-            return guid:match("^Player%-") ~= nil
+            return guid:match("^Player%-") ~= nil, true
         end
     end
 
-    local controlled, controlledReadable = R.SafeBool(UnitPlayerControlled, unit)
-    return controlledReadable and controlled or false
+    -- UnitPlayerControlled is deliberately not an identity fallback: pets and
+    -- other controlled units can satisfy it without being players. If neither
+    -- UnitIsPlayer nor GUID type is readable, player identity is UNKNOWN.
+    return nil, false
+end
+
+function R.IsPlayerUnit(unit)
+    local player, readable = R.PlayerUnitState(unit)
+    return readable and player or false
 end
 
 function R.IsHostileUnit(unit)
