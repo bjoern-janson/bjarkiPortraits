@@ -105,6 +105,7 @@ local function findHelpfulTierForSpell(spellID)
     return best
 end
 
+local BOOSTED_REST_SPELL_ID = 1229451
 local RES_SICKNESS_SPELL_ID = 15007
 local WELCOMING_CAMPFIRE_SPELL_ID = 1229739
 
@@ -777,6 +778,11 @@ function R.CreateHost(unit)
     -- They are lifecycle-sensitive; do not attach the ordinary readable
     -- Resurrection Sickness helper surface to ToT/FoT.
     if not R.SMALL_UNITS[unit] then
+        local boostedRestTier = findTierByKey("BoostedRest")
+        host.readableBoostedRestFrame = createReadableExactFrame(
+            host, boostedRestTier and boostedRestTier.level or 20
+        )
+
         local slowsTier = findTierByKey("Slows")
         host.readableSlowsFrame = createReadableExactFrame(host, slowsTier and slowsTier.level or 220)
 
@@ -845,6 +851,32 @@ function R.UpdateHost(host, forceContainerRefresh)
     -- Friendly/self exact harmful spell-ID filters can be relation-restricted.
     -- Directly readable Slows therefore get a narrow exact fallback.
     updateReadableSlows(host, base)
+
+    -- Boosted Rest is a harmful camping cooldown that can be directly readable
+    -- on friendly/self units even when exact harmful-ID AuraContainer filtering
+    -- is relation-gated. Keep the secure exact lane authoritative when legal;
+    -- otherwise render only a directly readable exact 1229451 witness.
+    local boostedRestTier = findTierByKey("BoostedRest")
+    local boostedRestSecureAllowed = boostedRestTier and R.ExactFilterAllowed(
+        host.unit, false, boostedRestTier.spellIDs, boostedRestTier.allowNeverSecret
+    ) or false
+    host._boostedRestReadable = false
+    host._boostedRestActive = false
+    if not R.SMALL_UNITS[host.unit] and base and boostedRestTier and not boostedRestSecureAllowed then
+        local aura, readable = scanReadableExactAura(
+            host.unit, "HARMFUL|INCLUDE_NAME_PLATE_ONLY", BOOSTED_REST_SPELL_ID
+        )
+        host._boostedRestReadable = readable
+        if aura then
+            host._boostedRestActive = showReadableAura(
+                host.readableBoostedRestFrame, aura, BOOSTED_REST_SPELL_ID
+            )
+        else
+            hideReadableExact(host.readableBoostedRestFrame)
+        end
+    elseif host.readableBoostedRestFrame then
+        hideReadableExact(host.readableBoostedRestFrame)
+    end
 
     -- Resurrection Sickness is a harmful aura commonly observed on self/friendly
     -- units, where exact harmful-ID AuraContainer filters may be relation-gated.
