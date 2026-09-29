@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes how **bjarkiPortraits v0.1.17-clean** works and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model.
+This document describes how **bjarkiPortraits v0.1.22-clean** works and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model.
 
 There are three different kinds of statement here:
 
@@ -717,3 +717,16 @@ The key upstream UI-source mirror is `Gethe/wow-ui-source`, especially:
   - candidate-filter validation and secure custom-container plumbing
 
 Those sources explain the general mechanism. The actual Forever client and live tests remain authoritative for this project.
+
+
+## 21. Post-v0.1.17 deltas
+
+The core secrecy/secure-container model above remains the architecture. Later live-tested changes add:
+
+- a lower-layer local PetFrame family foundation so Blizzard chrome remains on top;
+- a secure generic harmful lane for readably assistable ToT/FoT where exact harmful identity is relation-gated;
+- direct `GetPlayerAuraBySpellID(1229739)` lookup for Welcoming Campfire before indexed scanning;
+- Elemental Blessing in the same actual priority-10 pool as Plainsrunning;
+- Walk on Air in Utility.
+
+These are incremental policy/data changes, not a replacement of the two-plane readable/secure model.
