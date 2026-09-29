@@ -2,7 +2,7 @@
 ## Title: bjarkiPortraits
 ## Notes: Portrait aura timers for WoW: Forever
 ## Author: Bjarki / OpenAI
-## Version: 0.1.23-clean
+## Version: 0.1.24-clean
 ## SavedVariables: BjarkiPortraitsDB
 
 Spells.lua
