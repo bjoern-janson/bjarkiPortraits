@@ -1,0 +1,14 @@
+## Interface: 16001
+## Title: bjarkiPortraits
+## Notes: Portrait aura timers for WoW: Forever
+## Author: Bjarki / OpenAI
+## Version: 0.1.8-clean
+## SavedVariables: BjarkiPortraitsDB
+
+Spells.lua
+Core.lua
+Priority.lua
+AuraEngine.lua
+PetPortraits.lua
+Commands.lua
+Main.lua
