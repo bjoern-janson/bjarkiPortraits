@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.26-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.27-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -68,3 +68,10 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 
 ### v0.1.26
 - Adds Righteous Fury (25780) as its own exact helpful lane at priority 59, immediately below the PaladinAura party-support band at 60.
+
+
+### v0.1.27
+- Readable hostile texture failure now hides the readable overlay instead of leaving the previous winner's icon visible.
+- Bounded 80-entry readable scans no longer claim completeness unless they actually observe the aura-stream terminator.
+- Unreadable/failed NeverSecret lookups fail closed for the current check but are no longer cached as permanent false results.
+- No hostileReadable policy, semantic signature, priority, geometry, or event behavior changes.
