@@ -753,8 +753,7 @@ PT.categories = {
         [1229741] = true, -- Camp Benefits (Forever camping)
     },
     buffs_well_fed = {
-        -- Combat-relevant Well Fed auras. Profession-only Well Fed variants
-        -- (Fishing/Herbalism skill, etc.) are intentionally excluded.
+        -- Visible Well Fed auras, including profession-oriented variants.
         [19705] = true, -- Well Fed: +2 Stamina/Spirit
         [19706] = true, -- Well Fed: +4 Stamina/Spirit
         [19708] = true, -- Well Fed: +6 Stamina/Spirit
@@ -771,6 +770,7 @@ PT.categories = {
         [1248422] = true, -- Forever Well Fed: Strength
         [1249519] = true, -- Forever Well Fed: Attack Power
         [1249520] = true, -- Forever Well Fed: Spell Damage
+        [1249521] = true, -- Forever Well Fed: Fishing Skill
         [1249523] = true, -- Forever Well Fed: Critical Strike
         [1248688] = true, -- Forever Well Fed: movement speed (Westfall)
         [1249926] = true, -- Forever Well Fed: Spirit
