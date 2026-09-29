@@ -573,6 +573,8 @@ local function clearReadableBaseline(host)
         host._baselineReadable = false
         host._baselineSpellID = nil
         host._baselineTimingReadable = false
+        host._baselineTimingSource = nil
+        host._baselineAppliedAt = nil
     end
 end
 
