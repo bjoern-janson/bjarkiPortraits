@@ -298,3 +298,153 @@ local function hideReadableExact(frame)
         if frame.cooldown.Clear then
             pcall(frame.cooldown.Clear, frame.cooldown)
         elseif frame.cooldown.SetCooldown then
+            pcall(frame.cooldown.SetCooldown, frame.cooldown, 0, 0)
+        end
+    end
+    frame:Hide()
+end
+
+local function showReadableAura(frame, aura, spellID)
+    if not frame or not aura then return false end
+
+    local texture
+    if C_Spell and C_Spell.GetSpellTexture then
+        local ok, value = pcall(C_Spell.GetSpellTexture, spellID)
+        if ok and R.CanAccess(value) then texture = value end
+    elseif GetSpellTexture then
+        local ok, value = pcall(GetSpellTexture, spellID)
+        if ok and R.CanAccess(value) then texture = value end
+    end
+    if texture then pcall(frame.icon.SetTexture, frame.icon, texture) end
+
+    local duration, durationReadable = R.ReadAuraField(aura, "duration")
+    local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
+    if frame.cooldown then
+        if durationReadable and expirationReadable
+            and type(duration) == "number" and type(expirationTime) == "number"
+            and duration > 0 and frame.cooldown.SetCooldown
+        then
+            pcall(frame.cooldown.SetCooldown, frame.cooldown, expirationTime - duration, duration)
+        elseif frame.cooldown.Clear then
+            pcall(frame.cooldown.Clear, frame.cooldown)
+        elseif frame.cooldown.SetCooldown then
+            pcall(frame.cooldown.SetCooldown, frame.cooldown, 0, 0)
+        end
+    end
+
+    frame:Show()
+    return true
+end
+
+local function clearReadableHostile(host)
+    local frame = host and host.readableHostileFrame
+    if not frame then return end
+    if frame.cooldown then
+        if frame.cooldown.Clear then
+            pcall(frame.cooldown.Clear, frame.cooldown)
+        elseif frame.cooldown.SetCooldown then
+            pcall(frame.cooldown.SetCooldown, frame.cooldown, 0, 0)
+        end
+    end
+    frame:Hide()
+    host._hostileReadable = false
+    host._hostileCount = 0
+    host._hostileSpellID = nil
+end
+
+local function updateReadableHostile(host, baseEnabled, hostilePlayer)
+    if not host or not baseEnabled or not hostilePlayer or R.testMode then
+        clearReadableHostile(host)
+        return false
+    end
+
+    local best, allReadable, count = scanReadableHostileHelpful(host.unit)
+    host._hostileReadable = allReadable
+    host._hostileCount = count
+    host._hostileSpellID = best and best.spellID or nil
+
+    local frame = host.readableHostileFrame
+    if not frame or not best then
+        if frame then frame:Hide() end
+        return allReadable
+    end
+
+    local texture
+    if C_Spell and C_Spell.GetSpellTexture then
+        local ok, value = pcall(C_Spell.GetSpellTexture, best.spellID)
+        if ok and R.CanAccess(value) then texture = value end
+    elseif GetSpellTexture then
+        local ok, value = pcall(GetSpellTexture, best.spellID)
+        if ok and R.CanAccess(value) then texture = value end
+    end
+    if texture then pcall(frame.icon.SetTexture, frame.icon, texture) end
+
+    -- +2 puts the readable exact witness above the secure button for the same
+    -- priority lane, while higher-priority secure lanes still outrank it.
+    if frame.SetFrameLevel then pcall(frame.SetFrameLevel, frame, (host.smallBaseLevel or 0) + (best.tier.level or 1) + 2) end
+
+    local duration, durationReadable = R.ReadAuraField(best.aura, "duration")
+    local expirationTime, expirationReadable = R.ReadAuraField(best.aura, "expirationTime")
+    if frame.cooldown then
+        if durationReadable and expirationReadable
+            and type(duration) == "number" and type(expirationTime) == "number"
+            and duration > 0 and frame.cooldown.SetCooldown
+        then
+            pcall(frame.cooldown.SetCooldown, frame.cooldown, expirationTime - duration, duration)
+        elseif frame.cooldown.Clear then
+            pcall(frame.cooldown.Clear, frame.cooldown)
+        elseif frame.cooldown.SetCooldown then
+            pcall(frame.cooldown.SetCooldown, frame.cooldown, 0, 0)
+        end
+    end
+
+    frame:Show()
+    return allReadable
+end
+
+local function clearReadableBaseline(host)
+    local frame = host and host.readableBaselineFrame
+    if frame then hideReadableExact(frame) end
+    if host then
+        host._baselineReadable = false
+        host._baselineSpellID = nil
+        host._baselineTimingReadable = false
+    end
+end
+
+local function updateReadableBaseline(host, baseEnabled)
+    if not host or not baseEnabled or R.testMode then
+        clearReadableBaseline(host)
+        return
+    end
+
+    local tier = findTierByKey("BaselineClass")
+    if not tier or not R.ExactFilterAllowed(
+        host.unit, true, tier.spellIDs, tier.allowNeverSecret
+    ) then
+        clearReadableBaseline(host)
+        return
+    end
+
+    local best, complete = scanLatestReadableBaselineAura(host.unit)
+    host._baselineReadable = complete
+    host._baselineSpellID = best and best.spellID or nil
+    host._baselineTimingReadable = best and best.timingReadable or false
+
+    if not complete or not best then
+        hideReadableExact(host.readableBaselineFrame)
+        return
+    end
+
+    showReadableAura(host.readableBaselineFrame, best.aura, best.spellID)
+end
+
+local function createTestFrame(host)
+    local frame = CreateFrame("Frame", nil, host.layer)
+    placeAtPortrait(frame, host)
+    frame:SetFrameStrata(host.strata)
+    frame:SetFrameLevel((host.smallBaseLevel or 0) + 900)
+    local icon = frame:CreateTexture(nil, "OVERLAY")
+    icon:SetAllPoints(frame)
+    icon:SetTexCoord(0, 1, 0, 1)
+    applyIconMask(host, frame, icon)
