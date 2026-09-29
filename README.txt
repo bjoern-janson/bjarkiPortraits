@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.17-clean
+bjarkiPortraits 0.1.22-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -147,3 +147,22 @@ v0.1.17-clean
   identity, helpful Magic auras, <=30 minute duration, and non-player/pet source.
 - Chilled combat signature is unchanged.
 - No portrait geometry, priority levels, ToT/FoT behavior, or timer changes.
+
+
+v0.1.18-clean
+- Fixes the local PetFrame custom pet-family foundation draw order.
+- The custom icon now renders below Blizzard's native BORDER chrome.
+
+v0.1.19-clean
+- Adds SmallFriendlyHarmful at priority 189 for readably assistable ToT/FoT.
+- Adds assistReadable / assistable diagnostics.
+
+v0.1.20-clean
+- Welcoming Campfire now queries C_UnitAuras.GetPlayerAuraBySpellID(1229739) first.
+- Adds welcomingDirect diagnostics.
+
+v0.1.21-clean
+- Moves Elemental Blessing (1259688 / 1270893) into the same priority-10 candidate pool as Plainsrunning.
+
+v0.1.22-clean
+- Adds Walk on Air (1259416 / 1308663) to Utility.
