@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.23-clean
+bjarkiPortraits 0.1.24-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -15,7 +15,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.17 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.24 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -178,3 +178,13 @@ v0.1.23-clean
 - Portrait teardown/reparent restoration is deferred out of combat, including slash-command destruction paths.
 - Readable overlays abstain rather than showing a stale previous icon if spell texture lookup fails.
 - Warlock pet foundations now have name-based artwork fallbacks for Imp/Voidwalker/Succubus/Incubus/Felhunter/Infernal/Doomguard.
+
+
+v0.1.24-clean
+- Restores the generic secure HARMFUL surface on ToT/FoT whenever exact harmful identity filtering is not authorized; no readable-friendly inference is required.
+- Adds tri-state player identity: unreadable player-ness remains UNKNOWN instead of silently becoming NPC/false.
+- Frost Armor semantic fallback now requires positive evidence that the hostile unit is non-player.
+- Separates completion of the Lua-visible hostile helpful stream from authority over Blizzard's secure aura plane.
+- Scopes UNIT_AURA, UNIT_FACTION, UNIT_FLAGS, UNIT_CONNECTION, UNIT_TARGET, and UNIT_PET to only unit tokens owned by the addon.
+- /bp debug now exposes playerReadable/isPlayer, exactHarmful/smallHarmful, and hostileVisibleComplete.
+- Live evidence after this pass: Welcoming Campfire works; Frost Armor/Chilled remains good on the test NPC; hostile-player aura selection has been correct across the current sample; a dense Booty Bay test did not reproduce the earlier lag.
