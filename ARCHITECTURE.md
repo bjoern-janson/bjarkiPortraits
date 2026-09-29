@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.33-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.34-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -645,13 +645,12 @@ Higher numbers visually outrank lower numbers.
 10   Plainsrunning
 20   Boosted Rest
 30   Campfire Nearby
-40   Welcoming Campfire
 50   Travel Utility
 59   Righteous Fury
 60   Paladin Auras + Demon Skin/Armor + Stoneskin + Healing Stream
 70   Blood Pact
 80   Scrolls
-90   BaselineClass
+90   BaselineClass + Welcoming Campfire
 100  Camp Benefits
 110  Well Fed
 120  Thorns
@@ -818,3 +817,14 @@ v0.1.32 therefore moves that lane to priority 1, below every tracked aura tier.
 The fallback still replaces the native portrait when no tracked state is
 available, but it can no longer outrank a known tracked aura merely because the
 unit is being observed through ToT/FoT.
+
+
+## 26. Welcoming Campfire priority
+
+v0.1.34 moves Welcoming Campfire into the Class Buffs priority band at level 90.
+
+It remains a separate implementation lane rather than being unioned into
+BaselineClass because Forever requires HELPFUL|INCLUDE_NAME_PLATE_ONLY for its
+secure visibility path, and the addon also keeps a narrow player-only readable
+exact witness. The two mechanisms therefore share priority semantics without
+collapsing their distinct evidence/visibility requirements.
