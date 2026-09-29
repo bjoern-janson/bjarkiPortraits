@@ -2,13 +2,14 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.22-clean"
+R.VERSION = "0.1.23-clean"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
 R.hosts = {}
 R.testMode = false
 R.buildQueued = false
+R.forceRebuildQueued = false
 R.AURA_ANCHOR_TEMPLATE = "DisableUntrustedLayoutScriptsTemplate"
 R.SORT_METHOD = AuraContainerSortMethod and AuraContainerSortMethod.AuraInstanceIDOnly
 R.SORT_DIRECTION = AuraContainerSortDirection and AuraContainerSortDirection.Reverse
