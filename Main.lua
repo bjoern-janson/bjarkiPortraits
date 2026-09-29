@@ -60,7 +60,9 @@ local function installUnitStateEvents(unitA, unitB)
         else
             R.Refresh(unit, true)
         end
-        if unit == "target" or unit == "focus" then
+        if unit == "target" or unit == "focus"
+            or unit == "targettarget" or unit == "focustarget"
+        then
             R.UpdateObservedPetPortraits()
         end
     end)
@@ -80,9 +82,16 @@ local function installUnitTargetEvents(unitA, unitB)
     if unitB then frame:RegisterUnitEvent("UNIT_TARGET", unitA, unitB)
     else frame:RegisterUnitEvent("UNIT_TARGET", unitA) end
     frame:SetScript("OnEvent", function(_, _, unit)
-        if unit == "target" then R.Refresh("targettarget", true)
-        elseif unit == "focus" then R.Refresh("focustarget", true)
-        elseif unit == "player" then R.Refresh("target", true) end
+        if unit == "target" then
+            R.Refresh("targettarget", true)
+            R.UpdateObservedPetPortraits()
+        elseif unit == "focus" then
+            R.Refresh("focustarget", true)
+            R.UpdateObservedPetPortraits()
+        elseif unit == "player" then
+            R.Refresh("target", true)
+            R.UpdateObservedPetPortraits()
+        end
     end)
     unitTargetFrames[#unitTargetFrames + 1] = frame
 end
