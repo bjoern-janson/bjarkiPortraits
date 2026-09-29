@@ -63,11 +63,10 @@ R.TIERS = {
     exact("HuntersMark", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 180, false, C.debuffs_hunters_mark),
 
     -- Small friendly derived frames (ToT/FoT) sit on the relation side where
-    -- exact harmful spell-ID filtering is intentionally unavailable. This
-    -- secure broad lane restores "some harmful state is present" without
-    -- pretending to recover the protected spell identity. Higher semantic
-    -- control/debuff lanes still outrank it.
-    semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 189),
+    -- exact harmful spell-ID filtering can be unavailable. This broad secure
+    -- lane means only "some harmful state is present", so it is deliberately
+    -- the lowest-priority aura surface. Any known tracked state must outrank it.
+    semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 1),
 
     exact("DoTs", "HARMFUL", 190, false, C.debuffs_dots),
     exact("LowDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 200, false, C.debuffs_other),
