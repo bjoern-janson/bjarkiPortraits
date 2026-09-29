@@ -362,6 +362,7 @@ PT.categories = {
         [1236175] = true, -- Blink (Mage, Forever variant)
         [1259416] = true, -- Walk on Air (Skyborne racial, 10 sec)
         [1308663] = true, -- Walk on Air (Forever variant, 1 min)
+        [1260270] = true, -- Rapid Regeneration (Troll racial, Forever)
         [1002] = true, -- Eyes of the Beast (Hunter)
         [20707] = true, -- Soulstone Resurrection Rank 1
         [20762] = true, -- Soulstone Resurrection Rank 2
@@ -449,10 +450,7 @@ PT.categories = {
 
     },
     debuffs_priority = {
-        -- Documentation/fallback IDs for the Forbearance-priority band.
         [25771] = true, -- Forbearance (Paladin)
-        [15007] = true, -- Resurrection Sickness
-        [2479] = true, -- Honorless Target (helpful aura; active tier below)
     },
     debuffs_res_sickness = {
         [15007] = true, -- Resurrection Sickness
@@ -484,7 +482,6 @@ PT.categories = {
         -- Active recovery/channel states share one portrait priority lane.
         [20577] = true, -- Cannibalize activation (Undead)
         [20578] = true, -- Cannibalize channel aura (Undead)
-        [1260270] = true, -- Rapid Regeneration (Troll racial, Forever)
         [12051] = true, -- Evocation (Mage)
         -- Food (Vanilla/Forever eating auras)
         [433] = true, -- Food
