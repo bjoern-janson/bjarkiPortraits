@@ -115,10 +115,10 @@ local function findTierByKey(key)
     end
 end
 
--- BaselineClass has a stronger within-tier contract than AuraInstanceID sorting
--- alone can provide: a refreshed aura should become the visible winner even when
--- Forever preserves that aura's instance ID. auraInstanceID is an identity/
--- deterministic sort key, not evidence of application time.
+-- The priority-90 class-buff band has a stronger within-tier contract than
+-- AuraInstanceID sorting alone can provide: a refreshed aura should become the
+-- visible winner even when Forever preserves that aura's instance ID.
+-- auraInstanceID is an identity/deterministic sort key, not application time.
 --
 -- Prefer Blizzard's DurationObject start time when it is readable. Fall back to
 -- the legacy expiration-duration witness only when needed.
