@@ -29,7 +29,7 @@ R.TIERS = {
     exact("Plainsrunning", "HELPFUL", 10, true, union("buffs_plainsrunning", "buffs_elemental_blessing"), true),
     exact("BoostedRest", "HARMFUL", 20, false, C.debuffs_boosted_rest, true),
     exact("CampfireNearby", "HELPFUL", 30, true, C.buffs_campfire_nearby),
-    exact("WelcomingCampfire", "HELPFUL", 40, true, C.buffs_welcoming_campfire),
+    exact("WelcomingCampfire", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 40, true, C.buffs_welcoming_campfire),
     exact("TravelUtility", "HELPFUL", 50, true, C.buffs_travel_utility),
     exact("PaladinAura", "HELPFUL", 60, true, union("buffs_paladin_auras", "buffs_warlock_armor")),
     exact("BloodPact", "HELPFUL", 70, true, C.buffs_blood_pact),
