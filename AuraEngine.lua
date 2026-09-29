@@ -199,6 +199,27 @@ local function scanReadableExactAura(unit, filter, spellID)
     return nil, true
 end
 
+local function getReadablePlayerAuraBySpellID(spellID)
+    if not C_UnitAuras or not C_UnitAuras.GetPlayerAuraBySpellID then
+        return nil, false, false
+    end
+
+    local ok, aura = pcall(C_UnitAuras.GetPlayerAuraBySpellID, spellID)
+    if not ok then return nil, false, true end
+    if aura == nil then return nil, true, true end
+    if not R.CanAccess(aura) then return nil, false, true end
+
+    local auraSpellID, readable = R.ReadAuraField(aura, "spellId")
+    if not readable or type(auraSpellID) ~= "number" then
+        return nil, false, true
+    end
+    if auraSpellID ~= spellID then
+        return nil, false, true
+    end
+
+    return aura, true, true
+end
+
 local function scanLatestReadableExactTierAura(unit, tierKey, filter)
     local tier = findTierByKey(tierKey)
     if not tier or not tier.spellIDs then return nil, false end
@@ -709,8 +730,13 @@ function R.UpdateHost(host)
     local base = R.IsUnitEnabled(host.unit) and not R.testMode
     local hostileUnit = R.IsHostileUnit(host.unit)
     local hostilePlayer = R.IsHostilePlayer(host.unit)
+    local assistable, assistReadable = R.SafeBool(
+        UnitCanAssist, "player", host.unit, true, true
+    )
     host._hostileUnit = hostileUnit
     host._hostilePlayer = hostilePlayer
+    host._assistable = assistReadable and assistable or nil
+    host._assistReadable = assistReadable
 
     local hostileReadable = false
     if hostileUnit then
@@ -756,10 +782,23 @@ function R.UpdateHost(host)
     -- WelcomingCampfire AuraContainer remains active underneath as fallback.
     host._welcomingCampfireReadable = false
     host._welcomingCampfireActive = false
+    host._welcomingCampfireDirect = false
     if host.unit == "player" and base and host.readableWelcomingCampfireFrame then
-        local aura, readable = scanReadableExactAura(
-            host.unit, "HELPFUL|INCLUDE_NAME_PLATE_ONLY", WELCOMING_CAMPFIRE_SPELL_ID
+        -- This is a single known self-buff, so do not require the entire player
+        -- helpful stream to be readable. Query it directly by spell ID first.
+        local aura, readable, directAvailable = getReadablePlayerAuraBySpellID(
+            WELCOMING_CAMPFIRE_SPELL_ID
         )
+        host._welcomingCampfireDirect = directAvailable
+
+        -- Older/variant clients may not expose GetPlayerAuraBySpellID. Only in
+        -- that case fall back to the indexed helpful scan.
+        if not directAvailable then
+            aura, readable = scanReadableExactAura(
+                host.unit, "HELPFUL", WELCOMING_CAMPFIRE_SPELL_ID
+            )
+        end
+
         host._welcomingCampfireReadable = readable
         if aura then
             host._welcomingCampfireActive = showReadableAura(
@@ -784,6 +823,16 @@ function R.UpdateHost(host)
             -- Exact readable identities win when available. If Forever seals
             -- them, fall back to Blizzard's broad secure HELPFUL stream.
             enabled = enabled and hostilePlayer and not hostileReadable
+        elseif tier.key == "SmallFriendlyHarmful" then
+            -- Symmetric counterpart to HostileHelpful: exact harmful identity
+            -- is relation-gated on friendly units. Restrict this broad secure
+            -- fallback to the two small derived frames and require a readable
+            -- assistable relation rather than inferring "friendly" from lack
+            -- of hostile evidence.
+            enabled = enabled
+                and R.SMALL_UNITS[host.unit]
+                and assistReadable
+                and assistable
         elseif tier.exact then
             if tier.key == "ResSickness" then
                 enabled = enabled and resSecureAllowed
