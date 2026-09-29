@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.27-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.29-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -768,3 +768,23 @@ v0.1.27 tightens three evidence boundaries without changing the live selection p
 - a failed or inaccessible NeverSecret lookup fails closed for that check but is not cached as a durable negative fact.
 
 The unresolved hostile-visible completeness assumption is intentionally unchanged. A terminated, nonempty Lua-visible hostile stream whose exposed identities are all readable can still suppress broader secure fallbacks. That remains an empirical policy assumption to test adversarially rather than silently redesign.
+
+
+## 23. BaselineClass recency witness
+
+v0.1.29 removes an unsupported implication from BaselineClass arbitration:
+
+```text
+higher auraInstanceID != newer application
+```
+
+The readable BaselineClass helper now prefers the start time exposed by
+`C_UnitAuras.GetAuraDuration(unit, auraInstanceID):GetStartTime()`. If that
+start time is not readable, it can still derive a start witness from
+`expirationTime - duration`.
+
+A readable newest-aura override is authorized only when every competing
+BaselineClass candidate has readable start time. `auraInstanceID` remains a
+deterministic tie-break for equal start times, but no longer carries recency
+semantics. If timing evidence is incomplete, the readable override abstains and
+the secure BaselineClass container remains underneath.
