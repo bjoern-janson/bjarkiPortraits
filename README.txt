@@ -64,6 +64,7 @@ v0.1.8-clean
   portraits, hostile-helpful policy, or spell priorities changed from 0.1.7.
 
 
+
 v0.1.9-clean
 - Adds a narrow player-only readable exact fallback for Welcoming Campfire (1229739).
 - Keeps the existing secure WelcomingCampfire tier underneath as fallback.
@@ -71,28 +72,76 @@ v0.1.9-clean
 - No portrait geometry, ToT/FoT offsets, masks, parents, strata, pet portraits,
   hostile-helpful policy, BaselineClass recency, or priority levels changed.
 
+
 v0.1.10-clean
 - Adds Mage Blink (1953) and the Forever Blink variant (1236175) to the existing Utility buff tier.
+- No priority, aura admission, portrait geometry, ToT/FoT, or pet portrait behavior changed.
+
 
 v0.1.11-clean
-- Moves Demon Skin and Demon Armor into the same secure priority lane as Paladin auras.
+- Moves Demon Skin ranks 1-2 and Demon Armor ranks 1-5 into the exact same priority lane as Paladin auras.
+- The shared lane is one unioned secure AuraContainer candidate pool, so same-tier recency is resolved within one container rather than by sibling-frame ordering.
+- Removes Demon Skin/Demon Armor from the higher SelfState category to avoid duplicate membership.
+- No geometry, ToT/FoT, hostile-aura, readable-fallback, pet-portrait, or timer logic changed.
+
 
 v0.1.12-clean
-- Moves Cannibalize, Rapid Regeneration, and Evocation into FoodDrink.
-- Adds Innervate one priority step above FoodDrink.
+- Moves Cannibalize (20577/20578), Rapid Regeneration (1260270), and Evocation
+  (12051) into the existing FoodDrink priority lane.
+- Moves Innervate (29166) into its own lane exactly one priority step above
+  FoodDrink (261 vs 260), still below Utility (270).
+- Removes Rapid Regeneration from Utility and Evocation/Innervate from Offensive
+  so each spell has one canonical priority assignment.
+- No portrait geometry, ToT/FoT behavior, hostile handling, or recency logic changed.
+
 
 v0.1.13-clean
-- Adds additional Forever/NPC Chilled aura IDs.
+- Adds additional Forever/NPC Chilled aura IDs to the existing Slows lane:
+  12484, 15850, 18101, 20005, and 1296223.
+- Keeps 6136 and 7321.
+- No priority, rendering, geometry, or admission logic changed.
+
 
 v0.1.14-clean
-- Adds NPC Frost Armor IDs and readable hostile-NPC/slows fallbacks.
+- Adds visible NPC/Forever Frost Armor IDs 12544 and 15784 to SelfState.
+- Expands readable hostile helpful scanning from hostile players to hostile NPCs,
+  while keeping the broad secure hostile HELPFUL fallback player-only.
+- Adds a narrow readable Slows fallback on player/target/focus when Forever
+  relation-gates the secure exact harmful spell-ID filter.
+- This allows NPC-applied Chilled variants to display on friendly/self portraits.
+- No portrait geometry, ToT/FoT offsets, priority levels, or timer presentation changed.
+
 
 v0.1.15-clean
-- Tests NeverSecret cross-relation exact admission; live testing later disproved it for these NPC effects.
+- Fixes cross-relation secure admission for NeverSecret exact auras.
+- Frost Armor and Chilled now have dedicated same-priority secure fallback lanes
+  containing only IDs Blizzard classifies NeverSecret on the current client.
+- Removes the old unconditional hostile-helpful exact-tier disable; all exact
+  relation decisions now go through ExactFilterAllowed.
+- Readable out-of-combat fallbacks remain unchanged and still abstain when aura
+  identity becomes inaccessible in combat.
+- /bp debug now prints NeverSecret classification for the known Frost Armor and
+  Chilled IDs.
+- No portrait geometry, ToT/FoT placement, priority level, or timer changes.
+
 
 v0.1.16-clean
-- Replaces that with secure non-identity Frost Armor and Chilled signatures.
+- Replaces the ineffective NeverSecret exact fallbacks for NPC Frost Armor and
+  Chilled after live testing proved all relevant IDs are combat-secret.
+- Adds a secure non-identity Frost Armor signature for hostile NPCs:
+  helpful Magic, <=30 min, stealable, non-player source. It is enabled only when
+  the readable exact hostile-NPC path disappears.
+- Adds a secure non-identity Chilled signature for the 12544 -> 6136 proc:
+  harmful Magic, <=5.1 sec, nameplate-personal, non-player source. It is enabled
+  only when exact/readable Slows identity is unavailable.
+- No portrait geometry, priority levels, ToT/FoT behavior, or timer changes.
+
 
 v0.1.17-clean
-- Removes unreliable isStealable requirement from Frost Armor signature.
-- Live-tested Frost Armor 12544 and Chilled 6136 now work in combat.
+- Removes the isStealable=true requirement from the combat-safe hostile-NPC
+  Frost Armor signature. Live testing proved the lane was enabled but 12544
+  still failed the previous signature.
+- Frost Armor fallback remains restricted to hostile NPCs with sealed readable
+  identity, helpful Magic auras, <=30 minute duration, and non-player/pet source.
+- Chilled combat signature is unchanged.
+- No portrait geometry, priority levels, ToT/FoT behavior, or timer changes.
