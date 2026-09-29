@@ -116,10 +116,34 @@ end
 
 -- BaselineClass has a stronger within-tier contract than AuraInstanceID sorting
 -- alone can provide: a refreshed aura should become the visible winner even when
--- Forever preserves that aura's instance ID.  When every competing baseline aura
--- exposes duration/expiration time, derive application time directly.  If any
--- candidate lacks readable timing, fall back to AuraInstanceID across the entire
--- tier so mixed readability never biases the winner toward the timed subset.
+-- Forever preserves that aura's instance ID. auraInstanceID is an identity/
+-- deterministic sort key, not evidence of application time.
+--
+-- Prefer Blizzard's DurationObject start time when it is readable. Fall back to
+-- the legacy expiration-duration witness only when needed.
+local function readAuraStartTime(unit, aura, auraInstanceID)
+    if C_UnitAuras and C_UnitAuras.GetAuraDuration and auraInstanceID then
+        local ok, durationObject = pcall(C_UnitAuras.GetAuraDuration, unit, auraInstanceID)
+        if ok and durationObject and durationObject.GetStartTime then
+            local startOK, startTime = pcall(durationObject.GetStartTime, durationObject)
+            if startOK and R.CanAccess(startTime) and type(startTime) == "number" then
+                return startTime, true, "durationObject"
+            end
+        end
+    end
+
+    local duration, durationReadable = R.ReadAuraField(aura, "duration")
+    local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
+    if durationReadable and expirationReadable
+        and type(duration) == "number" and type(expirationTime) == "number"
+        and duration > 0
+    then
+        return expirationTime - duration, true, "fields"
+    end
+
+    return nil, false, nil
+end
+
 local function scanLatestReadableBaselineAura(unit)
     local tier = findTierByKey("BaselineClass")
     if not tier or not tier.spellIDs then return nil, false end
@@ -151,18 +175,17 @@ local function scanLatestReadableBaselineAura(unit)
                 return nil, false
             end
 
-            local duration, durationReadable = R.ReadAuraField(aura, "duration")
-            local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
-            local timingReadable = durationReadable and expirationReadable
-                and type(duration) == "number" and type(expirationTime) == "number"
-                and duration > 0
+            local appliedAt, timingReadable, timingSource = readAuraStartTime(
+                unit, aura, auraInstanceID
+            )
 
             if not timingReadable then allTimingReadable = false end
             candidates[#candidates + 1] = {
                 aura = aura,
                 spellID = spellID,
                 auraInstanceID = auraInstanceID,
-                appliedAt = timingReadable and (expirationTime - duration) or nil,
+                appliedAt = appliedAt,
+                timingSource = timingSource,
             }
         end
     end
@@ -175,18 +198,20 @@ local function scanLatestReadableBaselineAura(unit)
     local best = candidates[1]
     for i = 2, #candidates do
         local candidate = candidates[i]
-        local newer
         if allTimingReadable then
-            newer = candidate.appliedAt > best.appliedAt
+            local newer = candidate.appliedAt > best.appliedAt
                 or (candidate.appliedAt == best.appliedAt
                     and candidate.auraInstanceID > best.auraInstanceID)
-        else
-            newer = candidate.auraInstanceID > best.auraInstanceID
+            if newer then best = candidate end
         end
-        if newer then best = candidate end
     end
 
-    best.timingReadable = allTimingReadable
+    -- If even one competing BaselineClass aura lacks a readable start time,
+    -- we cannot truthfully identify the newest one. Relinquish the readable
+    -- override instead of upgrading auraInstanceID into a timestamp claim.
+    if not allTimingReadable then return nil, true end
+
+    best.timingReadable = true
     return best, true
 end
 
@@ -569,6 +594,8 @@ local function updateReadableBaseline(host, baseEnabled)
     host._baselineReadable = complete
     host._baselineSpellID = best and best.spellID or nil
     host._baselineTimingReadable = best and best.timingReadable or false
+    host._baselineTimingSource = best and best.timingSource or nil
+    host._baselineAppliedAt = best and best.appliedAt or nil
 
     if not complete or not best then
         hideReadableExact(host.readableBaselineFrame)
