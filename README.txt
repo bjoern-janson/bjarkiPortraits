@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.28-clean
+bjarkiPortraits 0.1.29-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -15,7 +15,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.27 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.29 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -214,3 +214,11 @@ v0.1.28-clean
 - Portrait countdown text begins at 45 seconds instead of 60 seconds.
 - Decimal countdown behavior below 10 seconds is unchanged.
 - No aura admission, priority, geometry, semantic fallback, or event behavior changes.
+
+
+v0.1.29-clean
+- BaselineClass newest-application arbitration now uses the readable DurationObject start time first.
+- Falls back to expirationTime-duration only when necessary.
+- auraInstanceID no longer stands in for recency; it is only a tie-break when two readable start times are equal.
+- If complete BaselineClass timing evidence is unavailable, the readable override abstains instead of making a stronger recency claim.
+- /bp debug adds baselineTimingSource and baselineAppliedAt.
