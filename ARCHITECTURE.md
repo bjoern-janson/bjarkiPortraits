@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.34-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.35-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -828,3 +828,21 @@ BaselineClass because Forever requires HELPFUL|INCLUDE_NAME_PLATE_ONLY for its
 secure visibility path, and the addon also keeps a narrow player-only readable
 exact witness. The two mechanisms therefore share priority semantics without
 collapsing their distinct evidence/visibility requirements.
+
+
+## 27. Priority-90 shared readable arbitration
+
+v0.1.34 put Welcoming Campfire and BaselineClass at the same numeric priority
+while leaving them with separate readable overlays. BaselineClass's readable
+overlay intentionally sat one frame level above an ordinary exact witness, so
+the two "equal" lanes were not actually equal in presentation.
+
+v0.1.35 removes that accidental frame-order policy. On the player frame,
+BaselineClass and Welcoming Campfire enter one readable recency election using
+the same application/refresh-time evidence. A positive direct
+GetPlayerAuraBySpellID witness can add Welcoming Campfire to that election when
+the indexed stream does not expose it.
+
+The secure lanes remain separate because Welcoming Campfire still needs
+HELPFUL|INCLUDE_NAME_PLATE_ONLY. Thus priority semantics are unified without
+collapsing distinct visibility mechanisms.
