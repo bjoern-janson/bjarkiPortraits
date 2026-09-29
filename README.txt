@@ -15,6 +15,8 @@ Visual contract:
 
 Commands: /bp help
 
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.17 code paths and known residual risks.
+
 
 v0.1.1-clean
 - Fixes hostile helpful relation gating: exact helpful spell-ID tiers are never enabled on hostile players.
