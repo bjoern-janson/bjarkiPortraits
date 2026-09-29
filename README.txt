@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.32-clean
+bjarkiPortraits 0.1.33-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -15,7 +15,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.32 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.33 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -241,3 +241,10 @@ v0.1.32-clean
 - SmallFriendlyHarmful moves from priority 189 to priority 1.
 - Generic ToT/FoT harmful presence is now below every tracked aura tier and only wins when no tracked state is active/available.
 - No spell taxonomy, geometry, timer, event, or evidence-access behavior changes.
+
+
+v0.1.33-clean
+- Extends Hunter/Warlock pet-foundation artwork to targettarget and focustarget.
+- Reuses the existing generic foundationTexture(unit) classifier; no new pet taxonomy or ownership inference.
+- UNIT_TARGET and tracked unit-state refresh paths now reconsider derived pet foundations when their referents change.
+- No aura priority, geometry, timer, or evidence-access behavior changes.
