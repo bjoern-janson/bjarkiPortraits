@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.34-clean
+bjarkiPortraits 0.1.35-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -15,7 +15,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.34 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.35 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -255,3 +255,11 @@ v0.1.34-clean
 - It remains a separate exact lane because its Forever visibility requires HELPFUL|INCLUDE_NAME_PLATE_ONLY.
 - The player-only readable exact witness follows the same priority 90.
 - No other priority, taxonomy, geometry, timer, pet, or event behavior changes.
+
+
+v0.1.35-clean
+- Repairs same-tier arbitration between Welcoming Campfire and BaselineClass after both moved to priority 90.
+- Player-frame readable arbitration now elects the newest application/refresh across BaselineClass plus Welcoming Campfire.
+- Welcoming Campfire's direct player lookup can feed that shared election when the indexed stream omits it.
+- The separate readable Welcoming Campfire overlay is removed; the special secure lane remains underneath.
+- No priority number, taxonomy, geometry, timer, pet, or event changes.
