@@ -145,14 +145,41 @@ local function readAuraStartTime(unit, aura, auraInstanceID)
     return nil, false, nil
 end
 
+local getReadablePlayerAuraBySpellID
+
 local function scanLatestReadableBaselineAura(unit)
     local tier = findTierByKey("BaselineClass")
     if not tier or not tier.spellIDs then return nil, false end
     if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false end
 
+    local includeWelcoming = unit == "player"
     local candidates = {}
     local allTimingReadable = true
     local complete = false
+    local sawWelcoming = false
+    local welcomingDirect = false
+
+    local function addCandidate(aura, spellID)
+        local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
+        if not instanceReadable or type(auraInstanceID) ~= "number" then
+            return false
+        end
+
+        local appliedAt, timingReadable, timingSource = readAuraStartTime(
+            unit, aura, auraInstanceID
+        )
+        if not timingReadable then allTimingReadable = false end
+
+        candidates[#candidates + 1] = {
+            aura = aura,
+            spellID = spellID,
+            auraInstanceID = auraInstanceID,
+            appliedAt = appliedAt,
+            timingSource = timingSource,
+        }
+        if spellID == WELCOMING_CAMPFIRE_SPELL_ID then sawWelcoming = true end
+        return true
+    end
 
     for index = 1, 80 do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
@@ -165,36 +192,44 @@ local function scanLatestReadableBaselineAura(unit)
 
         local spellID, spellReadable = R.ReadAuraField(aura, "spellId")
         if not spellReadable or type(spellID) ~= "number" then
-            -- We cannot prove that an unreadable aura is outside BaselineClass.
-            -- Relinquish the readable override and let the secure container win.
+            -- We cannot prove that an unreadable aura is outside the priority-90
+            -- class-buff band. Relinquish the readable override.
             return nil, false
         end
 
-        if tier.spellIDs[spellID] then
-            local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
-            if not instanceReadable or type(auraInstanceID) ~= "number" then
-                return nil, false
-            end
-
-            local appliedAt, timingReadable, timingSource = readAuraStartTime(
-                unit, aura, auraInstanceID
-            )
-
-            if not timingReadable then allTimingReadable = false end
-            candidates[#candidates + 1] = {
-                aura = aura,
-                spellID = spellID,
-                auraInstanceID = auraInstanceID,
-                appliedAt = appliedAt,
-                timingSource = timingSource,
-            }
+        if tier.spellIDs[spellID]
+            or (includeWelcoming and spellID == WELCOMING_CAMPFIRE_SPELL_ID)
+        then
+            if not addCandidate(aura, spellID) then return nil, false end
         end
     end
 
     -- Exhausting the arbitrary 80-entry budget is not evidence that the aura
     -- stream ended. Only an observed nil terminator grants completeness.
     if not complete then return nil, false end
-    if #candidates == 0 then return nil, true end
+
+    -- Welcoming Campfire historically needed the direct player lookup on some
+    -- Forever builds. A positive direct witness joins this SAME priority-90
+    -- election; it no longer gets a separate readable overlay.
+    if includeWelcoming and not sawWelcoming and getReadablePlayerAuraBySpellID then
+        local aura, _, directAvailable = getReadablePlayerAuraBySpellID(
+            WELCOMING_CAMPFIRE_SPELL_ID
+        )
+        welcomingDirect = directAvailable
+        if aura and not addCandidate(aura, WELCOMING_CAMPFIRE_SPELL_ID) then
+            return nil, false
+        end
+    end
+
+    local meta = {
+        welcomingPresent = sawWelcoming,
+        welcomingDirect = welcomingDirect,
+        -- A complete readable indexed stream establishes whether the exact
+        -- Campfire identity is present even when the direct helper is unused.
+        welcomingReadable = includeWelcoming and complete or false,
+    }
+
+    if #candidates == 0 then return nil, true, meta end
 
     local best = candidates[1]
     for i = 2, #candidates do
@@ -207,13 +242,12 @@ local function scanLatestReadableBaselineAura(unit)
         end
     end
 
-    -- If even one competing BaselineClass aura lacks a readable start time,
-    -- we cannot truthfully identify the newest one. Relinquish the readable
-    -- override instead of upgrading auraInstanceID into a timestamp claim.
-    if not allTimingReadable then return nil, true end
+    -- If even one competing priority-90 candidate lacks readable start time,
+    -- we cannot truthfully identify the newest one.
+    if not allTimingReadable then return nil, true, meta end
 
     best.timingReadable = true
-    return best, true
+    return best, true, meta
 end
 
 local function scanReadableExactAura(unit, filter, spellID)
@@ -234,7 +268,7 @@ local function scanReadableExactAura(unit, filter, spellID)
     return nil, false
 end
 
-local function getReadablePlayerAuraBySpellID(spellID)
+getReadablePlayerAuraBySpellID = function(spellID)
     if not C_UnitAuras or not C_UnitAuras.GetPlayerAuraBySpellID then
         return nil, false, false
     end
@@ -576,6 +610,9 @@ local function clearReadableBaseline(host)
         host._baselineTimingReadable = false
         host._baselineTimingSource = nil
         host._baselineAppliedAt = nil
+        host._welcomingCampfireReadable = false
+        host._welcomingCampfireActive = false
+        host._welcomingCampfireDirect = false
     end
 end
 
@@ -593,19 +630,24 @@ local function updateReadableBaseline(host, baseEnabled)
         return
     end
 
-    local best, complete = scanLatestReadableBaselineAura(host.unit)
+    local best, complete, meta = scanLatestReadableBaselineAura(host.unit)
     host._baselineReadable = complete
     host._baselineSpellID = best and best.spellID or nil
     host._baselineTimingReadable = best and best.timingReadable or false
     host._baselineTimingSource = best and best.timingSource or nil
     host._baselineAppliedAt = best and best.appliedAt or nil
+    host._welcomingCampfireDirect = meta and meta.welcomingDirect or false
+    host._welcomingCampfireReadable = meta and meta.welcomingReadable or false
+    host._welcomingCampfireActive = false
 
     if not complete or not best then
         hideReadableExact(host.readableBaselineFrame)
         return
     end
 
-    showReadableAura(host.readableBaselineFrame, best.aura, best.spellID)
+    local shown = showReadableAura(host.readableBaselineFrame, best.aura, best.spellID)
+    host._welcomingCampfireActive =
+        shown and best.spellID == WELCOMING_CAMPFIRE_SPELL_ID or false
 end
 
 local function createTestFrame(host)
@@ -790,15 +832,6 @@ function R.CreateHost(unit)
         host.readableResSicknessFrame = createReadableExactFrame(host, resTier and resTier.level or 241)
     end
 
-    -- Welcoming Campfire is a self-only 60s effect. Forever can expose it in
-    -- the readable helpful stream even when the secure exact-ID container does
-    -- not surface it consistently, so keep a narrow player-only exact witness.
-    if unit == "player" then
-        local welcomingTier = findTierByKey("WelcomingCampfire")
-        host.readableWelcomingCampfireFrame = createReadableExactFrame(
-            host, welcomingTier and welcomingTier.level or 90
-        )
-    end
     return host
 end
 
@@ -903,46 +936,10 @@ function R.UpdateHost(host, forceContainerRefresh)
         hideReadableExact(host.readableResSicknessFrame)
     end
 
-    -- Welcoming Campfire (1229739) is self-only. On the player frame, render a
-    -- directly readable exact witness at the existing tier level. The secure
-    -- WelcomingCampfire AuraContainer remains active underneath as fallback.
-    host._welcomingCampfireReadable = false
-    host._welcomingCampfireActive = false
-    host._welcomingCampfireDirect = false
-    if host.unit == "player" and base and host.readableWelcomingCampfireFrame then
-        -- This is a single known self-buff, so do not require the entire player
-        -- helpful stream to be readable. Query it directly by spell ID first.
-        local aura, readable, directAvailable = getReadablePlayerAuraBySpellID(
-            WELCOMING_CAMPFIRE_SPELL_ID
-        )
-        host._welcomingCampfireDirect = directAvailable
-
-        -- Direct lookup is only an optimization/witness. If it does not produce
-        -- a usable exact aura, fall back to the indexed helpful stream as well.
-        -- INCLUDE_NAME_PLATE_ONLY is required for Forever's camping surface.
-        if not aura then
-            local indexedAura, indexedReadable = scanReadableExactAura(
-                host.unit, "HELPFUL|INCLUDE_NAME_PLATE_ONLY", WELCOMING_CAMPFIRE_SPELL_ID
-            )
-            if indexedAura then aura = indexedAura end
-            readable = indexedReadable or readable
-        end
-
-        host._welcomingCampfireReadable = readable
-        if aura then
-            host._welcomingCampfireActive = showReadableAura(
-                host.readableWelcomingCampfireFrame, aura, WELCOMING_CAMPFIRE_SPELL_ID
-            )
-        else
-            hideReadableExact(host.readableWelcomingCampfireFrame)
-        end
-    elseif host.readableWelcomingCampfireFrame then
-        hideReadableExact(host.readableWelcomingCampfireFrame)
-    end
-
-    -- Restore the established BaselineClass rule: newest application/refresh
-    -- wins within the tier whenever the whole candidate set is directly readable.
-    -- The secure BaselineClass container remains active underneath as fallback.
+    -- Priority-90 Class Buff arbitration. On the player frame this readable
+    -- election includes Welcoming Campfire, so equal-priority state is resolved
+    -- by application/refresh time rather than sibling frame levels.
+    -- BaselineClass and WelcomingCampfire keep separate secure lanes underneath.
     updateReadableBaseline(host, base)
 
     local slowsTier = findTierByKey("Slows")
