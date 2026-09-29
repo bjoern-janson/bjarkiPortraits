@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.26-clean"
+R.VERSION = "0.1.27-clean"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
@@ -128,11 +128,20 @@ end
 local neverSecret = {}
 function R.AuraIsNeverSecret(spellID)
     if neverSecret[spellID] ~= nil then return neverSecret[spellID] end
-    local result = false
-    if C_Secrets and C_Secrets.GetSpellAuraSecrecy and Enum and Enum.SecrecyLevel then
-        local ok, secrecy = pcall(C_Secrets.GetSpellAuraSecrecy, spellID)
-        if ok and not R.IsSecret(secrecy) then result = secrecy == Enum.SecrecyLevel.NeverSecret end
+    if not C_Secrets or not C_Secrets.GetSpellAuraSecrecy
+        or not Enum or not Enum.SecrecyLevel
+    then
+        return false
     end
+
+    local ok, secrecy = pcall(C_Secrets.GetSpellAuraSecrecy, spellID)
+    if not ok or not R.CanAccess(secrecy) or secrecy == nil then
+        -- UNKNOWN fails closed for this check, but remains eligible for a later
+        -- correction if the API becomes readable. Do not cache UNKNOWN as false.
+        return false
+    end
+
+    local result = secrecy == Enum.SecrecyLevel.NeverSecret
     neverSecret[spellID] = result
     return result
 end
