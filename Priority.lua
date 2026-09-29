@@ -31,7 +31,7 @@ R.TIERS = {
     exact("CampfireNearby", "HELPFUL", 30, true, C.buffs_campfire_nearby),
     exact("WelcomingCampfire", "HELPFUL", 40, true, C.buffs_welcoming_campfire),
     exact("TravelUtility", "HELPFUL", 50, true, C.buffs_travel_utility),
-    exact("PaladinAura", "HELPFUL", 60, true, C.buffs_paladin_auras),
+    exact("PaladinAura", "HELPFUL", 60, true, union("buffs_paladin_auras", "buffs_warlock_armor")),
     exact("BloodPact", "HELPFUL", 70, true, C.buffs_blood_pact),
     exact("Scrolls", "HELPFUL", 80, true, C.buffs_scrolls),
     exact("BaselineClass", "HELPFUL", 90, true, C.buffs_class_baseline),
@@ -39,7 +39,16 @@ R.TIERS = {
     exact("WellFed", "HELPFUL", 110, true, C.buffs_well_fed),
     exact("Thorns", "HELPFUL", 120, true, C.buffs_thorns),
     exact("ElementalShield", "HELPFUL", 130, true, C.buffs_lightning_shield),
-    exact("SelfState", "HELPFUL", 150, true, C.buffs_other),
+    exact("SelfState", "HELPFUL", 150, true, union("buffs_other", "buffs_frost_armor")),
+    -- Combat-safe hostile-NPC fallback for Frost Armor when spell identity is
+    -- sealed. Live testing identifies 12544 as a 30-minute Magic buff; the
+    -- isStealable flag is intentionally not required because Forever did not
+    -- expose it reliably for this NPC cast.
+    semantic("FrostArmorSignature", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 150, {
+        includeDispelTypes = { Magic = true },
+        maxDuration = 1800.1,
+        isFromPlayerOrPlayerPet = false,
+    }),
 
     -- Opposite-faction exact helpful identity filters are relation-restricted in
     -- Forever. This deliberately broad secure lane is enabled only when hostile
@@ -54,7 +63,17 @@ R.TIERS = {
     exact("DoTs", "HARMFUL", 190, false, C.debuffs_dots),
     exact("LowDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 200, false, C.debuffs_other),
     exact("Seal", "HELPFUL", 210, true, C.buffs_seals),
-    exact("Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 220, false, C.slows),
+    exact("Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 220, false,
+        union("slows", "slows_chilled")),
+    -- 12544 Frost Armor procs spell 6136 Chilled. In combat its identity is
+    -- secret, but its safe metadata remains distinctive: harmful Magic,
+    -- <=5 seconds, nameplate-personal, and not cast by the player/pet.
+    semantic("ChilledSignature", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 220, {
+        includeDispelTypes = { Magic = true },
+        maxDuration = 5.1,
+        nameplateShowPersonal = true,
+        isFromPlayerOrPlayerPet = false,
+    }),
     exact("WeakenedSoul", "HARMFUL", 230, false, C.debuffs_weakenedsoul),
     semantic("WeakenedSoulFallback", "HARMFUL", 229, {
         maxDuration = 15.1,
@@ -67,6 +86,7 @@ R.TIERS = {
     exact("HonorlessTarget", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 242, true, C.buffs_honorless_target, true),
     exact("Shield", "HELPFUL", 250, true, C.buffs_shield),
     exact("FoodDrink", "HELPFUL", 260, true, C.buffs_fooddrink),
+    exact("Innervate", "HELPFUL", 261, true, C.buffs_innervate),
     exact("Utility", "HELPFUL", 270, true, C.buffs_utility),
     semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 279),
     exact("Offensive", "HELPFUL", 280, true, C.buffs_offensive),
