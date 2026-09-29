@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.26-clean
+bjarkiPortraits 0.1.27-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -15,7 +15,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.24 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.27 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -200,3 +200,11 @@ v0.1.26-clean
 - Adds Righteous Fury (25780) as an exact HELPFUL lane at priority 59.
 - Righteous Fury therefore sits immediately below PaladinAura (60).
 - No other priority, rendering, geometry, semantic fallback, or event behavior changes.
+
+
+v0.1.27-clean
+- Readable hostile winner changes cannot preserve a stale prior icon if the new spell texture is unavailable.
+- scanLatestReadableBaselineAura and scanLatestReadableExactTierAura require an observed nil terminator before granting completeness.
+- scanReadableExactAura returns unreadable/incomplete when the 80-entry budget is exhausted without finding the requested spell or a nil terminator.
+- AuraIsNeverSecret caches only readable true/false secrecy results; transient UNKNOWN/error states fail closed without becoming sticky.
+- No change to hostileReadable suppression policy, NPC semantic signatures, priorities, geometry, or event behavior.
