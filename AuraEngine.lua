@@ -217,7 +217,12 @@ local function scanLatestReadableExactTierAura(unit, tierKey, filter)
             local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
             if not instanceReadable or type(auraInstanceID) ~= "number" then auraInstanceID = 0 end
             if not best or auraInstanceID > best.auraInstanceID then
-                best = { aura = aura, spellID = spellID, auraInstanceID = auraInstanceID, tier = tier }
+                best = {
+                    aura = aura,
+                    spellID = spellID,
+                    auraInstanceID = auraInstanceID,
+                    tier = tier,
+                }
             end
         end
     end
@@ -380,8 +385,13 @@ local function updateReadableSlows(host, baseEnabled)
     end
 
     local tier = findTierByKey("Slows")
-    if not tier then clearReadableSlows(host); return end
+    if not tier then
+        clearReadableSlows(host)
+        return
+    end
 
+    -- If the secure exact harmful filter is legal for this relation, leave the
+    -- secure AuraContainer fully authoritative.
     if R.ExactFilterAllowed(host.unit, false, tier.spellIDs, tier.allowNeverSecret) then
         clearReadableSlows(host)
         return
@@ -404,7 +414,9 @@ local function updateReadableSlows(host, baseEnabled)
             (host.smallBaseLevel or 0) + (tier.level or 220) + 2
         )
     end
-    host._slowsActive = showReadableAura(host.readableSlowsFrame, best.aura, best.spellID)
+    host._slowsActive = showReadableAura(
+        host.readableSlowsFrame, best.aura, best.spellID
+    )
 end
 
 local function clearReadableHostile(host)
@@ -673,6 +685,9 @@ function R.CreateHost(unit)
         host.readableResSicknessFrame = createReadableExactFrame(host, resTier and resTier.level or 241)
     end
 
+    -- Welcoming Campfire is a self-only 60s effect. Forever can expose it in
+    -- the readable helpful stream even when the secure exact-ID container does
+    -- not surface it consistently, so keep a narrow player-only exact witness.
     if unit == "player" then
         local welcomingTier = findTierByKey("WelcomingCampfire")
         host.readableWelcomingCampfireFrame = createReadableExactFrame(
@@ -699,11 +714,16 @@ function R.UpdateHost(host)
 
     local hostileReadable = false
     if hostileUnit then
+        -- Readable exact hostile helpful auras are useful for both players and
+        -- NPCs. Only hostile players receive the broad secure fallback below;
+        -- unreadable hostile NPC helpful state is intentionally left alone.
         hostileReadable = updateReadableHostile(host, base, true)
     else
         clearReadableHostile(host)
     end
 
+    -- Friendly/self exact harmful spell-ID filters can be relation-restricted.
+    -- Directly readable Slows therefore get a narrow exact fallback.
     updateReadableSlows(host, base)
 
     -- Resurrection Sickness is a harmful aura commonly observed on self/friendly
@@ -731,6 +751,9 @@ function R.UpdateHost(host)
         hideReadableExact(host.readableResSicknessFrame)
     end
 
+    -- Welcoming Campfire (1229739) is self-only. On the player frame, render a
+    -- directly readable exact witness at the existing tier level. The secure
+    -- WelcomingCampfire AuraContainer remains active underneath as fallback.
     host._welcomingCampfireReadable = false
     host._welcomingCampfireActive = false
     if host.unit == "player" and base and host.readableWelcomingCampfireFrame then
@@ -765,6 +788,10 @@ function R.UpdateHost(host)
             if tier.key == "ResSickness" then
                 enabled = enabled and resSecureAllowed
             else
+                -- ExactFilterAllowed owns the complete relation rule. In
+                -- particular, an allowNeverSecret lane may legally cross the
+                -- usual helpful/harmful relation boundary when every candidate
+                -- ID in that lane is explicitly NeverSecret.
                 enabled = enabled and R.ExactFilterAllowed(
                     host.unit, tier.helpful, tier.spellIDs, tier.allowNeverSecret
                 )
