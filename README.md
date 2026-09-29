@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.32-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.33-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -27,7 +27,7 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - `Core.lua` — secret-value safety, relation checks, frame discovery, settings.
 - `Priority.lua` — exact and semantic priority lanes.
 - `AuraEngine.lua` — secure containers, readable fallbacks, portrait/timer rendering.
-- `PetPortraits.lua` — Hunter/Warlock pet-foundation artwork only.
+- `PetPortraits.lua` — Hunter/Warlock pet-foundation artwork for PetFrame, target/focus, and ToT/FoT.
 - `Commands.lua` — `/bp` test/debug/configuration.
 - `Main.lua` — event lifecycle.
 - `ARCHITECTURE.md` — detailed model of Forever aura secrecy, secure filtering, recency, and rendering.
@@ -107,3 +107,9 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - Moves SmallFriendlyHarmful from priority 189 to priority 1.
 - The ToT/FoT generic secure HARMFUL surface is now a true last-resort fallback: any known tracked aura outranks it.
 - This preserves generic harmful visibility when no tracked state is available while preventing the small-frame fallback from overriding what target/focus would otherwise select.
+
+
+### v0.1.33
+- Extends observed Hunter/Warlock pet-foundation artwork from target/focus to target-of-target and focus-target.
+- Derived pet foundations refresh when target/focus referents or relevant unit state change.
+- No pet-classification rules, aura priority, geometry, or aura evidence behavior changes.
