@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.31-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.32-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -636,6 +636,7 @@ This separation was crucial: several bugs occurred where `/bp test` worked perfe
 Higher numbers visually outrank lower numbers.
 
 ```text
+1    Small friendly harmful fallback
 10   Plainsrunning
 20   Boosted Rest
 30   Campfire Nearby
@@ -800,3 +801,15 @@ v0.1.31 keeps the large-frame claim narrow. Player/target/focus gain a readable
 exact 1229451 witness only when the secure exact BoostedRest lane is unavailable.
 It renders at priority 20 and abstains if the aura identity is not directly
 readable. Large frames do not gain the generic SmallFriendlyHarmful lane.
+
+
+## 25. Small-frame generic harmful fallback
+
+The secure SmallFriendlyHarmful surface carries only presence-level evidence:
+"some harmful aura exists." It does not preserve exact spell identity or the
+tracked priority taxonomy.
+
+v0.1.32 therefore moves that lane to priority 1, below every tracked aura tier.
+The fallback still replaces the native portrait when no tracked state is
+available, but it can no longer outrank a known tracked aura merely because the
+unit is being observed through ToT/FoT.
