@@ -148,3 +148,153 @@ local function scanLatestReadableBaselineAura(unit)
 
             local duration, durationReadable = R.ReadAuraField(aura, "duration")
             local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
+            local timingReadable = durationReadable and expirationReadable
+                and type(duration) == "number" and type(expirationTime) == "number"
+                and duration > 0
+
+            if not timingReadable then allTimingReadable = false end
+            candidates[#candidates + 1] = {
+                aura = aura,
+                spellID = spellID,
+                auraInstanceID = auraInstanceID,
+                appliedAt = timingReadable and (expirationTime - duration) or nil,
+            }
+        end
+    end
+
+    if #candidates == 0 then return nil, true end
+
+    local best = candidates[1]
+    for i = 2, #candidates do
+        local candidate = candidates[i]
+        local newer
+        if allTimingReadable then
+            newer = candidate.appliedAt > best.appliedAt
+                or (candidate.appliedAt == best.appliedAt
+                    and candidate.auraInstanceID > best.auraInstanceID)
+        else
+            newer = candidate.auraInstanceID > best.auraInstanceID
+        end
+        if newer then best = candidate end
+    end
+
+    best.timingReadable = allTimingReadable
+    return best, true
+end
+
+local function scanReadableExactAura(unit, filter, spellID)
+    if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false end
+
+    for index = 1, 80 do
+        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
+        if not ok or not R.CanAccess(aura) then return nil, false end
+        if aura == nil then return nil, true end
+
+        local auraSpellID, readable = R.ReadAuraField(aura, "spellId")
+        if not readable or type(auraSpellID) ~= "number" then return nil, false end
+        if auraSpellID == spellID then return aura, true end
+    end
+
+    return nil, true
+end
+
+local function scanReadableHostileHelpful(unit)
+    if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then
+        return nil, false, 0
+    end
+
+    local best
+    local count = 0
+    local allReadable = true
+
+    for index = 1, 80 do
+        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
+            unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
+        if not ok then
+            allReadable = false
+            break
+        end
+
+        -- Never compare/index an inaccessible aura object. If Forever seals the
+        -- object itself, the secure HostileHelpful lane remains authoritative.
+        if not R.CanAccess(aura) then
+            allReadable = false
+            break
+        end
+        if aura == nil then break end
+        count = count + 1
+
+        local spellID, idReadable = R.ReadAuraField(aura, "spellId")
+        if not idReadable or type(spellID) ~= "number" then
+            allReadable = false
+        else
+            local tier = findHelpfulTierForSpell(spellID)
+            if tier then
+                local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
+                if not instanceReadable or type(auraInstanceID) ~= "number" then auraInstanceID = 0 end
+                local candidate = {
+                    aura = aura,
+                    spellID = spellID,
+                    tier = tier,
+                    auraInstanceID = auraInstanceID,
+                }
+                if not best
+                    or (tier.level or 0) > (best.tier.level or 0)
+                    or ((tier.level or 0) == (best.tier.level or 0)
+                        and candidate.auraInstanceID > best.auraInstanceID)
+                then
+                    best = candidate
+                end
+            end
+        end
+    end
+
+    return best, allReadable and count > 0, count
+end
+
+local function createReadableHostileFrame(host)
+    local frame = CreateFrame("Frame", nil, host.layer)
+    placeAtPortrait(frame, host)
+    frame:SetFrameStrata(host.strata)
+    frame:SetFrameLevel((host.smallBaseLevel or 0) + 152)
+
+    local icon = frame:CreateTexture(nil, "BACKGROUND")
+    icon:SetAllPoints(frame)
+    icon:SetTexCoord(0, 1, 0, 1)
+    applyIconMask(host, frame, icon)
+    frame.icon = icon
+
+    local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
+    configureCooldown(cooldown, host.unit)
+    frame.cooldown = cooldown
+    host.cooldowns[#host.cooldowns + 1] = cooldown
+    frame:Hide()
+    return frame
+end
+
+local function createReadableExactFrame(host, level)
+    local frame = CreateFrame("Frame", nil, host.layer)
+    placeAtPortrait(frame, host)
+    frame:SetFrameStrata(host.strata)
+    frame:SetFrameLevel((host.smallBaseLevel or 0) + (level or 1) + 1)
+
+    local icon = frame:CreateTexture(nil, "BACKGROUND")
+    icon:SetAllPoints(frame)
+    icon:SetTexCoord(0, 1, 0, 1)
+    applyIconMask(host, frame, icon)
+    frame.icon = icon
+
+    local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
+    configureCooldown(cooldown, host.unit)
+    frame.cooldown = cooldown
+    host.cooldowns[#host.cooldowns + 1] = cooldown
+    frame:Hide()
+    return frame
+end
+
+local function hideReadableExact(frame)
+    if not frame then return end
+    if frame.cooldown then
+        if frame.cooldown.Clear then
+            pcall(frame.cooldown.Clear, frame.cooldown)
+        elseif frame.cooldown.SetCooldown then
