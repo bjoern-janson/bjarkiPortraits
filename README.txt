@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.27-clean
+bjarkiPortraits 0.1.28-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -208,3 +208,9 @@ v0.1.27-clean
 - scanReadableExactAura returns unreadable/incomplete when the 80-entry budget is exhausted without finding the requested spell or a nil terminator.
 - AuraIsNeverSecret caches only readable true/false secrecy results; transient UNKNOWN/error states fail closed without becoming sticky.
 - No change to hostileReadable suppression policy, NPC semantic signatures, priorities, geometry, or event behavior.
+
+
+v0.1.28-clean
+- Portrait countdown text begins at 45 seconds instead of 60 seconds.
+- Decimal countdown behavior below 10 seconds is unchanged.
+- No aura admission, priority, geometry, semantic fallback, or event behavior changes.
