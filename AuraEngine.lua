@@ -259,6 +259,7 @@ local function scanReadableHostileHelpful(unit)
     local best
     local count = 0
     local allReadable = true
+    local complete = false
 
     for index = 1, 80 do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
@@ -274,7 +275,10 @@ local function scanReadableHostileHelpful(unit)
             allReadable = false
             break
         end
-        if aura == nil then break end
+        if aura == nil then
+            complete = true
+            break
+        end
         count = count + 1
 
         local spellID, idReadable = R.ReadAuraField(aura, "spellId")
@@ -302,7 +306,11 @@ local function scanReadableHostileHelpful(unit)
         end
     end
 
-    return best, allReadable and count > 0, count
+    -- `complete` closes only the Lua-visible stream. It does NOT prove the
+    -- secure AuraContainer plane is empty: Forever may omit protected auras
+    -- from Lua entirely. Suppress secure fallback only after at least one aura
+    -- was actually exposed and every exposed identity was readable.
+    return best, allReadable and complete and count > 0, count, complete
 end
 
 local function createReadableHostileFrame(host)
@@ -456,6 +464,7 @@ local function clearReadableHostile(host)
     end
     frame:Hide()
     host._hostileReadable = false
+    host._hostileVisibleComplete = false
     host._hostileCount = 0
     host._hostileSpellID = nil
 end
@@ -466,8 +475,9 @@ local function updateReadableHostile(host, baseEnabled, hostilePlayer)
         return false
     end
 
-    local best, allReadable, count = scanReadableHostileHelpful(host.unit)
+    local best, allReadable, count, visibleComplete = scanReadableHostileHelpful(host.unit)
     host._hostileReadable = allReadable
+    host._hostileVisibleComplete = visibleComplete
     host._hostileCount = count
     host._hostileSpellID = best and best.spellID or nil
 
@@ -760,12 +770,15 @@ function R.UpdateHost(host, forceContainerRefresh)
     if not host then return end
     local base = R.IsUnitEnabled(host.unit) and not R.testMode
     local hostileUnit = R.IsHostileUnit(host.unit)
-    local hostilePlayer = R.IsHostilePlayer(host.unit)
+    local isPlayer, playerReadable = R.PlayerUnitState(host.unit)
+    local hostilePlayer = hostileUnit and playerReadable and isPlayer or false
     local assistable, assistReadable = R.SafeBool(
         UnitCanAssist, "player", host.unit, true, true
     )
     host._hostileUnit = hostileUnit
     host._hostilePlayer = hostilePlayer
+    if playerReadable then host._isPlayer = isPlayer else host._isPlayer = nil end
+    host._playerReadable = playerReadable
     host._assistable = assistReadable and assistable or nil
     host._assistReadable = assistReadable
 
@@ -858,28 +871,36 @@ function R.UpdateHost(host, forceContainerRefresh)
     local weakenedSoulSecureAllowed = weakenedSoulTier and R.ExactFilterAllowed(
         host.unit, false, weakenedSoulTier.spellIDs, weakenedSoulTier.allowNeverSecret
     ) or false
+    local exactHarmfulAllowed = R.ExactFilterAllowed(host.unit, false, nil, false)
+    host._exactHarmfulAllowed = exactHarmfulAllowed
+    host._smallHarmfulEnabled = false
 
     for index, tier in ipairs(R.TIERS or {}) do
         local enabled = base
 
         if tier.key == "FrostArmorSignature" then
-            -- Use the semantic Frost Armor equivalence class only for hostile
-            -- NPCs after the directly readable hostile-helpful path disappears.
-            enabled = enabled and hostileUnit and not hostilePlayer and not hostileReadable
+            -- Use the semantic Frost Armor equivalence class only for a hostile
+            -- unit that is positively established as non-player. UNKNOWN player
+            -- identity is not permission to classify the unit as an NPC.
+            enabled = enabled
+                and hostileUnit
+                and playerReadable
+                and not isPlayer
+                and not hostileReadable
         elseif tier.key == "HostileHelpful" then
             -- Exact readable identities win when available. If Forever seals
-            -- them, fall back to Blizzard's broad secure HELPFUL stream.
+            -- them, fall back to Blizzard's broad secure HELPFUL stream, but
+            -- only for positively established hostile players.
             enabled = enabled and hostilePlayer and not hostileReadable
         elseif tier.key == "SmallFriendlyHarmful" then
-            -- Symmetric counterpart to HostileHelpful: exact harmful identity
-            -- is relation-gated on friendly units. Restrict this broad secure
-            -- fallback to the two small derived frames and require a readable
-            -- assistable relation rather than inferring "friendly" from lack
-            -- of hostile evidence.
+            -- Small derived frames need a generic harmful-state surface when
+            -- exact harmful identity filtering is not authorized. The secure
+            -- HARMFUL stream itself is enough warrant for "some harmful aura";
+            -- do not require, or infer, a readable friendly relation.
             enabled = enabled
                 and R.SMALL_UNITS[host.unit]
-                and assistReadable
-                and assistable
+                and not exactHarmfulAllowed
+            host._smallHarmfulEnabled = enabled and true or false
         elseif tier.key == "ChilledSignature" then
             -- Chilled's semantic signature is the last resort: exact secure
             -- identity first, then the readable exact Slows witness, then shape.
