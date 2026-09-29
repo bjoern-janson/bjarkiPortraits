@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.28-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.29-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -81,3 +81,11 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - Numeric portrait countdown text now remains hidden above 45 seconds instead of above 60 seconds.
 - Decimal behavior below 10 seconds is unchanged.
 - No aura admission, priority, geometry, or event behavior changes.
+
+
+### v0.1.29
+- BaselineClass recency now prefers C_UnitAuras.GetAuraDuration(...):GetStartTime() as the direct application/refresh-time witness.
+- expirationTime-duration remains a readable fallback.
+- auraInstanceID is no longer treated as evidence that one BaselineClass aura is newer than another; it is used only as a deterministic tie-break when readable start times are equal.
+- If any competing BaselineClass aura lacks readable start time, the readable override abstains and leaves the secure lane underneath.
+- /bp debug now reports baselineTimingSource and baselineAppliedAt.
