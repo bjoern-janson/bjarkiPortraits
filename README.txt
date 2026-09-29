@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.31-clean
+bjarkiPortraits 0.1.32-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -15,7 +15,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.31 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.32 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -235,3 +235,9 @@ v0.1.31-clean
 - The fallback renders at the existing BoostedRest priority 20 and abstains when exact identity is unreadable.
 - ToT/FoT retain their separate generic secure SmallFriendlyHarmful behavior.
 - /bp debug adds boostedRestReadable and boostedRestActive.
+
+
+v0.1.32-clean
+- SmallFriendlyHarmful moves from priority 189 to priority 1.
+- Generic ToT/FoT harmful presence is now below every tracked aura tier and only wins when no tracked state is active/available.
+- No spell taxonomy, geometry, timer, event, or evidence-access behavior changes.
