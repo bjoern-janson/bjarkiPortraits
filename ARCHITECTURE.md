@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.23-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from the v0.1.23 surgical hardening changes that still require in-client regression confirmation.
+This document describes the current **bjarkiPortraits v0.1.24-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -437,7 +437,7 @@ An earlier signature also required `isStealable=true`. The secure lane failed to
 
 That is a useful example of how the addon is being developed: **live falsification removes unsupported predicates**.
 
-### Current v0.1.23 semantic gating
+### Current v0.1.24 semantic gating
 
 The semantic signatures are no longer left enabled in parallel with stronger evidence.
 
@@ -446,7 +446,8 @@ The current order is:
 ```text
 Frost Armor
     readable exact hostile-helpful identity when available
-    → hostile-NPC semantic signature only after readable identity disappears
+    → semantic signature only after readable identity disappears
+      AND the hostile unit is positively established as non-player
 
 Chilled
     secure exact identity when relation permits
@@ -574,18 +575,25 @@ PLAYER_FOCUS_CHANGED
     refresh focus + focustarget
 
 UNIT_TARGET
-    refresh affected derived token
+    unit-scoped to player / target / focus
+    refresh only the affected derived token
 
 UNIT_AURA / UNIT_FACTION / UNIT_FLAGS / UNIT_CONNECTION
-    refresh matching tracked unit
+    unit-scoped to player / target / focus / targettarget / focustarget
+    refresh only the matching tracked unit
 
-UNIT_PET / PET_BAR_UPDATE
+UNIT_PET
+    unit-scoped to player
+
+PET_BAR_UPDATE
     refresh local pet artwork
 ```
 
 New secure hosts are not built during combat lockdown. Structural teardown/reparent restoration is also deferred out of combat. If reconciliation is required, the queued build/rebuild runs on `PLAYER_REGEN_ENABLED`.
 
 Enabled Blizzard AuraContainers process `UNIT_AURA` internally. bjarkiPortraits therefore does not force a second full `UpdateAllAuras()` pass for ordinary aura events. Explicit full refreshes remain for target/focus/derived-token and relation lifecycle changes where the unit token's referent or identity-filter authorization can change.
+
+As of v0.1.24, the addon also uses `RegisterUnitEvent` for its high-frequency unit-state paths. This keeps unrelated nearby-unit traffic out of addon Lua. A dense Booty Bay live check after this change did not reproduce the previously reported lag; that is supporting evidence, not yet an isolated performance benchmark.
 
 Existing Blizzard AuraContainers can still process their secure aura state while combat is active.
 
@@ -715,7 +723,7 @@ That hybrid design is not accidental complexity. It is a response to the game ex
 
 The strongest parts of the addon are where each transition in that ladder is explicit.
 
-The main current weakness is that the new NPC semantic signatures are broader in code than their motivating live context. That is worth hardening later, but only with regression tests that preserve the now-confirmed Frost Armor and Chilled combat behavior.
+The main current weakness is that NPC semantic signatures still describe equivalence classes rather than exact identity. v0.1.24 narrows Frost Armor admission to hostile units positively established as non-player, but collision testing still matters. Further hardening should preserve the now-confirmed Frost Armor and Chilled combat behavior.
 
 ---
 
@@ -742,6 +750,7 @@ The core secrecy/secure-container model above remains the architecture. Later li
 - direct `GetPlayerAuraBySpellID(1229739)` lookup for Welcoming Campfire before indexed scanning;
 - Elemental Blessing in the same actual priority-10 pool as Plainsrunning;
 - Walk on Air in Utility;
-- v0.1.23 fallback repair for Welcoming Campfire, semantic-lane gating, canonical priority data, combat-safe structural teardown, and event-path refresh discipline.
+- v0.1.23 fallback repair for Welcoming Campfire, semantic-lane gating, canonical priority data, combat-safe structural teardown, and event-path refresh discipline;
+- v0.1.24 tri-state player identity, repaired ToT/FoT generic harmful admission, explicit Lua-visible-stream completeness, and unit-scoped high-frequency events.
 
 These are incremental policy/data/lifecycle changes, not a replacement of the two-plane readable/secure model.
