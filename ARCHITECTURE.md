@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.32-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.33-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -130,6 +130,11 @@ focustarget timer: +1, -1
 ```
 
 Their countdown font is reduced by two points.
+
+Hunter/Warlock pet-foundation artwork now uses the same lower-layer portrait
+surface on targettarget/focustarget as on target/focus. Aura buttons remain
+above that foundation, so an active tracked aura still replaces the pet-family
+art exactly as it does on the large frames.
 
 These values are presentation constants, not aura-selection rules.
 
