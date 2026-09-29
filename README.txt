@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.29-clean
+bjarkiPortraits 0.1.30-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -15,7 +15,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.29 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.30 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -222,3 +222,9 @@ v0.1.29-clean
 - auraInstanceID no longer stands in for recency; it is only a tie-break when two readable start times are equal.
 - If complete BaselineClass timing evidence is unavailable, the readable override abstains instead of making a stronger recency claim.
 - /bp debug adds baselineTimingSource and baselineAppliedAt.
+
+
+v0.1.30-clean
+- Adds Forever Well Fed: Fishing Skill (1249521) to the existing WellFed priority band.
+- Profession-oriented visible Well Fed auras are no longer categorically excluded.
+- No priority, geometry, rendering, semantic fallback, or event behavior changes.
