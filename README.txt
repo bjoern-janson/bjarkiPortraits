@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.25-clean
+bjarkiPortraits 0.1.26-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -194,3 +194,9 @@ v0.1.25-clean
 - Stoneskin (8072/8156/8157/10403/10404/10405) moves from BaselineClass into the PaladinAura priority band.
 - Healing Stream party aura ranks (5672/6371/6372/10460/10461) are added to the same PaladinAura priority band.
 - No priority level, geometry, rendering, semantic fallback, or event behavior changes.
+
+
+v0.1.26-clean
+- Adds Righteous Fury (25780) as an exact HELPFUL lane at priority 59.
+- Righteous Fury therefore sits immediately below PaladinAura (60).
+- No other priority, rendering, geometry, semantic fallback, or event behavior changes.
