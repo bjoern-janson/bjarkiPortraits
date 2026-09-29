@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.24-clean
+bjarkiPortraits 0.1.25-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -188,3 +188,9 @@ v0.1.24-clean
 - Scopes UNIT_AURA, UNIT_FACTION, UNIT_FLAGS, UNIT_CONNECTION, UNIT_TARGET, and UNIT_PET to only unit tokens owned by the addon.
 - /bp debug now exposes playerReadable/isPlayer, exactHarmful/smallHarmful, and hostileVisibleComplete.
 - Live evidence after this pass: Welcoming Campfire works; Frost Armor/Chilled remains good on the test NPC; hostile-player aura selection has been correct across the current sample; a dense Booty Bay test did not reproduce the earlier lag.
+
+
+v0.1.25-clean
+- Stoneskin (8072/8156/8157/10403/10404/10405) moves from BaselineClass into the PaladinAura priority band.
+- Healing Stream party aura ranks (5672/6371/6372/10460/10461) are added to the same PaladinAura priority band.
+- No priority level, geometry, rendering, semantic fallback, or event behavior changes.
