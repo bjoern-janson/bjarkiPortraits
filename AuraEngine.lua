@@ -127,12 +127,16 @@ local function scanLatestReadableBaselineAura(unit)
 
     local candidates = {}
     local allTimingReadable = true
+    local complete = false
 
     for index = 1, 80 do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
             unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
         if not ok or not R.CanAccess(aura) then return nil, false end
-        if aura == nil then break end
+        if aura == nil then
+            complete = true
+            break
+        end
 
         local spellID, spellReadable = R.ReadAuraField(aura, "spellId")
         if not spellReadable or type(spellID) ~= "number" then
@@ -163,6 +167,9 @@ local function scanLatestReadableBaselineAura(unit)
         end
     end
 
+    -- Exhausting the arbitrary 80-entry budget is not evidence that the aura
+    -- stream ended. Only an observed nil terminator grants completeness.
+    if not complete then return nil, false end
     if #candidates == 0 then return nil, true end
 
     local best = candidates[1]
@@ -196,7 +203,9 @@ local function scanReadableExactAura(unit, filter, spellID)
         if auraSpellID == spellID then return aura, true end
     end
 
-    return nil, true
+    -- No nil terminator was observed within the bounded scan, so absence is
+    -- unproven even though the requested spell was not found.
+    return nil, false
 end
 
 local function getReadablePlayerAuraBySpellID(spellID)
@@ -226,10 +235,14 @@ local function scanLatestReadableExactTierAura(unit, tierKey, filter)
     if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false end
 
     local best
+    local complete = false
     for index = 1, 80 do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
         if not ok or not R.CanAccess(aura) then return nil, false end
-        if aura == nil then break end
+        if aura == nil then
+            complete = true
+            break
+        end
 
         local spellID, readable = R.ReadAuraField(aura, "spellId")
         if not readable or type(spellID) ~= "number" then return nil, false end
@@ -248,6 +261,7 @@ local function scanLatestReadableExactTierAura(unit, tierKey, filter)
         end
     end
 
+    if not complete then return nil, false end
     return best, true
 end
 
@@ -495,7 +509,14 @@ local function updateReadableHostile(host, baseEnabled, hostilePlayer)
         local ok, value = pcall(GetSpellTexture, best.spellID)
         if ok and R.CanAccess(value) then texture = value end
     end
-    if texture then pcall(frame.icon.SetTexture, frame.icon, texture) end
+    if not texture then
+        -- A new exact winner without a readable texture must revoke the old
+        -- presentation. Never let a previous winner's icon masquerade as the
+        -- current aura.
+        hideReadableExact(frame)
+        return allReadable
+    end
+    pcall(frame.icon.SetTexture, frame.icon, texture)
 
     -- +2 puts the readable exact witness above the secure button for the same
     -- priority lane, while higher-priority secure lanes still outrank it.
