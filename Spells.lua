@@ -360,9 +360,9 @@ PT.categories = {
     buffs_utility = {
         [1953] = true, -- Blink (Mage)
         [1236175] = true, -- Blink (Mage, Forever variant)
+        [1259416] = true, -- Walk on Air (Skyborne racial, 10 sec)
+        [1308663] = true, -- Walk on Air (Forever variant, 1 min)
         [1002] = true, -- Eyes of the Beast (Hunter)
-        [1259688] = true, -- Elemental Blessing (Skysight, 30 sec)
-        [1270893] = true, -- Elemental Blessing (Skysight, 15 min)
         [20707] = true, -- Soulstone Resurrection Rank 1
         [20762] = true, -- Soulstone Resurrection Rank 2
         [20763] = true, -- Soulstone Resurrection Rank 3
@@ -771,6 +771,10 @@ PT.categories = {
     },
     buffs_plainsrunning = {
         [1299038] = true, -- Plainsrunning active aura (Forever Tauren)
+    },
+    buffs_elemental_blessing = {
+        [1259688] = true, -- Elemental Blessing (Skysight, 30 sec)
+        [1270893] = true, -- Elemental Blessing (Skysight, 15 min)
     },
     debuffs_boosted_rest = {
         [1229451] = true, -- Boosted Rest camping cooldown debuff (Forever)
