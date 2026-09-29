@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.22-clean
+bjarkiPortraits 0.1.23-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -166,3 +166,15 @@ v0.1.21-clean
 
 v0.1.22-clean
 - Adds Walk on Air (1259416 / 1308663) to Utility.
+
+
+v0.1.23-clean
+- Welcoming Campfire now uses HELPFUL|INCLUDE_NAME_PLATE_ONLY in both the secure lane and indexed readable fallback.
+- Direct GetPlayerAuraBySpellID lookup no longer suppresses the indexed fallback when it returns no usable aura.
+- Frost Armor, Chilled, and Weakened Soul semantic approximations are gated behind stronger exact/readable evidence instead of running in parallel everywhere.
+- Rapid Regeneration (1260270) moves from FoodDrink to Utility.
+- Forbearance, Resurrection Sickness, and Honorless Target now each have one canonical category assignment; the malformed cross-polarity Forbearance set is removed.
+- UNIT_AURA no longer forces UpdateAllAuras on every enabled priority container; explicit full refresh is retained for target/focus/relation lifecycle changes where the unit token's referent or authorization can change.
+- Portrait teardown/reparent restoration is deferred out of combat, including slash-command destruction paths.
+- Readable overlays abstain rather than showing a stale previous icon if spell texture lookup fails.
+- Warlock pet foundations now have name-based artwork fallbacks for Imp/Voidwalker/Succubus/Incubus/Felhunter/Infernal/Doomguard.
