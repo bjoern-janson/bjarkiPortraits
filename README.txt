@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.30-clean
+bjarkiPortraits 0.1.31-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -15,7 +15,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.30 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.31 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -228,3 +228,10 @@ v0.1.30-clean
 - Adds Forever Well Fed: Fishing Skill (1249521) to the existing WellFed priority band.
 - Profession-oriented visible Well Fed auras are no longer categorically excluded.
 - No priority, geometry, rendering, semantic fallback, or event behavior changes.
+
+
+v0.1.31-clean
+- Adds a directly readable exact Boosted Rest (1229451) fallback for non-small player/target/focus surfaces when secure harmful-ID filtering is relation-gated.
+- The fallback renders at the existing BoostedRest priority 20 and abstains when exact identity is unreadable.
+- ToT/FoT retain their separate generic secure SmallFriendlyHarmful behavior.
+- /bp debug adds boostedRestReadable and boostedRestActive.
