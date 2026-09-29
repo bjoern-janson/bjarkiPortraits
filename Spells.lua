@@ -598,3 +598,153 @@ PT.categories = {
         [11767] = true, -- Blood Pact Rank 5 (Warlock Imp)
     },
     buffs_scrolls = {
+        -- Vanilla stat/armor scroll buffs. Kept below maintained class buffs.
+        -- Protection / Armor
+        [8091] = true,
+        [8094] = true,
+        [8095] = true,
+        [12175] = true,
+
+        -- Intellect
+        [8096] = true,
+        [8097] = true,
+        [8098] = true,
+        [12176] = true,
+
+        -- Stamina
+        [8099] = true,
+        [8100] = true,
+        [8101] = true,
+        [12178] = true,
+
+        -- Spirit
+        [8112] = true,
+        [8113] = true,
+        [8114] = true,
+        [12177] = true,
+
+        -- Agility
+        [8115] = true,
+        [8116] = true,
+        [8117] = true,
+        [12174] = true,
+
+        -- Strength
+        [8118] = true,
+        [8119] = true,
+        [8120] = true,
+        [12179] = true,
+    },
+    buffs_class_baseline = {
+        -- Regular class buffs: meaningful combat state, but deliberately below
+        -- forms/stealth and active combat effects.
+
+        -- Warrior: Battle Shout
+        [6673] = true,
+        [5242] = true,
+        [6192] = true,
+        [11549] = true,
+        [11550] = true,
+        [11551] = true,
+        [25289] = true,
+
+        -- Shaman: Stoneskin Totem aura
+        [8072] = true,
+        [8156] = true,
+        [8157] = true,
+        [10403] = true,
+        [10404] = true,
+        [10405] = true,
+
+        -- Priest: Power Word: Fortitude + Prayer of Fortitude
+        [1243] = true,
+        [1244] = true,
+        [1245] = true,
+        [2791] = true,
+        [10937] = true,
+        [10938] = true,
+        [21562] = true,
+        [21564] = true,
+
+        -- Druid: Mark/Gift of the Wild (plus Forever's observed level-60 aura)
+        [1126] = true,
+        [5232] = true,
+        [6756] = true,
+        [5234] = true,
+        [8907] = true,
+        [9884] = true,
+        [9885] = true,
+        [21849] = true,
+        [21850] = true,
+        [1310503] = true,
+
+        -- Mage: Arcane Intellect / Arcane Brilliance (+ Forever alternate aura)
+        [1459] = true,
+        [1460] = true,
+        [1461] = true,
+        [10156] = true,
+        [10157] = true,
+        [23028] = true,
+        [364161] = true,
+
+        -- Paladin: maintained class buffs / mana seal
+        [20166] = true, -- Seal of Wisdom Rank 1 (mana seal)
+        [20356] = true, -- Seal of Wisdom Rank 2 (mana seal)
+        [20357] = true, -- Seal of Wisdom Rank 3 (mana seal)
+
+        -- Paladin: long-lived Blessings (not active defensive/utility blessings)
+        -- Might
+        [19740] = true,
+        [19834] = true,
+        [19835] = true,
+        [19836] = true,
+        [19837] = true,
+        [19838] = true,
+        [25291] = true,
+        [25782] = true, -- Greater Blessing of Might
+
+        -- Wisdom
+        [19742] = true,
+        [19850] = true,
+        [19852] = true,
+        [19853] = true,
+        [19854] = true,
+        [25290] = true,
+        [25894] = true, -- Greater Blessing of Wisdom
+
+        -- Kings
+        [20217] = true,
+        [25898] = true, -- Greater Blessing of Kings
+
+        -- Salvation
+        [1038] = true,
+        [25895] = true, -- Greater Blessing of Salvation
+
+        -- Sanctuary
+        [20911] = true,
+        [20912] = true,
+        [20913] = true,
+        [20914] = true,
+        [25899] = true, -- Greater Blessing of Sanctuary
+    },
+    buffs_camp_benefits = {
+        [1229741] = true, -- Camp Benefits (Forever camping)
+    },
+    buffs_well_fed = {
+        -- Combat-relevant Well Fed auras. Profession-only Well Fed variants
+        -- (Fishing/Herbalism skill, etc.) are intentionally excluded.
+        [19705] = true, -- Well Fed: +2 Stamina/Spirit
+        [19706] = true, -- Well Fed: +4 Stamina/Spirit
+        [19708] = true, -- Well Fed: +6 Stamina/Spirit
+        [19709] = true, -- Well Fed: +8 Stamina/Spirit
+        [19710] = true, -- Well Fed: +12 Stamina/Spirit
+        [19711] = true, -- Well Fed: +14 Stamina/Spirit
+        [24799] = true, -- Well Fed: +20 Strength
+        [24870] = true, -- Well Fed: level-scaled Stamina/Spirit
+        [1225778] = true, -- Forever Well Fed: Strength + Stamina
+        [1225779] = true, -- Forever Well Fed: Agility + Stamina
+        [1225780] = true, -- Forever Well Fed: Spell Damage/Healing + Stamina
+        [1225782] = true, -- Forever Well Fed: AP/Spell/Healing + Stamina
+        [1248421] = true, -- Forever Well Fed: Intellect
+        [1248422] = true, -- Forever Well Fed: Strength
+        [1249519] = true, -- Forever Well Fed: Attack Power
