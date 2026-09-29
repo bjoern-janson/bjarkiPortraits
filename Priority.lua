@@ -26,7 +26,7 @@ end
 -- share a lane are unioned before the secure engine sees them, so recency within
 -- that lane is decided by AuraInstanceID rather than by sibling-frame accident.
 R.TIERS = {
-    exact("Plainsrunning", "HELPFUL", 10, true, C.buffs_plainsrunning, true),
+    exact("Plainsrunning", "HELPFUL", 10, true, union("buffs_plainsrunning", "buffs_elemental_blessing"), true),
     exact("BoostedRest", "HARMFUL", 20, false, C.debuffs_boosted_rest, true),
     exact("CampfireNearby", "HELPFUL", 30, true, C.buffs_campfire_nearby),
     exact("WelcomingCampfire", "HELPFUL", 40, true, C.buffs_welcoming_campfire),
@@ -41,9 +41,9 @@ R.TIERS = {
     exact("ElementalShield", "HELPFUL", 130, true, C.buffs_lightning_shield),
     exact("SelfState", "HELPFUL", 150, true, union("buffs_other", "buffs_frost_armor")),
     -- Combat-safe hostile-NPC fallback for Frost Armor when spell identity is
-    -- sealed. Live testing identifies 12544 as a 30-minute Magic buff; the
-    -- isStealable flag is intentionally not required because Forever did not
-    -- expose it reliably for this NPC cast.
+    -- sealed. 12544 is a 30-minute Magic buff and is spellstealable from NPCs.
+    -- This lane is enabled only for hostile NPCs when the readable exact path
+    -- has disappeared, so it cannot broaden ordinary readable behavior.
     semantic("FrostArmorSignature", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 150, {
         includeDispelTypes = { Magic = true },
         maxDuration = 1800.1,
@@ -60,6 +60,14 @@ R.TIERS = {
         union("buffs_ghostwolf", "buffs_ghostwolf_variants", "buffs_cheetah"), true),
     exact("LoneWolf", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 170, true, C.buffs_lone_wolf, true),
     exact("HuntersMark", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 180, false, C.debuffs_hunters_mark),
+
+    -- Small friendly derived frames (ToT/FoT) sit on the relation side where
+    -- exact harmful spell-ID filtering is intentionally unavailable. This
+    -- secure broad lane restores "some harmful state is present" without
+    -- pretending to recover the protected spell identity. Higher semantic
+    -- control/debuff lanes still outrank it.
+    semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 189),
+
     exact("DoTs", "HARMFUL", 190, false, C.debuffs_dots),
     exact("LowDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 200, false, C.debuffs_other),
     exact("Seal", "HELPFUL", 210, true, C.buffs_seals),
