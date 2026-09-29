@@ -106,6 +106,7 @@ local function findHelpfulTierForSpell(spellID)
 end
 
 local RES_SICKNESS_SPELL_ID = 15007
+local WELCOMING_CAMPFIRE_SPELL_ID = 1229739
 
 local function findTierByKey(key)
     for _, tier in ipairs(R.TIERS or {}) do
@@ -196,6 +197,32 @@ local function scanReadableExactAura(unit, filter, spellID)
     end
 
     return nil, true
+end
+
+local function scanLatestReadableExactTierAura(unit, tierKey, filter)
+    local tier = findTierByKey(tierKey)
+    if not tier or not tier.spellIDs then return nil, false end
+    if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false end
+
+    local best
+    for index = 1, 80 do
+        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
+        if not ok or not R.CanAccess(aura) then return nil, false end
+        if aura == nil then break end
+
+        local spellID, readable = R.ReadAuraField(aura, "spellId")
+        if not readable or type(spellID) ~= "number" then return nil, false end
+
+        if tier.spellIDs[spellID] then
+            local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
+            if not instanceReadable or type(auraInstanceID) ~= "number" then auraInstanceID = 0 end
+            if not best or auraInstanceID > best.auraInstanceID then
+                best = { aura = aura, spellID = spellID, auraInstanceID = auraInstanceID, tier = tier }
+            end
+        end
+    end
+
+    return best, true
 end
 
 local function scanReadableHostileHelpful(unit)
@@ -334,6 +361,50 @@ local function showReadableAura(frame, aura, spellID)
 
     frame:Show()
     return true
+end
+
+local function clearReadableSlows(host)
+    local frame = host and host.readableSlowsFrame
+    if frame then hideReadableExact(frame) end
+    if host then
+        host._slowsReadable = false
+        host._slowsSpellID = nil
+        host._slowsActive = false
+    end
+end
+
+local function updateReadableSlows(host, baseEnabled)
+    if not host or not baseEnabled or R.testMode or R.SMALL_UNITS[host.unit] then
+        clearReadableSlows(host)
+        return
+    end
+
+    local tier = findTierByKey("Slows")
+    if not tier then clearReadableSlows(host); return end
+
+    if R.ExactFilterAllowed(host.unit, false, tier.spellIDs, tier.allowNeverSecret) then
+        clearReadableSlows(host)
+        return
+    end
+
+    local best, complete = scanLatestReadableExactTierAura(
+        host.unit, "Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY"
+    )
+    host._slowsReadable = complete
+    host._slowsSpellID = best and best.spellID or nil
+
+    if not complete or not best then
+        hideReadableExact(host.readableSlowsFrame)
+        host._slowsActive = false
+        return
+    end
+
+    if host.readableSlowsFrame and host.readableSlowsFrame.SetFrameLevel then
+        host.readableSlowsFrame:SetFrameLevel(
+            (host.smallBaseLevel or 0) + (tier.level or 220) + 2
+        )
+    end
+    host._slowsActive = showReadableAura(host.readableSlowsFrame, best.aura, best.spellID)
 end
 
 local function clearReadableHostile(host)
@@ -486,7 +557,9 @@ function R.DestroyHost(unit)
     if host.testFrame then host.testFrame:Hide() end
     if host.readableHostileFrame then host.readableHostileFrame:Hide() end
     if host.readableBaselineFrame then host.readableBaselineFrame:Hide() end
+    if host.readableSlowsFrame then host.readableSlowsFrame:Hide() end
     if host.readableResSicknessFrame then host.readableResSicknessFrame:Hide() end
+    if host.readableWelcomingCampfireFrame then host.readableWelcomingCampfireFrame:Hide() end
     restorePortrait(host)
     if host.ownsLayer and host.layer then host.layer:Hide() end
     R.hosts[unit] = nil
@@ -593,8 +666,18 @@ function R.CreateHost(unit)
     -- They are lifecycle-sensitive; do not attach the ordinary readable
     -- Resurrection Sickness helper surface to ToT/FoT.
     if not R.SMALL_UNITS[unit] then
+        local slowsTier = findTierByKey("Slows")
+        host.readableSlowsFrame = createReadableExactFrame(host, slowsTier and slowsTier.level or 220)
+
         local resTier = findTierByKey("ResSickness")
         host.readableResSicknessFrame = createReadableExactFrame(host, resTier and resTier.level or 241)
+    end
+
+    if unit == "player" then
+        local welcomingTier = findTierByKey("WelcomingCampfire")
+        host.readableWelcomingCampfireFrame = createReadableExactFrame(
+            host, welcomingTier and welcomingTier.level or 40
+        )
     end
     return host
 end
@@ -609,15 +692,19 @@ end
 function R.UpdateHost(host)
     if not host then return end
     local base = R.IsUnitEnabled(host.unit) and not R.testMode
+    local hostileUnit = R.IsHostileUnit(host.unit)
     local hostilePlayer = R.IsHostilePlayer(host.unit)
+    host._hostileUnit = hostileUnit
     host._hostilePlayer = hostilePlayer
 
     local hostileReadable = false
-    if hostilePlayer then
+    if hostileUnit then
         hostileReadable = updateReadableHostile(host, base, true)
     else
         clearReadableHostile(host)
     end
+
+    updateReadableSlows(host, base)
 
     -- Resurrection Sickness is a harmful aura commonly observed on self/friendly
     -- units, where exact harmful-ID AuraContainer filters may be relation-gated.
@@ -644,6 +731,24 @@ function R.UpdateHost(host)
         hideReadableExact(host.readableResSicknessFrame)
     end
 
+    host._welcomingCampfireReadable = false
+    host._welcomingCampfireActive = false
+    if host.unit == "player" and base and host.readableWelcomingCampfireFrame then
+        local aura, readable = scanReadableExactAura(
+            host.unit, "HELPFUL|INCLUDE_NAME_PLATE_ONLY", WELCOMING_CAMPFIRE_SPELL_ID
+        )
+        host._welcomingCampfireReadable = readable
+        if aura then
+            host._welcomingCampfireActive = showReadableAura(
+                host.readableWelcomingCampfireFrame, aura, WELCOMING_CAMPFIRE_SPELL_ID
+            )
+        else
+            hideReadableExact(host.readableWelcomingCampfireFrame)
+        end
+    elseif host.readableWelcomingCampfireFrame then
+        hideReadableExact(host.readableWelcomingCampfireFrame)
+    end
+
     -- Restore the established BaselineClass rule: newest application/refresh
     -- wins within the tier whenever the whole candidate set is directly readable.
     -- The secure BaselineClass container remains active underneath as fallback.
@@ -657,18 +762,14 @@ function R.UpdateHost(host)
             -- them, fall back to Blizzard's broad secure HELPFUL stream.
             enabled = enabled and hostilePlayer and not hostileReadable
         elseif tier.exact then
-            if tier.helpful and hostilePlayer then
-                -- Exact helpful spell-ID filters are not authorized for hostile
-                -- units. Never ask AuraContainer to pretend otherwise.
-                enabled = false
-            elseif tier.key == "ResSickness" then
+            if tier.key == "ResSickness" then
                 enabled = enabled and resSecureAllowed
             else
                 enabled = enabled and R.ExactFilterAllowed(
                     host.unit, tier.helpful, tier.spellIDs, tier.allowNeverSecret
                 )
             end
-        elseif hostilePlayer and hostileReadable
+        elseif hostileUnit and hostileReadable
             and (tier.key == "Important" or tier.key == "ExternalDef" or tier.key == "BigDef")
         then
             -- When every hostile helpful identity is readable, the exact scanner
