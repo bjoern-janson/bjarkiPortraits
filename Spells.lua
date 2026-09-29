@@ -748,3 +748,105 @@ PT.categories = {
         [1248421] = true, -- Forever Well Fed: Intellect
         [1248422] = true, -- Forever Well Fed: Strength
         [1249519] = true, -- Forever Well Fed: Attack Power
+        [1249520] = true, -- Forever Well Fed: Spell Damage
+        [1249523] = true, -- Forever Well Fed: Critical Strike
+        [1248688] = true, -- Forever Well Fed: movement speed (Westfall)
+        [1249926] = true, -- Forever Well Fed: Spirit
+        [1294007] = true, -- Forever Well Fed: movement speed (Hyjal)
+        [1302064] = true, -- Forever Well Fed: Strength variant
+    },
+    buffs_plainsrunning = {
+        [1299038] = true, -- Plainsrunning active aura (Forever Tauren)
+    },
+    debuffs_boosted_rest = {
+        [1229451] = true, -- Boosted Rest camping cooldown debuff (Forever)
+    },
+    buffs_campfire_nearby = {
+        [1283391] = true, -- Campfire Nearby (Forever)
+    },
+    buffs_welcoming_campfire = {
+        [1229739] = true, -- Welcoming Campfire (Forever)
+    },
+    buffs_travel_utility = {
+        [5697] = true, -- Unending Breath (Warlock)
+        [546] = true,  -- Water Walking (Shaman)
+        [1066] = true, -- Aquatic Form (Druid)
+    },
+    buffs_lightning_shield = {
+        [324] = true,   -- Lightning Shield Rank 1
+        [325] = true,   -- Lightning Shield Rank 2
+        [905] = true,   -- Lightning Shield Rank 3
+        [945] = true,   -- Lightning Shield Rank 4
+        [8134] = true,  -- Lightning Shield Rank 5
+        [10431] = true, -- Lightning Shield Rank 6
+        [10432] = true, -- Lightning Shield Rank 7
+        [408510] = true, -- Water Shield (Forever)
+        [408514] = true, -- Earth Shield (Forever)
+    },
+    buffs_lone_wolf = {
+        [1310684] = true, -- Lone Wolf visible buff (Forever)
+    },
+    buffs_ghostwolf = {
+        [2645] = true, -- Ghost Wolf (Shaman)
+    },
+    buffs_ghostwolf_variants = {
+        [415233] = true, -- Ghost Wolf (Forever variant)
+        [1238640] = true, -- Ghost Wolf (Forever alternate/rank variant)
+    },
+    buffs_cheetah = {
+        [5118] = true, -- Aspect of the Cheetah (Hunter)
+    },
+    buffs_other = {
+        [23605] = true,
+        [18137] = true, -- Shadowguard Rank 1 (Troll Priest)
+        [19308] = true, -- Shadowguard Rank 2 (Troll Priest)
+        [19309] = true, -- Shadowguard Rank 3 (Troll Priest)
+        [19310] = true, -- Shadowguard Rank 4 (Troll Priest)
+        [19311] = true, -- Shadowguard Rank 5 (Troll Priest)
+        [19312] = true, -- Shadowguard Rank 6 (Troll Priest)
+        [687] = true, -- Demon Skin Rank 1 (Warlock)
+        [696] = true, -- Demon Skin Rank 2 (Warlock)
+        [706] = true, -- Demon Armor Rank 1 (Warlock)
+        [1086] = true, -- Demon Armor Rank 2 (Warlock)
+        [11733] = true, -- Demon Armor Rank 3 (Warlock)
+        [11734] = true, -- Demon Armor Rank 4 (Warlock)
+        [11735] = true, -- Demon Armor Rank 5 (Warlock)
+        [588] = true, -- Inner Fire Rank 1 (Priest)
+        [7128] = true, -- Inner Fire Rank 2 (Priest)
+        [602] = true, -- Inner Fire Rank 3 (Priest)
+        [1006] = true, -- Inner Fire Rank 4 (Priest)
+        [10951] = true, -- Inner Fire Rank 5 (Priest)
+        [10952] = true, -- Inner Fire Rank 6 (Priest)
+        [2652] = true, -- Touch of Weakness Rank 1 (Undead Priest)
+        [19261] = true, -- Touch of Weakness Rank 2 (Undead Priest)
+        [19262] = true, -- Touch of Weakness Rank 3 (Undead Priest)
+        [19264] = true, -- Touch of Weakness Rank 4 (Undead Priest)
+        [19265] = true, -- Touch of Weakness Rank 5 (Undead Priest)
+        [19266] = true, -- Touch of Weakness Rank 6 (Undead Priest)
+        [168] = true, -- Frost Armor Rank 1 (Mage)
+        [7300] = true, -- Frost Armor Rank 2 (Mage)
+        [7301] = true, -- Frost Armor Rank 3 (Mage)
+        [5487] = true, -- Bear Form
+        [768] = true, -- Cat Form
+        [783] = true, -- Travel Form
+        [24858] = true, -- Moonkin Form
+        [13163] = true, -- Aspect of the Monkey (Hunter)
+        [13165] = true, -- Aspect of the Hawk Rank 1
+        [14318] = true, -- Aspect of the Hawk Rank 2
+        [14319] = true, -- Aspect of the Hawk Rank 3
+        [14320] = true, -- Aspect of the Hawk Rank 4
+        [14321] = true, -- Aspect of the Hawk Rank 5
+        [14322] = true, -- Aspect of the Hawk Rank 6
+        [25296] = true, -- Aspect of the Hawk Rank 7
+        [20580] = true, -- Shadowmeld (Night Elf racial)
+        [5215] = true, -- Prowl Rank 1 (Druid)
+        [6783] = true, -- Prowl Rank 2 (Druid)
+        [9913] = true, -- Prowl Rank 3 (Druid)
+        [1784] = true, -- Stealth Rank 1 (Rogue)
+        [1785] = true, -- Stealth Rank 2 (Rogue)
+        [1786] = true, -- Stealth Rank 3 (Rogue)
+        [1787] = true, -- Stealth Rank 4 (Rogue)
+    },
+}
+
+
