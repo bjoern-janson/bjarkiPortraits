@@ -1,0 +1,150 @@
+local addonName, BP = ...
+local R = assert(BP.Runtime, "Core.lua must load first")
+
+local STRATA_BELOW = {
+    BACKGROUND = "BACKGROUND", LOW = "BACKGROUND", MEDIUM = "LOW", HIGH = "MEDIUM",
+    DIALOG = "HIGH", FULLSCREEN = "DIALOG", FULLSCREEN_DIALOG = "FULLSCREEN", TOOLTIP = "FULLSCREEN_DIALOG",
+}
+
+local SMALL_GEOMETRY = {
+    targettarget = { iconX = 2, iconY = 0, timerX = 0, timerY = -1 },
+    focustarget = { iconX = 1, iconY = 0, timerX = 1, timerY = -1 },
+}
+
+-- Small Blizzard derived frames do not expose a reliable PortraitMask on every
+-- Forever build.  The icon therefore owns a local circular mask when Blizzard
+-- does not provide one.  This masks only addon artwork; native frame regions are
+-- never mutated.
+local function applyIconMask(host, owner, icon)
+    -- Reuse Blizzard's real portrait mask when exposed.  For ToT/FoT, the
+    -- native frame artwork above the shared lower layer provides the visible
+    -- circular framing; do not synthesize a second mask or cloned ring.
+    if host.portraitMask and icon.AddMaskTexture then
+        pcall(icon.AddMaskTexture, icon, host.portraitMask)
+    end
+end
+
+local function configureCooldown(cooldown, unit)
+    if cooldown.SetMinimumCountdownDuration then cooldown:SetMinimumCountdownDuration(0) end
+    cooldown:SetAllPoints()
+    if cooldown.SetUsingParentLevel then cooldown:SetUsingParentLevel(true) end
+    if cooldown.SetReverse then cooldown:SetReverse(true) end
+    if cooldown.SetDrawBling then cooldown:SetDrawBling(false) end
+    if cooldown.SetDrawEdge then cooldown:SetDrawEdge(false) end
+    if cooldown.SetDrawSwipe then cooldown:SetDrawSwipe(R.db and R.db.showSwipe or false) end
+    if cooldown.SetHideCountdownNumbers then cooldown:SetHideCountdownNumbers(false) end
+    local formatter = R.GetCountdownFormatter()
+    if formatter and cooldown.SetCountdownFormatter then
+        pcall(cooldown.SetCountdownFormatter, cooldown, formatter)
+    elseif cooldown.SetCountdownMillisecondsThreshold then
+        pcall(cooldown.SetCountdownMillisecondsThreshold, cooldown, R.db and R.db.showDecimals and 10 or 0)
+    end
+    if cooldown.SetSwipeTexture then cooldown:SetSwipeTexture(R.SWIPE_TEXTURE) end
+
+    local geometry = SMALL_GEOMETRY[unit]
+    if geometry and cooldown.GetCountdownFontString then
+        local ok, text = pcall(cooldown.GetCountdownFontString, cooldown)
+        if ok and text then
+            if not cooldown._bjarkiFontAdjusted and text.GetFont and text.SetFont then
+                local fontOK, font, size, flags = pcall(text.GetFont, text)
+                if fontOK and font and type(size) == "number" then
+                    pcall(text.SetFont, text, font, math.max(1, size - 2), flags or "")
+                    cooldown._bjarkiFontAdjusted = true
+                end
+            end
+            if text.ClearAllPoints and text.SetPoint then
+                pcall(text.ClearAllPoints, text)
+                pcall(text.SetPoint, text, "CENTER", cooldown, "CENTER", geometry.timerX, geometry.timerY)
+            end
+        end
+    end
+end
+
+local function initializeButton(host, button, tier)
+    button:SetAllPoints(host.anchor)
+    if button.SetFrameLevel then button:SetFrameLevel((host.smallBaseLevel or 0) + (tier.level or 1) + 1) end
+
+    local icon = button:CreateTexture(nil, "BACKGROUND")
+    icon:SetAllPoints(button)
+    icon:SetTexCoord(0, 1, 0, 1)
+    applyIconMask(host, button, icon)
+    button:SetIcon(icon)
+
+    local cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
+    configureCooldown(cooldown, host.unit)
+    button:SetDurationCooldown(cooldown)
+    button:EnableMouse(false)
+    host.cooldowns[#host.cooldowns + 1] = cooldown
+end
+
+local function firstPoint(region)
+    if not region or not region.GetPoint then return nil end
+    return region:GetPoint(1)
+end
+
+local function placeAtPortrait(frame, host)
+    local point, relativeTo, relativePoint, x, y = firstPoint(host.portrait)
+    local geometry = SMALL_GEOMETRY[host.unit]
+    local ox, oy = geometry and geometry.iconX or 0, geometry and geometry.iconY or 0
+    if point then
+        frame:SetPoint(point, relativeTo or host.layer, relativePoint or point, (x or 0) + ox, (y or 0) + oy)
+    else
+        frame:SetPoint("CENTER", host.layer, "CENTER", ox, oy)
+    end
+    frame:SetSize(host.portrait:GetSize())
+end
+
+local function findHelpfulTierForSpell(spellID)
+    if type(spellID) ~= "number" then return nil end
+    local best
+    for _, tier in ipairs(R.TIERS or {}) do
+        if tier.exact and tier.helpful and tier.spellIDs and tier.spellIDs[spellID] then
+            if not best or (tier.level or 0) > (best.level or 0) then best = tier end
+        end
+    end
+    return best
+end
+
+local RES_SICKNESS_SPELL_ID = 15007
+
+local function findTierByKey(key)
+    for _, tier in ipairs(R.TIERS or {}) do
+        if tier.key == key then return tier end
+    end
+end
+
+-- BaselineClass has a stronger within-tier contract than AuraInstanceID sorting
+-- alone can provide: a refreshed aura should become the visible winner even when
+-- Forever preserves that aura's instance ID.  When every competing baseline aura
+-- exposes duration/expiration time, derive application time directly.  If any
+-- candidate lacks readable timing, fall back to AuraInstanceID across the entire
+-- tier so mixed readability never biases the winner toward the timed subset.
+local function scanLatestReadableBaselineAura(unit)
+    local tier = findTierByKey("BaselineClass")
+    if not tier or not tier.spellIDs then return nil, false end
+    if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false end
+
+    local candidates = {}
+    local allTimingReadable = true
+
+    for index = 1, 80 do
+        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
+            unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
+        if not ok or not R.CanAccess(aura) then return nil, false end
+        if aura == nil then break end
+
+        local spellID, spellReadable = R.ReadAuraField(aura, "spellId")
+        if not spellReadable or type(spellID) ~= "number" then
+            -- We cannot prove that an unreadable aura is outside BaselineClass.
+            -- Relinquish the readable override and let the secure container win.
+            return nil, false
+        end
+
+        if tier.spellIDs[spellID] then
+            local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
+            if not instanceReadable or type(auraInstanceID) ~= "number" then
+                return nil, false
+            end
+
+            local duration, durationReadable = R.ReadAuraField(aura, "duration")
+            local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
