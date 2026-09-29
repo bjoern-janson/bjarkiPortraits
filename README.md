@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.23-clean**. Last live-tested baseline before this surgical hardening pass: **v0.1.22-clean**.
+Current source: **v0.1.24-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. The repaired ToT/FoT generic harmful admission still needs broader live coverage.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -32,7 +32,7 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - `Main.lua` — event lifecycle.
 - `ARCHITECTURE.md` — detailed model of Forever aura secrecy, secure filtering, recency, and rendering.
 
-## Live-tested v0.1.17 facts
+## Live-tested facts
 
 - ToT/FoT use the same lower-layer portrait primitive as the large frames and are visually working.
 - The earlier disappearance of ToT/FoT was traced to `showTargetOfTarget = 0`, not to the current visual composition.
@@ -41,6 +41,9 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - Both IDs are readable out of combat but not `NeverSecret`; exact identity becomes unavailable in combat.
 - The working in-combat solution is therefore a secure **non-identity metadata signature**.
 - Chilled and Frost Armor are now both confirmed rendering in combat on that NPC.
+- Welcoming Campfire is confirmed working through the repaired v0.1.23 path.
+- Hostile-player portrait aura selection has been correct across the current live sample.
+- After v0.1.24 scoped high-frequency unit events to owned tokens, a dense Booty Bay test no longer exhibited the reported lag.
 
 ## Commands
 
@@ -59,3 +62,4 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - v0.1.21 moves Elemental Blessing into the Plainsrunning priority lane.
 - v0.1.22 adds Walk on Air to Utility.
 - v0.1.23 repairs Welcoming Campfire fallback coverage, gates semantic approximations behind stronger evidence, moves Rapid Regeneration to Utility, canonicalizes Forbearance/Resurrection Sickness/Honorless Target data, removes redundant secure-container full refreshes from the UNIT_AURA hot path, and makes structural teardown combat-safe.
+- v0.1.24 restores the generic secure harmful surface for ToT/FoT whenever exact harmful identity is not authorized, makes player identity explicitly tri-state so UNKNOWN is not treated as NPC, separates Lua-visible hostile-stream completeness from secure-plane authority, and unit-scopes high-frequency aura/relation/target events.
