@@ -22,22 +22,31 @@ events:SetScript("OnEvent", function(_, event, arg1)
         R.BuildAll()
         R.UpdatePetPortraits()
     elseif event == "PLAYER_REGEN_ENABLED" then
+        if R.forceRebuildQueued then
+            R.forceRebuildQueued = false
+            R.DestroyAll()
+        end
         if R.buildQueued then R.BuildAll() end
     elseif event == "PLAYER_TARGET_CHANGED" then
-        R.Refresh("target")
-        R.Refresh("targettarget")
+        R.Refresh("target", true)
+        R.Refresh("targettarget", true)
         R.UpdateObservedPetPortraits()
     elseif event == "PLAYER_FOCUS_CHANGED" then
-        R.Refresh("focus")
-        R.Refresh("focustarget")
+        R.Refresh("focus", true)
+        R.Refresh("focustarget", true)
         R.UpdateObservedPetPortraits()
     elseif event == "UNIT_TARGET" then
-        if arg1 == "target" then R.Refresh("targettarget")
-        elseif arg1 == "focus" then R.Refresh("focustarget")
-        elseif arg1 == "player" then R.Refresh("target") end
-    elseif event == "UNIT_AURA" or event == "UNIT_FACTION" or event == "UNIT_FLAGS" or event == "UNIT_CONNECTION" then
+        if arg1 == "target" then R.Refresh("targettarget", true)
+        elseif arg1 == "focus" then R.Refresh("focustarget", true)
+        elseif arg1 == "player" then R.Refresh("target", true) end
+    elseif event == "UNIT_AURA" then
         for _, unit in ipairs(R.TRACKED_UNITS) do
             if arg1 == unit then R.Refresh(unit); break end
+        end
+        if arg1 == "target" or arg1 == "focus" then R.UpdateObservedPetPortraits() end
+    elseif event == "UNIT_FACTION" or event == "UNIT_FLAGS" or event == "UNIT_CONNECTION" then
+        for _, unit in ipairs(R.TRACKED_UNITS) do
+            if arg1 == unit then R.Refresh(unit, true); break end
         end
         if arg1 == "target" or arg1 == "focus" then R.UpdateObservedPetPortraits() end
     elseif event == "UNIT_PET" or event == "PET_BAR_UPDATE" then
