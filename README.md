@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.25-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.26-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -16,10 +16,10 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 
 ## Current scale
 
-- 42 spell/effect categories
-- 819 category memberships
-- 785 unique spell IDs
-- 45 priority lanes
+- 43 spell/effect categories
+- 820 category memberships
+- 786 unique spell IDs
+- 46 priority lanes
 
 ## Files
 
@@ -64,3 +64,7 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - v0.1.23 repairs Welcoming Campfire fallback coverage, gates semantic approximations behind stronger evidence, moves Rapid Regeneration to Utility, canonicalizes Forbearance/Resurrection Sickness/Honorless Target data, removes redundant secure-container full refreshes from the UNIT_AURA hot path, and makes structural teardown combat-safe.
 - v0.1.24 restores the generic secure harmful surface for ToT/FoT whenever exact harmful identity is not authorized, makes player identity explicitly tri-state so UNKNOWN is not treated as NPC, separates Lua-visible hostile-stream completeness from secure-plane authority, and unit-scopes high-frequency aura/relation/target events.
 - v0.1.25 moves Stoneskin out of BaselineClass and adds the Healing Stream aura family; both now share the PaladinAura priority band as persistent party-support effects.
+
+
+### v0.1.26
+- Adds Righteous Fury (25780) as its own exact helpful lane at priority 59, immediately below the PaladinAura party-support band at 60.
