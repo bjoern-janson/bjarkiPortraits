@@ -448,3 +448,153 @@ local function createTestFrame(host)
     icon:SetAllPoints(frame)
     icon:SetTexCoord(0, 1, 0, 1)
     applyIconMask(host, frame, icon)
+    frame.icon = icon
+    local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
+    configureCooldown(cooldown, host.unit)
+    frame.cooldown = cooldown
+    frame:Hide()
+    return frame
+end
+
+local function hostStillCurrent(host)
+    if not host then return false end
+    local portrait, _, unitFrame = R.GetPortrait(host.unit)
+    return portrait == host.portrait and unitFrame == host.unitFrame
+end
+
+local function disableContainers(host)
+    for _, container in ipairs(host.containers or {}) do
+        pcall(container.SetEnabled, container, false)
+        pcall(container.SetShown, container, false)
+    end
+end
+
+
+local function restorePortrait(host)
+    if not host or not host.reparented or not host.portrait then return end
+    if host.portrait.SetParent and host.originalParent then
+        pcall(host.portrait.SetParent, host.portrait, host.originalParent)
+    end
+    R.RestorePoints(host.portrait, host.originalPoints)
+    host.reparented = false
+end
+
+function R.DestroyHost(unit)
+    local host = R.hosts[unit]
+    if not host then return end
+    disableContainers(host)
+    if host.testFrame then host.testFrame:Hide() end
+    if host.readableHostileFrame then host.readableHostileFrame:Hide() end
+    if host.readableBaselineFrame then host.readableBaselineFrame:Hide() end
+    if host.readableResSicknessFrame then host.readableResSicknessFrame:Hide() end
+    restorePortrait(host)
+    if host.ownsLayer and host.layer then host.layer:Hide() end
+    R.hosts[unit] = nil
+end
+
+function R.DestroyAll()
+    for _, unit in ipairs(R.TRACKED_UNITS) do R.DestroyHost(unit) end
+end
+
+function R.CreateHost(unit)
+    local existing = R.hosts[unit]
+    if existing and hostStillCurrent(existing) then return existing end
+    if existing then R.DestroyHost(unit) end
+    if InCombatLockdown and InCombatLockdown() then return nil end
+    if not R.SORT_METHOD or not R.SORT_DIRECTION then return nil end
+
+    local portrait, portraitMask, unitFrame = R.GetPortrait(unit)
+    if not portrait or not portrait.GetParent or not unitFrame then return nil end
+    local originalParent = portrait:GetParent()
+    if not originalParent then return nil end
+    local originalPoints = R.CapturePoints(portrait)
+    local point, relativeTo, relativePoint, x, y = firstPoint(portrait)
+    if not point then return nil end
+
+    local isSmall = R.SMALL_UNITS[unit] and true or false
+    local layer, strata, anchor, ownsLayer, reparented
+    local smallBaseLevel = 0
+
+    -- Single visual primitive for every portrait: Blizzard's native portrait
+    -- and the secure aura occupy the same addon-owned layer one strata below
+    -- the native frame artwork.  The native ring/chrome therefore frames both
+    -- naturally.  Small-frame offsets tune only aura placement, not ownership.
+    local parentStrata = originalParent.GetFrameStrata and originalParent:GetFrameStrata() or "MEDIUM"
+    strata = STRATA_BELOW[parentStrata] or "BACKGROUND"
+
+    layer = CreateFrame("Frame", nil, originalParent)
+    ownsLayer = true
+    layer:SetAllPoints(originalParent)
+    layer:SetFrameStrata(strata)
+    layer:SetFrameLevel(0)
+
+    portrait:SetParent(layer)
+    portrait:ClearAllPoints()
+    portrait:SetPoint(point, relativeTo or layer, relativePoint or point, x or 0, y or 0)
+    reparented = true
+
+    anchor = CreateFrame("Frame", nil, layer, R.AURA_ANCHOR_TEMPLATE)
+    local geometry = SMALL_GEOMETRY[unit]
+    local ox, oy = geometry and geometry.iconX or 0, geometry and geometry.iconY or 0
+    anchor:SetPoint(point, relativeTo or layer, relativePoint or point, (x or 0) + ox, (y or 0) + oy)
+    anchor:SetSize(portrait:GetSize())
+    anchor:SetFrameStrata(strata)
+    anchor:SetFrameLevel(0)
+
+    local host = {
+        unit = unit,
+        unitFrame = unitFrame,
+        portrait = portrait,
+        portraitMask = portraitMask,
+        originalParent = originalParent,
+        originalPoints = originalPoints,
+        layer = layer,
+        ownsLayer = ownsLayer,
+        anchor = anchor,
+        strata = strata,
+        reparented = reparented,
+        smallBaseLevel = smallBaseLevel,
+        containers = {},
+        cooldowns = {},
+    }
+    R.hosts[unit] = host
+
+
+    for index, tier in ipairs(R.TIERS or {}) do
+        local container = CreateFrame("AuraContainer", nil, anchor, "CustomAuraContainerTemplate")
+        container:SetAllPoints(anchor)
+        container:SetUnit(unit)
+        container:SetFrameStrata(strata)
+        container:SetFrameLevel((host.smallBaseLevel or 0) + (tier.level or index))
+        container:SetEnabled(false)
+        container:Hide()
+        container:AddAuraSlot("Aura", tier.filter, {
+            sortMethod = R.SORT_METHOD,
+            sortDirection = R.SORT_DIRECTION,
+            candidateFilters = R.CandidateFilters(tier),
+            initializeFrame = function(button) initializeButton(host, button, tier) end,
+        })
+        host.containers[index] = container
+    end
+
+    host.testFrame = createTestFrame(host)
+    host.readableHostileFrame = createReadableHostileFrame(host)
+    local baselineTier = findTierByKey("BaselineClass")
+    host.readableBaselineFrame = createReadableExactFrame(
+        host, baselineTier and baselineTier.level or 90
+    )
+    if host.readableBaselineFrame and host.readableBaselineFrame.SetFrameLevel then
+        host.readableBaselineFrame:SetFrameLevel(
+            (host.smallBaseLevel or 0) + (baselineTier and baselineTier.level or 90) + 2
+        )
+    end
+
+    -- Keep derived Blizzard target frames structurally identical to v0.1.1.
+    -- They are lifecycle-sensitive; do not attach the ordinary readable
+    -- Resurrection Sickness helper surface to ToT/FoT.
+    if not R.SMALL_UNITS[unit] then
+        local resTier = findTierByKey("ResSickness")
+        host.readableResSicknessFrame = createReadableExactFrame(host, resTier and resTier.level or 241)
+    end
+    return host
+end
