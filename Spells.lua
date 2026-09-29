@@ -448,3 +448,153 @@ PT.categories = {
         [15007] = true, -- Resurrection Sickness
         [2479] = true, -- Honorless Target (helpful aura; active tier below)
     },
+    debuffs_res_sickness = {
+        [15007] = true, -- Resurrection Sickness
+    },
+    buffs_honorless_target = {
+        [2479] = true, -- Honorless Target
+    },
+    debuffs_weakenedsoul = {
+        [6788] = true, -- Weakened Soul (Priest)
+    },
+    buffs_seals = {
+        [20154] = true, -- Seal of Righteousness Rank 1 (Paladin)
+        [20287] = true, -- Seal of Righteousness Rank 2 (Paladin)
+        [20288] = true, -- Seal of Righteousness Rank 3 (Paladin)
+        [20289] = true, -- Seal of Righteousness Rank 4 (Paladin)
+        [20290] = true, -- Seal of Righteousness Rank 5 (Paladin)
+        [20291] = true, -- Seal of Righteousness Rank 6 (Paladin)
+        [20292] = true, -- Seal of Righteousness Rank 7 (Paladin)
+        [20293] = true, -- Seal of Righteousness Rank 8 (Paladin)
+        [21084] = true, -- Seal of Righteousness Rank 1 alternate aura ID (Paladin)
+        [21082] = true, -- Seal of the Crusader Rank 1 (Paladin)
+        [20162] = true, -- Seal of the Crusader Rank 2 (Paladin)
+        [20305] = true, -- Seal of the Crusader Rank 3 (Paladin)
+        [20306] = true, -- Seal of the Crusader Rank 4 (Paladin)
+        [20307] = true, -- Seal of the Crusader Rank 5 (Paladin)
+        [20308] = true, -- Seal of the Crusader Rank 6 (Paladin)
+    },
+    buffs_fooddrink = {
+        -- Food (Vanilla/Forever eating auras)
+        [433] = true, -- Food
+        [434] = true, -- Food
+        [435] = true, -- Food
+        [1127] = true, -- Food
+        [1129] = true, -- Food
+        [1131] = true, -- Food
+        [2639] = true, -- Food
+        [5004] = true, -- Food
+        [5005] = true, -- Food
+        [5006] = true, -- Food
+        [5007] = true, -- Food
+        [6410] = true, -- Food
+        [7737] = true, -- Food
+        [9177] = true, -- Food
+        [10256] = true, -- Food
+        [10257] = true, -- Food
+        [18124] = true, -- Food
+        [18229] = true, -- Food
+        [18230] = true, -- Food
+        [18231] = true, -- Food
+        [18232] = true, -- Food
+        [18233] = true, -- Food
+        [18234] = true, -- Food
+        [21149] = true, -- Food
+        [22731] = true, -- Food
+        [24005] = true, -- Food
+        [24707] = true, -- Food
+        [24800] = true, -- Food
+        [24869] = true, -- Food
+        [25660] = true, -- Food
+        [25695] = true, -- Food
+        [25697] = true, -- Food
+        [25700] = true, -- Food
+        [25702] = true, -- Food
+        [25886] = true, -- Food
+        [25888] = true, -- Food
+        [25990] = true, -- Food
+        [26030] = true, -- Food
+        [26260] = true, -- Food
+        [26263] = true, -- Food
+        [26401] = true, -- Food
+        [26472] = true, -- Food
+        [26474] = true, -- Food
+        [28616] = true, -- Food
+        [29008] = true, -- Food
+        [29038] = true, -- Food
+        [29055] = true, -- Food
+        [29073] = true, -- Food
+        -- Drink (Vanilla/Forever drinking auras)
+        [430] = true, -- Drink (level 5 water)
+        [431] = true, -- Drink (level 15 water)
+        [432] = true, -- Drink (level 25 water)
+        [1133] = true, -- Drink (level 35 water)
+        [1135] = true, -- Drink (level 45 water)
+        [10250] = true, -- Drink (higher-rank water)
+        [446714] = true, -- Drink (Forever)
+        [468767] = true, -- Drink (Forever)
+        [833] = true, -- Drink
+        [18140] = true, -- Drink
+        [23698] = true, -- Drink
+        [24355] = true, -- Drink
+        [25696] = true, -- Drink
+        [25701] = true, -- Drink
+        [25703] = true, -- Drink
+        [25887] = true, -- Drink
+        [25889] = true, -- Drink
+        [26261] = true, -- Drink
+        [26402] = true, -- Drink
+        [26473] = true, -- Drink
+        [26475] = true, -- Drink
+        [29007] = true, -- Drink
+        [29039] = true, -- Drink
+        [22734] = true, -- Drink
+    },
+    buffs_thorns = {
+        [467] = true, -- Thorns Rank 1 (Druid)
+        [782] = true, -- Thorns Rank 2 (Druid)
+        [1075] = true, -- Thorns Rank 3 (Druid)
+        [8914] = true, -- Thorns Rank 4 (Druid)
+        [9756] = true, -- Thorns Rank 5 (Druid)
+        [9910] = true, -- Thorns Rank 6 (Druid)
+    },
+    buffs_paladin_auras = {
+        -- Passive Paladin aura states are the absolute-bottom tracked buffs.
+        [19746] = true, -- Concentration Aura
+
+        [465] = true, -- Devotion Aura Rank 1
+        [10290] = true, -- Devotion Aura Rank 2
+        [643] = true, -- Devotion Aura Rank 3
+        [10291] = true, -- Devotion Aura Rank 4
+        [1032] = true, -- Devotion Aura Rank 5
+        [10292] = true, -- Devotion Aura Rank 6
+        [10293] = true, -- Devotion Aura Rank 7
+
+        [19891] = true, -- Fire Resistance Aura Rank 1
+        [19899] = true, -- Fire Resistance Aura Rank 2
+        [19900] = true, -- Fire Resistance Aura Rank 3
+
+        [19888] = true, -- Frost Resistance Aura Rank 1
+        [19897] = true, -- Frost Resistance Aura Rank 2
+        [19898] = true, -- Frost Resistance Aura Rank 3
+
+        [19876] = true, -- Shadow Resistance Aura Rank 1
+        [19895] = true, -- Shadow Resistance Aura Rank 2
+        [19896] = true, -- Shadow Resistance Aura Rank 3
+
+        [7294] = true, -- Retribution Aura Rank 1
+        [10298] = true, -- Retribution Aura Rank 2
+        [10299] = true, -- Retribution Aura Rank 3
+        [10300] = true, -- Retribution Aura Rank 4
+        [10301] = true, -- Retribution Aura Rank 5
+
+        [20218] = true, -- Sanctity Aura
+    },
+    buffs_blood_pact = {
+        [6307] = true, -- Blood Pact Rank 1 (Warlock Imp)
+        [7804] = true, -- Blood Pact Rank 2 (Warlock Imp)
+        [7805] = true, -- Blood Pact Rank 3 (Warlock Imp)
+        [11766] = true, -- Blood Pact Rank 4 (Warlock Imp)
+        [11767] = true, -- Blood Pact Rank 5 (Warlock Imp)
+    },
+    buffs_scrolls = {
