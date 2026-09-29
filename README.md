@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.33-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.34-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -113,3 +113,9 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - Extends observed Hunter/Warlock pet-foundation artwork from target/focus to target-of-target and focus-target.
 - Derived pet foundations refresh when target/focus referents or relevant unit state change.
 - No pet-classification rules, aura priority, geometry, or aura evidence behavior changes.
+
+
+### v0.1.34
+- Moves Welcoming Campfire from priority 40 to the Class Buffs band at priority 90.
+- Its separate HELPFUL|INCLUDE_NAME_PLATE_ONLY secure lane and player-only readable witness are preserved because Forever needs that visibility path.
+- No other priority, taxonomy, geometry, timer, pet, or event behavior changes.
