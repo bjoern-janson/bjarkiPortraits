@@ -600,6 +600,22 @@ PT.categories = {
         [10301] = true, -- Retribution Aura Rank 5
 
         [20218] = true, -- Sanctity Aura
+
+        -- Shaman: persistent party-support totem auras share this priority band.
+        -- Stoneskin
+        [8072] = true,
+        [8156] = true,
+        [8157] = true,
+        [10403] = true,
+        [10404] = true,
+        [10405] = true,
+
+        -- Healing Stream
+        [5672] = true,
+        [6371] = true,
+        [6372] = true,
+        [10460] = true,
+        [10461] = true,
     },
     buffs_blood_pact = {
         [6307] = true, -- Blood Pact Rank 1 (Warlock Imp)
@@ -658,14 +674,6 @@ PT.categories = {
         [11550] = true,
         [11551] = true,
         [25289] = true,
-
-        -- Shaman: Stoneskin Totem aura
-        [8072] = true,
-        [8156] = true,
-        [8157] = true,
-        [10403] = true,
-        [10404] = true,
-        [10405] = true,
 
         -- Priest: Power Word: Fortitude + Prayer of Fortitude
         [1243] = true,
