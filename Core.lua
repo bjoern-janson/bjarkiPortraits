@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.27-clean"
+R.VERSION = "0.1.28-clean"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
@@ -239,12 +239,12 @@ function R.GetCountdownFormatter()
         formatter:SetBreakpoints({
             { threshold = 0, format = "%.1f" },
             { threshold = 10, format = "%.0f" },
-            { threshold = 60.000001, format = "" },
+            { threshold = 45.000001, format = "" },
         })
     else
         formatter:SetBreakpoints({
             { threshold = 0, format = "%.0f" },
-            { threshold = 60.000001, format = "" },
+            { threshold = 45.000001, format = "" },
         })
     end
     R._formatter, R._formatterKey = formatter, key
