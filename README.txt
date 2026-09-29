@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.8-clean
+bjarkiPortraits 0.1.17-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -62,3 +62,37 @@ v0.1.8-clean
   the secure BaselineClass AuraContainer remains authoritative.
 - No portrait geometry, ToT/FoT offsets, masks, parents, strata, chrome, pet
   portraits, hostile-helpful policy, or spell priorities changed from 0.1.7.
+
+
+v0.1.9-clean
+- Adds a narrow player-only readable exact fallback for Welcoming Campfire (1229739).
+- Keeps the existing secure WelcomingCampfire tier underneath as fallback.
+- Adds welcomingReadable / welcomingActive fields to /bp debug.
+- No portrait geometry, ToT/FoT offsets, masks, parents, strata, pet portraits,
+  hostile-helpful policy, BaselineClass recency, or priority levels changed.
+
+v0.1.10-clean
+- Adds Mage Blink (1953) and the Forever Blink variant (1236175) to the existing Utility buff tier.
+
+v0.1.11-clean
+- Moves Demon Skin and Demon Armor into the same secure priority lane as Paladin auras.
+
+v0.1.12-clean
+- Moves Cannibalize, Rapid Regeneration, and Evocation into FoodDrink.
+- Adds Innervate one priority step above FoodDrink.
+
+v0.1.13-clean
+- Adds additional Forever/NPC Chilled aura IDs.
+
+v0.1.14-clean
+- Adds NPC Frost Armor IDs and readable hostile-NPC/slows fallbacks.
+
+v0.1.15-clean
+- Tests NeverSecret cross-relation exact admission; live testing later disproved it for these NPC effects.
+
+v0.1.16-clean
+- Replaces that with secure non-identity Frost Armor and Chilled signatures.
+
+v0.1.17-clean
+- Removes unreliable isStealable requirement from Frost Armor signature.
+- Live-tested Frost Armor 12544 and Chilled 6136 now work in combat.
