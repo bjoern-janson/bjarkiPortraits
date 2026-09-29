@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes how **bjarkiPortraits v0.1.22-clean** works and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model.
+This document describes the current **bjarkiPortraits v0.1.23-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from the v0.1.23 surgical hardening changes that still require in-client regression confirmation.
 
 There are three different kinds of statement here:
 
@@ -230,7 +230,7 @@ bjarkiPortraits instead tries to hand control back to a secure lane.
 
 ## 6. Exact lanes and semantic lanes
 
-`Priority.lua` defines 44 lanes.
+`Priority.lua` defines 45 lanes.
 
 ### Exact lane
 
@@ -291,10 +291,9 @@ all share the same `PaladinAura` candidate pool.
 Likewise Food/Drink now shares one pool with:
 
 - Cannibalize;
-- Rapid Regeneration;
 - Evocation.
 
-Innervate is one level above that pool.
+Innervate is one level above that pool, and Rapid Regeneration belongs to Utility.
 
 This means same-tier recency is decided **inside one container**, not by an accident of sibling frame ordering.
 
@@ -438,15 +437,28 @@ An earlier signature also required `isStealable=true`. The secure lane failed to
 
 That is a useful example of how the addon is being developed: **live falsification removes unsupported predicates**.
 
-### Important implementation nuance
+### Current v0.1.23 semantic gating
 
-The current v0.1.17 source keeps these semantic lanes enabled as ordinary priority lanes; they are not separately gated in `UpdateHost()` to only the exact Scarlet-Initiate context.
+The semantic signatures are no longer left enabled in parallel with stronger evidence.
 
-That is broader than the conceptual “only use this when identity is sealed on this kind of NPC” story.
+The current order is:
 
-It works in the tested case, but it creates a real collision surface: another aura with the same safe metadata could satisfy the same semantic lane.
+```text
+Frost Armor
+    readable exact hostile-helpful identity when available
+    → hostile-NPC semantic signature only after readable identity disappears
 
-This is probably the main remaining hardening opportunity in the current architecture. It should be tightened only after we can preserve the proven combat behavior.
+Chilled
+    secure exact identity when relation permits
+    → readable exact Slows witness when available
+    → semantic signature only when both stronger paths are unavailable
+
+Weakened Soul
+    secure exact identity when relation permits
+    → short-harmful semantic fallback only where exact harmful identity is relation-gated
+```
+
+This does not make the semantic signatures equivalent to exact identity. It narrows when their equivalence classes are allowed to compete, reducing collision surface while preserving the live-tested combat fallback design.
 
 ---
 
@@ -571,7 +583,9 @@ UNIT_PET / PET_BAR_UPDATE
     refresh local pet artwork
 ```
 
-New secure hosts are not built during combat lockdown. If a rebuild is required, `buildQueued` defers it until `PLAYER_REGEN_ENABLED`.
+New secure hosts are not built during combat lockdown. Structural teardown/reparent restoration is also deferred out of combat. If reconciliation is required, the queued build/rebuild runs on `PLAYER_REGEN_ENABLED`.
+
+Enabled Blizzard AuraContainers process `UNIT_AURA` internally. bjarkiPortraits therefore does not force a second full `UpdateAllAuras()` pass for ordinary aura events. Explicit full refreshes remain for target/focus/derived-token and relation lifecycle changes where the unit token's referent or identity-filter authorization can change.
 
 Existing Blizzard AuraContainers can still process their secure aura state while combat is active.
 
@@ -641,9 +655,9 @@ Higher numbers visually outrank lower numbers.
 241  Resurrection Sickness
 242  Honorless Target
 250  Power Word: Shield
-260  Food / Drink / Cannibalize / Rapid Regeneration / Evocation
+260  Food / Drink / Cannibalize / Evocation
 261  Innervate
-270  Utility
+270  Utility / Rapid Regeneration
 279  Blizzard Important
 280  Offensive
 288  External Defensive
@@ -656,7 +670,7 @@ Higher numbers visually outrank lower numbers.
 330  Immunities
 ```
 
-There are 44 implementation lanes because some conceptual priorities have both exact and semantic mechanisms.
+There are 45 implementation lanes because some conceptual priorities have both exact and semantic mechanisms.
 
 ---
 
@@ -727,6 +741,7 @@ The core secrecy/secure-container model above remains the architecture. Later li
 - a secure generic harmful lane for readably assistable ToT/FoT where exact harmful identity is relation-gated;
 - direct `GetPlayerAuraBySpellID(1229739)` lookup for Welcoming Campfire before indexed scanning;
 - Elemental Blessing in the same actual priority-10 pool as Plainsrunning;
-- Walk on Air in Utility.
+- Walk on Air in Utility;
+- v0.1.23 fallback repair for Welcoming Campfire, semantic-lane gating, canonical priority data, combat-safe structural teardown, and event-path refresh discipline.
 
-These are incremental policy/data changes, not a replacement of the two-plane readable/secure model.
+These are incremental policy/data/lifecycle changes, not a replacement of the two-plane readable/secure model.
