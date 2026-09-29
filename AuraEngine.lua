@@ -796,7 +796,7 @@ function R.CreateHost(unit)
     if unit == "player" then
         local welcomingTier = findTierByKey("WelcomingCampfire")
         host.readableWelcomingCampfireFrame = createReadableExactFrame(
-            host, welcomingTier and welcomingTier.level or 40
+            host, welcomingTier and welcomingTier.level or 90
         )
     end
     return host
