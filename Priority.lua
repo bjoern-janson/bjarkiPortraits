@@ -29,13 +29,15 @@ R.TIERS = {
     exact("Plainsrunning", "HELPFUL", 10, true, union("buffs_plainsrunning", "buffs_elemental_blessing"), true),
     exact("BoostedRest", "HARMFUL", 20, false, C.debuffs_boosted_rest, true),
     exact("CampfireNearby", "HELPFUL", 30, true, C.buffs_campfire_nearby),
-    exact("WelcomingCampfire", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 40, true, C.buffs_welcoming_campfire),
     exact("TravelUtility", "HELPFUL", 50, true, C.buffs_travel_utility),
     exact("RighteousFury", "HELPFUL", 59, true, C.buffs_righteous_fury),
     exact("PaladinAura", "HELPFUL", 60, true, union("buffs_paladin_auras", "buffs_warlock_armor")),
     exact("BloodPact", "HELPFUL", 70, true, C.buffs_blood_pact),
     exact("Scrolls", "HELPFUL", 80, true, C.buffs_scrolls),
     exact("BaselineClass", "HELPFUL", 90, true, C.buffs_class_baseline),
+    -- Same priority band as class buffs, but kept as its own lane because
+    -- Forever needs INCLUDE_NAME_PLATE_ONLY to surface this self-only aura.
+    exact("WelcomingCampfire", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 90, true, C.buffs_welcoming_campfire),
     exact("CampBenefits", "HELPFUL", 100, true, C.buffs_camp_benefits),
     exact("WellFed", "HELPFUL", 110, true, C.buffs_well_fed),
     exact("Thorns", "HELPFUL", 120, true, C.buffs_thorns),
