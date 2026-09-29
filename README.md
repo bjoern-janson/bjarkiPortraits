@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current live-tested baseline: **v0.1.17-clean**.
+Current live-tested baseline: **v0.1.22-clean**.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -49,3 +49,12 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - `/bp help` — all commands.
 
 `README.txt` preserves the detailed development/version history.
+
+
+### Changes after v0.1.17
+
+- v0.1.18 fixes local PetFrame family-icon layering.
+- v0.1.19 restores a secure harmful fallback for friendly ToT/FoT.
+- v0.1.20 uses direct player spell lookup for Welcoming Campfire.
+- v0.1.21 moves Elemental Blessing into the Plainsrunning priority lane.
+- v0.1.22 adds Walk on Air to Utility.
