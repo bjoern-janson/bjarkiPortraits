@@ -906,8 +906,18 @@ function R.CreateHost(unit)
 
     local welcomingTier = findTierByKey("WelcomingCampfire")
     host.readableWelcomingCampfireFrame = createReadableExactFrame(
-        host, welcomingTier and welcomingTier.level or 126
+        host, welcomingTier and welcomingTier.level or 270
     )
+    -- createReadableExactFrame normally sits one level above its secure lane.
+    -- Campfire is intentionally a true Utility peer, so remove that implicit
+    -- +1 and keep the readable witness on the exact same 270 surface.
+    if host.readableWelcomingCampfireFrame
+        and host.readableWelcomingCampfireFrame.SetFrameLevel
+    then
+        host.readableWelcomingCampfireFrame:SetFrameLevel(
+            (host.smallBaseLevel or 0) + (welcomingTier and welcomingTier.level or 270)
+        )
+    end
 
     -- Keep derived Blizzard target frames structurally identical to v0.1.1.
     -- They are lifecycle-sensitive; do not attach the ordinary readable
@@ -1032,9 +1042,9 @@ function R.UpdateHost(host, forceContainerRefresh)
     -- BaselineClass keeps its own priority-90 recency election.
     updateReadableBaseline(host, base)
 
-    -- Welcoming Campfire is an independent priority-126 state. Its readable
-    -- witness uses the confirmed two-ID family and therefore sits above
-    -- Well Fed (125) in the same way as its secure lane.
+    -- Welcoming Campfire is a Utility-tier state at 270. Its separate readable
+    -- witness exists only for Forever visibility and stays on the same visual
+    -- priority surface as ordinary Utility buffs.
     updateReadableWelcomingCampfire(host, base)
 
     local slowsTier = findTierByKey("Slows")
