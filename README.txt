@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.36-clean
+bjarkiPortraits 0.1.37-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -15,7 +15,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.36 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.37 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -270,3 +270,10 @@ v0.1.36-clean
 - Readable start/application time is the actual recency warrant.
 - auraInstanceID remains only an optional deterministic tie-break when both equal-time candidates expose it.
 - This specifically repairs Welcoming Campfire losing to older BaselineClass state when Forever exposes Campfire timing but not its instance ID.
+
+
+v0.1.37-clean
+- Welcoming Campfire direct lookup is admitted independently before scanning the indexed helpful stream.
+- Campfire recency is derived from the live 60-second countdown expiration (expirationTime - 60); generic DurationObject start semantics are not used for this special aura unless expirationTime is unavailable.
+- /bp debug now separates direct path availability from actual direct aura presence and exposes welcomingDirectFound, welcomingPresent, welcomingAppliedAt, and welcomingTimingSource.
+- No priority number, taxonomy, geometry, timer, pet, or event changes.
