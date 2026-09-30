@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.37-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.38-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -882,3 +882,18 @@ This keeps the shared priority-90 election while grounding Campfire recency in
 the observable countdown the player actually sees.
 
 Diagnostics now separate path availability, exact presence, and timing source.
+
+
+## 30. Welcoming Campfire identity correction
+
+The preceding Campfire debugging isolated the failure upstream of arbitration: ordinary aura enumeration completed successfully, but the addon never observed the assumed spell ID 1229739.
+
+A live client query by aura name returned the visible effect directly:
+
+    name      = Welcoming Campfire
+    spellId   = 1289723
+    duration  = 60
+
+C_UnitAuras.AuraIsPrivate(1229739) also returned false, ruling out the private-aura hypothesis for the old ID.
+
+v0.1.38 therefore replaces 1229739 with the observed live aura identity 1289723. The priority remains 90. When readable, that identity now participates in the same Class Buff recency election on every tracked unit.
