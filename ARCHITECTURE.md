@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.36-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.37-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -861,3 +861,24 @@ equal-start-time tie-break when both candidates expose one.
 This matters for Welcoming Campfire because Forever can expose the exact player
 aura and its timing while withholding or omitting auraInstanceID on the direct
 lookup path.
+
+
+## 29. Welcoming Campfire direct timing witness
+
+The v0.1.35-v0.1.36 shared priority-90 election still hid an important
+distinction: "the direct lookup API is readable" is not the same statement as
+"the exact Campfire aura was returned", and the generic DurationObject start
+time is not assumed to represent the visible one-minute Campfire countdown.
+
+v0.1.37 restores the direct player-spell lookup as independent exact evidence
+before the indexed Class Buffs scan. When Welcoming Campfire is present, its
+recency witness is derived from the live 60-second countdown expiration:
+
+```text
+campfireAppliedAt = expirationTime - 60
+```
+
+This keeps the shared priority-90 election while grounding Campfire recency in
+the observable countdown the player actually sees.
+
+Diagnostics now separate path availability, exact presence, and timing source.
