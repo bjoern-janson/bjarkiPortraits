@@ -667,13 +667,6 @@ local function clearReadableBaseline(host)
         host._baselineTimingReadable = false
         host._baselineTimingSource = nil
         host._baselineAppliedAt = nil
-        host._welcomingCampfireReadable = false
-        host._welcomingCampfireActive = false
-        host._welcomingCampfireDirect = false
-        host._welcomingCampfireDirectFound = false
-        host._welcomingCampfirePresent = false
-        host._welcomingCampfireAppliedAt = nil
-        host._welcomingCampfireTimingSource = nil
     end
 end
 
@@ -691,28 +684,58 @@ local function updateReadableBaseline(host, baseEnabled)
         return
     end
 
-    local best, complete, meta = scanLatestReadableBaselineAura(host.unit)
+    local best, complete = scanLatestReadableBaselineAura(host.unit)
     host._baselineReadable = complete
     host._baselineSpellID = best and best.spellID or nil
     host._baselineTimingReadable = best and best.timingReadable or false
     host._baselineTimingSource = best and best.timingSource or nil
     host._baselineAppliedAt = best and best.appliedAt or nil
-    host._welcomingCampfireDirect = meta and meta.welcomingDirect or false
-    host._welcomingCampfireDirectFound = meta and meta.welcomingDirectFound or false
-    host._welcomingCampfirePresent = meta and meta.welcomingPresent or false
-    host._welcomingCampfireReadable = meta and meta.welcomingReadable or false
-    host._welcomingCampfireAppliedAt = meta and meta.welcomingAppliedAt or nil
-    host._welcomingCampfireTimingSource = meta and meta.welcomingTimingSource or nil
-    host._welcomingCampfireActive = false
 
     if not complete or not best then
         hideReadableExact(host.readableBaselineFrame)
         return
     end
 
-    local shown = showReadableAura(host.readableBaselineFrame, best.aura, best.spellID)
-    host._welcomingCampfireActive =
-        shown and isWelcomingCampfireSpellID(best.spellID) or false
+    showReadableAura(host.readableBaselineFrame, best.aura, best.spellID)
+end
+
+local function clearReadableWelcomingCampfire(host)
+    local frame = host and host.readableWelcomingCampfireFrame
+    if frame then hideReadableExact(frame) end
+    if host then
+        host._welcomingCampfireReadable = false
+        host._welcomingCampfireActive = false
+        host._welcomingCampfireDirect = false
+        host._welcomingCampfireDirectFound = false
+        host._welcomingCampfirePresent = false
+        host._welcomingCampfireAppliedAt = nil
+        host._welcomingCampfireTimingSource = nil
+    end
+end
+
+local function updateReadableWelcomingCampfire(host, baseEnabled)
+    if not host or not baseEnabled or R.testMode then
+        clearReadableWelcomingCampfire(host)
+        return
+    end
+
+    local best, readable, meta = scanReadableWelcomingCampfire(host.unit)
+    host._welcomingCampfireReadable = readable
+    host._welcomingCampfireDirect = meta and meta.welcomingDirect or false
+    host._welcomingCampfireDirectFound = meta and meta.welcomingDirectFound or false
+    host._welcomingCampfirePresent = meta and meta.welcomingPresent or false
+    host._welcomingCampfireAppliedAt = meta and meta.welcomingAppliedAt or nil
+    host._welcomingCampfireTimingSource = meta and meta.welcomingTimingSource or nil
+    host._welcomingCampfireActive = false
+
+    if not readable or not best then
+        hideReadableExact(host.readableWelcomingCampfireFrame)
+        return
+    end
+
+    host._welcomingCampfireActive = showReadableAura(
+        host.readableWelcomingCampfireFrame, best.aura, best.spellID
+    )
 end
 
 local function createTestFrame(host)
@@ -881,6 +904,11 @@ function R.CreateHost(unit)
         )
     end
 
+    local welcomingTier = findTierByKey("WelcomingCampfire")
+    host.readableWelcomingCampfireFrame = createReadableExactFrame(
+        host, welcomingTier and welcomingTier.level or 126
+    )
+
     -- Keep derived Blizzard target frames structurally identical to v0.1.1.
     -- They are lifecycle-sensitive; do not attach the ordinary readable
     -- Resurrection Sickness helper surface to ToT/FoT.
@@ -1001,11 +1029,13 @@ function R.UpdateHost(host, forceContainerRefresh)
         hideReadableExact(host.readableResSicknessFrame)
     end
 
-    -- Priority-90 Class Buff arbitration. On the player frame this readable
-    -- election includes Welcoming Campfire, so equal-priority state is resolved
-    -- by application/refresh time rather than sibling frame levels.
-    -- BaselineClass and WelcomingCampfire keep separate secure lanes underneath.
+    -- BaselineClass keeps its own priority-90 recency election.
     updateReadableBaseline(host, base)
+
+    -- Welcoming Campfire is an independent priority-126 state. Its readable
+    -- witness uses the confirmed two-ID family and therefore sits above
+    -- Well Fed (125) in the same way as its secure lane.
+    updateReadableWelcomingCampfire(host, base)
 
     local slowsTier = findTierByKey("Slows")
     local slowsSecureAllowed = slowsTier and R.ExactFilterAllowed(
