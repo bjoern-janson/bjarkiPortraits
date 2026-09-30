@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.42-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.43-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -654,7 +654,6 @@ Higher numbers visually outrank lower numbers.
 100  Camp Benefits
 120  Thorns
 125  Well Fed
-126  Welcoming Campfire
 130  Elemental Shields
 150  Self State + Frost Armor semantic band
 160  Mobility
@@ -672,7 +671,7 @@ Higher numbers visually outrank lower numbers.
 250  Power Word: Shield
 260  Food / Drink / Cannibalize / Evocation
 261  Innervate
-270  Utility / Rapid Regeneration
+270  Utility / Rapid Regeneration / Welcoming Campfire
 279  Blizzard Important
 280  Offensive
 288  External Defensive
@@ -909,3 +908,10 @@ v0.1.39 therefore models Welcoming Campfire as the family {1229739, 1289723}. Bo
 v0.1.42 moves Welcoming Campfire from the Class Buffs band at 90 to priority 126, above Well Fed (125) and below Elemental/Lightning Shield (130).
 
 Because that makes Campfire semantically independent of BaselineClass, its readable path is split back out of the priority-90 recency election. BaselineClass now arbitrates only class buffs. Welcoming Campfire has its own readable surface at priority 126 and recognizes both confirmed live aura identities, 1229739 and 1289723.
+
+
+## 32. Welcoming Campfire joins Utility
+
+v0.1.43 moves Welcoming Campfire into the Utility band at priority 270. It remains a separate exact implementation lane because Forever still needs `HELPFUL|INCLUDE_NAME_PLATE_ONLY` plus the confirmed two-ID witness family `{1229739, 1289723}`.
+
+`createReadableExactFrame` normally adds one frame level above its secure lane. For Campfire that implicit bonus is explicitly removed: both the secure lane and readable witness sit on the same priority-270 surface as ordinary Utility buffs.
