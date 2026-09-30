@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.44-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.45-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -17,8 +17,8 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 ## Current scale
 
 - 43 spell/effect categories
-- 823 category memberships
-- 789 unique spell IDs
+- 827 category memberships
+- 793 unique spell IDs
 - 45 priority lanes
 
 ## Files
@@ -184,3 +184,10 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - Utility and both Welcoming Campfire IDs now share one actual secure priority-270 AuraSlot instead of two sibling 270 lanes.
 - When the exact readable Campfire fallback is active, the merged secure Utility slot is suppressed so only one cooldown widget owns the portrait.
 - No priority number, spell membership, geometry, pet, or event behavior changes.
+
+
+### v0.1.45
+- Moves Well Fed from priority 125 to 110, directly above Camp Benefits (100) and below Thorns (120).
+- Adds mechanically equivalent Forever/NPC Frostbolt snare variants 21369, 350025, 420526, and 1303226 to the Slows family alongside the normal player Frostbolt ranks.
+- Deliberately does not add the anomalous 406680 variant because its published slow data does not match ordinary Frostbolt semantics.
+- No geometry, timer, pet, or event changes.
