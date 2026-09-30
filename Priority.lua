@@ -39,8 +39,8 @@ R.TIERS = {
     -- Forever needs INCLUDE_NAME_PLATE_ONLY to surface this self-only aura.
     exact("WelcomingCampfire", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 90, true, C.buffs_welcoming_campfire),
     exact("CampBenefits", "HELPFUL", 100, true, C.buffs_camp_benefits),
-    exact("WellFed", "HELPFUL", 110, true, C.buffs_well_fed),
     exact("Thorns", "HELPFUL", 120, true, C.buffs_thorns),
+    exact("WellFed", "HELPFUL", 125, true, C.buffs_well_fed),
     exact("ElementalShield", "HELPFUL", 130, true, C.buffs_lightning_shield),
     exact("SelfState", "HELPFUL", 150, true, union("buffs_other", "buffs_frost_armor")),
     -- Combat-safe hostile-NPC fallback for Frost Armor when spell identity is
