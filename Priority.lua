@@ -11,6 +11,12 @@ local function union(...)
     return result
 end
 
+local function unionExcept(excludeCategory, ...)
+    local result = union(...)
+    for spellID in pairs(C[excludeCategory] or {}) do result[spellID] = nil end
+    return result
+end
+
 local function exact(key, filter, level, helpful, spellIDs, allowNeverSecret)
     return {
         key = key, filter = filter, level = level, helpful = helpful and true or false,
@@ -105,7 +111,9 @@ R.TIERS = {
     exact("Defensive", "HELPFUL", 290, true, C.buffs_defensive),
     exact("Roots", "HARMFUL", 300, false, C.roots),
     semantic("CrowdControl", "HARMFUL|CROWD_CONTROL", 309),
-    exact("Control", "HARMFUL", 310, false, union("interrupts", "cc")),
+    -- Stuns are conceptually CC, but runtime exact lanes must be disjoint:
+    -- the dedicated 320 Stun lane owns every stun ID.
+    exact("Control", "HARMFUL", 310, false, unionExcept("stuns", "interrupts", "cc")),
     exact("Stun", "HARMFUL", 320, false, C.stuns),
     exact("Immunity", "HELPFUL", 330, true, C.immunities),
 }
