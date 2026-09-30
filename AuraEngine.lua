@@ -160,82 +160,9 @@ local function scanLatestReadableBaselineAura(unit)
     if not tier or not tier.spellIDs then return nil, false end
     if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false end
 
-    local includeWelcoming = true
     local candidates = {}
     local allTimingReadable = true
     local complete = false
-    local sawWelcoming = false
-    local welcomingDirect = false
-    local welcomingDirectFound = false
-    local welcomingLookupReadable = false
-    local welcomingAppliedAt
-    local welcomingTimingSource
-
-    local function addCandidate(aura, spellID)
-        -- auraInstanceID is useful for DurationObject lookup and deterministic
-        -- equal-time ties, but it is NOT required evidence of recency.
-        local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
-        if not instanceReadable or type(auraInstanceID) ~= "number" then
-            auraInstanceID = nil
-        end
-
-        local appliedAt, timingReadable, timingSource
-
-        if isWelcomingCampfireSpellID(spellID) then
-            -- Live Forever behavior exposes Welcoming Campfire as a visible
-            -- 60-second countdown. For this special aura, expirationTime is the
-            -- stable observable we actually care about; generic DurationObject
-            -- start semantics can refer to a different stored time span.
-            local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
-            if expirationReadable and type(expirationTime) == "number" and expirationTime > 0 then
-                appliedAt = expirationTime - 60
-                timingReadable = true
-                timingSource = "welcomingExpiration60"
-            else
-                appliedAt, timingReadable, timingSource = readAuraStartTime(
-                    unit, aura, auraInstanceID
-                )
-            end
-        else
-            appliedAt, timingReadable, timingSource = readAuraStartTime(
-                unit, aura, auraInstanceID
-            )
-        end
-
-        if not timingReadable then allTimingReadable = false end
-
-        candidates[#candidates + 1] = {
-            aura = aura,
-            spellID = spellID,
-            auraInstanceID = auraInstanceID,
-            appliedAt = appliedAt,
-            timingSource = timingSource,
-        }
-
-        if isWelcomingCampfireSpellID(spellID) then
-            sawWelcoming = true
-            welcomingAppliedAt = appliedAt
-            welcomingTimingSource = timingSource
-        end
-        return true
-    end
-
-    -- Player gets an additional exact direct witness; all tracked units can
-    -- still admit the live Campfire ID through the indexed helpful stream.
-    if unit == "player" and getReadablePlayerAuraBySpellID then
-        for _, welcomingSpellID in ipairs(WELCOMING_CAMPFIRE_DIRECT_IDS) do
-            local aura, readable, directAvailable = getReadablePlayerAuraBySpellID(
-                welcomingSpellID
-            )
-            welcomingDirect = welcomingDirect or directAvailable
-            welcomingLookupReadable = welcomingLookupReadable or readable
-            if aura then
-                welcomingDirectFound = true
-                addCandidate(aura, welcomingSpellID)
-                break
-            end
-        end
-    end
 
     for index = 1, 80 do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
@@ -248,37 +175,34 @@ local function scanLatestReadableBaselineAura(unit)
 
         local spellID, spellReadable = R.ReadAuraField(aura, "spellId")
         if not spellReadable or type(spellID) ~= "number" then
-            -- We cannot prove that an unreadable aura is outside the priority-90
-            -- class-buff band. Relinquish the readable override.
+            -- We cannot prove that an unreadable aura is outside BaselineClass.
+            -- Relinquish the readable override and let secure rendering stand.
             return nil, false
         end
 
         if tier.spellIDs[spellID] then
-            addCandidate(aura, spellID)
-        elseif includeWelcoming
-            and isWelcomingCampfireSpellID(spellID)
-            and not sawWelcoming
-        then
-            -- Indexed fallback only when the direct exact path did not already
-            -- supply the same Campfire aura.
-            addCandidate(aura, spellID)
+            local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
+            if not instanceReadable or type(auraInstanceID) ~= "number" then
+                auraInstanceID = nil
+            end
+
+            local appliedAt, timingReadable, timingSource = readAuraStartTime(
+                unit, aura, auraInstanceID
+            )
+            if not timingReadable then allTimingReadable = false end
+
+            candidates[#candidates + 1] = {
+                aura = aura,
+                spellID = spellID,
+                auraInstanceID = auraInstanceID,
+                appliedAt = appliedAt,
+                timingSource = timingSource,
+            }
         end
     end
 
-    -- Exhausting the arbitrary 80-entry budget is not evidence that the aura
-    -- stream ended. Only an observed nil terminator grants completeness.
     if not complete then return nil, false end
-
-    local meta = {
-        welcomingPresent = sawWelcoming,
-        welcomingDirect = welcomingDirect,
-        welcomingDirectFound = welcomingDirectFound,
-        welcomingReadable = welcomingLookupReadable or sawWelcoming,
-        welcomingAppliedAt = welcomingAppliedAt,
-        welcomingTimingSource = welcomingTimingSource,
-    }
-
-    if #candidates == 0 then return nil, true, meta end
+    if #candidates == 0 then return nil, true end
 
     local best = candidates[1]
     for i = 2, #candidates do
@@ -295,12 +219,10 @@ local function scanLatestReadableBaselineAura(unit)
         end
     end
 
-    -- If even one competing priority-90 candidate lacks readable start time,
-    -- we cannot truthfully identify the newest one.
-    if not allTimingReadable then return nil, true, meta end
+    if not allTimingReadable then return nil, true end
 
     best.timingReadable = true
-    return best, true, meta
+    return best, true
 end
 
 local function scanReadableExactAura(unit, filter, spellID)
@@ -340,6 +262,88 @@ getReadablePlayerAuraBySpellID = function(spellID)
     end
 
     return aura, true, true
+end
+
+local function scanReadableWelcomingCampfire(unit)
+    local meta = {
+        welcomingDirect = false,
+        welcomingDirectFound = false,
+        welcomingPresent = false,
+        welcomingReadable = false,
+        welcomingAppliedAt = nil,
+        welcomingTimingSource = nil,
+    }
+
+    local function makeCandidate(aura, spellID)
+        local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
+        if not instanceReadable or type(auraInstanceID) ~= "number" then
+            auraInstanceID = nil
+        end
+
+        local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
+        local appliedAt, timingReadable, timingSource
+        if expirationReadable and type(expirationTime) == "number" and expirationTime > 0 then
+            appliedAt = expirationTime - 60
+            timingReadable = true
+            timingSource = "welcomingExpiration60"
+        else
+            appliedAt, timingReadable, timingSource = readAuraStartTime(
+                unit, aura, auraInstanceID
+            )
+        end
+
+        meta.welcomingPresent = true
+        meta.welcomingAppliedAt = timingReadable and appliedAt or nil
+        meta.welcomingTimingSource = timingReadable and timingSource or nil
+
+        return {
+            aura = aura,
+            spellID = spellID,
+            auraInstanceID = auraInstanceID,
+            appliedAt = appliedAt,
+            timingReadable = timingReadable,
+            timingSource = timingSource,
+        }
+    end
+
+    -- Player has an extra exact direct path. Try both live family IDs.
+    if unit == "player" and getReadablePlayerAuraBySpellID then
+        for _, spellID in ipairs(WELCOMING_CAMPFIRE_DIRECT_IDS) do
+            local aura, readable, directAvailable = getReadablePlayerAuraBySpellID(spellID)
+            meta.welcomingDirect = meta.welcomingDirect or directAvailable
+            meta.welcomingReadable = meta.welcomingReadable or readable
+            if aura then
+                meta.welcomingDirectFound = true
+                return makeCandidate(aura, spellID), true, meta
+            end
+        end
+    end
+
+    if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then
+        return nil, false, meta
+    end
+
+    for index = 1, 80 do
+        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
+            unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
+        if not ok or not R.CanAccess(aura) then return nil, false, meta end
+        if aura == nil then
+            meta.welcomingReadable = true
+            return nil, true, meta
+        end
+
+        local spellID, readable = R.ReadAuraField(aura, "spellId")
+        if not readable or type(spellID) ~= "number" then
+            return nil, false, meta
+        end
+
+        if isWelcomingCampfireSpellID(spellID) then
+            meta.welcomingReadable = true
+            return makeCandidate(aura, spellID), true, meta
+        end
+    end
+
+    return nil, false, meta
 end
 
 local function scanLatestReadableExactTierAura(unit, tierKey, filter)
