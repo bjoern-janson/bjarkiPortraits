@@ -904,18 +904,17 @@ function R.CreateHost(unit)
         )
     end
 
-    local welcomingTier = findTierByKey("WelcomingCampfire")
+    local utilityTier = findTierByKey("Utility")
     host.readableWelcomingCampfireFrame = createReadableExactFrame(
-        host, welcomingTier and welcomingTier.level or 270
+        host, utilityTier and utilityTier.level or 270
     )
-    -- createReadableExactFrame normally sits one level above its secure lane.
-    -- Campfire is intentionally a true Utility peer, so remove that implicit
-    -- +1 and keep the readable witness on the exact same 270 surface.
+    -- Campfire's readable witness is a fallback presentation for the merged
+    -- Utility lane, not a second priority lane. Keep it on the exact 270 surface.
     if host.readableWelcomingCampfireFrame
         and host.readableWelcomingCampfireFrame.SetFrameLevel
     then
         host.readableWelcomingCampfireFrame:SetFrameLevel(
-            (host.smallBaseLevel or 0) + (welcomingTier and welcomingTier.level or 270)
+            (host.smallBaseLevel or 0) + (utilityTier and utilityTier.level or 270)
         )
     end
 
@@ -1085,6 +1084,11 @@ function R.UpdateHost(host, forceContainerRefresh)
                 and R.SMALL_UNITS[host.unit]
                 and not exactHarmfulAllowed
             host._smallHarmfulEnabled = enabled and true or false
+        elseif tier.key == "Utility" and host._welcomingCampfireActive then
+            -- The readable Campfire witness is already rendering the exact
+            -- priority-270 winner. Suppress the merged secure Utility slot so
+            -- its cooldown text cannot stack underneath the readable cooldown.
+            enabled = false
         elseif tier.key == "ChilledSignature" then
             -- Chilled's semantic signature is the last resort: exact secure
             -- identity first, then the readable exact Slows witness, then shape.
