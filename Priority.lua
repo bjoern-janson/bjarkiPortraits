@@ -36,8 +36,8 @@ R.TIERS = {
     exact("Scrolls", "HELPFUL", 80, true, C.buffs_scrolls),
     exact("BaselineClass", "HELPFUL", 90, true, C.buffs_class_baseline),
     exact("CampBenefits", "HELPFUL", 100, true, C.buffs_camp_benefits),
+    exact("WellFed", "HELPFUL", 110, true, C.buffs_well_fed),
     exact("Thorns", "HELPFUL", 120, true, C.buffs_thorns),
-    exact("WellFed", "HELPFUL", 125, true, C.buffs_well_fed),
     exact("ElementalShield", "HELPFUL", 130, true, C.buffs_lightning_shield),
     exact("SelfState", "HELPFUL", 150, true, union("buffs_other", "buffs_frost_armor")),
     -- Combat-safe hostile-NPC fallback for Frost Armor when spell identity is
