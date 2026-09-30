@@ -6,10 +6,10 @@ This file is the continuation point for the next bjarkiPortraits session.
 
 - Repository: `bjoern-janson/bjarkiPortraits`
 - Current source: **v0.1.47-clean**
-- Runtime/source checkpoint before handoff-only documentation commits: `e0aef4ef99b57eaac0163a92e4e37227c4cb915a`
+- Current runtime/source checkpoint: `4cf85a21603c300c440d9f1e85a6167d607c2637`
 - Companion UI repository: `bjoern-janson/bjarkiUI`
 - Companion current source: **v0.2.20-ultralight**
-- Companion runtime/source checkpoint before documentation: `6bfb30f185c9c95634b4be8e02c416e3c567e833`
+- Companion runtime code checkpoint: `24d5ef422fddac813d4cc74d4e9a661d607fba52`
 
 Do not reconstruct old PortraitTimersForever architecture. Continue from the current secure/readable two-plane engine.
 
