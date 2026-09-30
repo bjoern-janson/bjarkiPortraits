@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.45-clean
+bjarkiPortraits 0.1.46-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -14,7 +14,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.45 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.46 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -329,3 +329,9 @@ v0.1.45-clean
 - Slows gains equivalent Forever/NPC Frostbolt IDs 21369, 350025, 420526, and 1303226.
 - These variants apply the same Frostbolt-style movement snare and therefore share the existing Slows lane rather than using a semantic fallback.
 - No geometry, timer, pet, or event changes.
+
+
+v0.1.46-clean
+- Camp Benefits moves into the Class Buffs tier at priority 90.
+- BaselineClass now unions regular class buffs with Camp Benefits into one secure lane and one readable recency election.
+- Well Fed stays at 110, directly above the merged Class Buff tier.
