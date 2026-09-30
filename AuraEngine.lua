@@ -731,6 +731,8 @@ local function clearReadableWelcomingCampfire(host)
     local frame = host and host.readableWelcomingCampfireFrame
     if frame then hideReadableExact(frame) end
     if host then
+        host._utilityReadable = false
+        host._utilityWinnerSpellID = nil
         host._welcomingCampfireReadable = false
         host._welcomingCampfireActive = false
         host._welcomingCampfireDirect = false
@@ -748,6 +750,8 @@ local function updateReadableWelcomingCampfire(host, baseEnabled)
     end
 
     local best, readable, meta = scanReadableUtilityWinner(host.unit)
+    host._utilityReadable = readable
+    host._utilityWinnerSpellID = best and best.spellID or nil
     host._welcomingCampfireReadable = readable
     host._welcomingCampfireDirect = meta and meta.welcomingDirect or false
     host._welcomingCampfireDirectFound = meta and meta.welcomingDirectFound or false
