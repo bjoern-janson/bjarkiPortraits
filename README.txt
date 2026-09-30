@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.38-clean
+bjarkiPortraits 0.1.39-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -14,7 +14,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.38 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.39 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -282,4 +282,11 @@ v0.1.38-clean
 - Live client inspection identifies Welcoming Campfire as spellId 1289723, duration 60.
 - Replaces the incorrect 1229739 registry/engine identity with 1289723.
 - Welcoming Campfire can now enter the shared priority-90 readable Class Buff election on every tracked unit, not only player.
+- No priority number, geometry, timer, pet, or event changes.
+
+
+v0.1.39-clean
+- Live testing confirms Welcoming Campfire can be either spellId 1229739 or 1289723 at different campfires.
+- Both IDs are now members of buffs_welcoming_campfire and share the same priority-90 Class Buff arbitration.
+- Player direct lookup tries both IDs; target/focus/ToT/FoT recognize either through indexed readable aura data.
 - No priority number, geometry, timer, pet, or event changes.
