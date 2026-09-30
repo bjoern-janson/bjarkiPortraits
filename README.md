@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.46-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.47-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -199,3 +199,11 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - `BaselineClass` securely unions `buffs_class_baseline` and `buffs_camp_benefits`, so there is one actual priority-90 lane rather than two same-priority siblings.
 - Camp Benefits automatically participates in the existing readable BaselineClass recency election because that scanner follows the tier's merged spell set.
 - Well Fed remains priority 110.
+
+### v0.1.47
+- Utility/Campfire readable arbitration now proves the actual priority-270 AuraInstanceID winner before suppressing secure Utility.
+- Control and Stun exact runtime lanes are disjoint.
+- Pet-foundation refreshes are unit-specific and use positive other-player-pet identity where available.
+- Duplicate player-target forced refresh work is removed; nonexistent unit-token hosts remain prebuilt but aura-dormant.
+- Secret-value guards are strengthened around direct aura/duration/pet texture paths.
+- The larger AuraContainer filter-cohort consolidation remains a separate post-live-check refactor.
