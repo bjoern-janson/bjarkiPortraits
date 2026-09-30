@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.44-clean
+bjarkiPortraits 0.1.45-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -14,7 +14,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.44 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.45 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -322,3 +322,10 @@ v0.1.44-clean
 - Prevents the readable Campfire fallback and secure Utility lane from rendering cooldown text simultaneously.
 - This fixes the double-timer artifact seen with multiple Utility-tier buffs.
 - No priority number, taxonomy, geometry, pet, or event changes.
+
+
+v0.1.45-clean
+- Well Fed moves from priority 125 to 110: Camp Benefits 100 < Well Fed 110 < Thorns 120.
+- Slows gains equivalent Forever/NPC Frostbolt IDs 21369, 350025, 420526, and 1303226.
+- These variants apply the same Frostbolt-style movement snare and therefore share the existing Slows lane rather than using a semantic fallback.
+- No geometry, timer, pet, or event changes.
