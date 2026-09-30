@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.38-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.39-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -886,14 +886,18 @@ Diagnostics now separate path availability, exact presence, and timing source.
 
 ## 30. Welcoming Campfire identity correction
 
-The preceding Campfire debugging isolated the failure upstream of arbitration: ordinary aura enumeration completed successfully, but the addon never observed the assumed spell ID 1229739.
-
-A live client query by aura name returned the visible effect directly:
+The Campfire debugging isolated the failure upstream of arbitration. Live name-based inspection first returned:
 
     name      = Welcoming Campfire
     spellId   = 1289723
     duration  = 60
 
-C_UnitAuras.AuraIsPrivate(1229739) also returned false, ruling out the private-aura hypothesis for the old ID.
+A later test at a different campfire returned:
 
-v0.1.38 therefore replaces 1229739 with the observed live aura identity 1289723. The priority remains 90. When readable, that identity now participates in the same Class Buff recency election on every tracked unit.
+    name      = Welcoming Campfire
+    spellId   = 1229739
+    duration  = 60
+
+So 1229739 was not globally obsolete; Forever currently has at least two live aura identities for the same visible Welcoming Campfire effect. The exact source mapping is not yet claimed.
+
+v0.1.39 therefore models Welcoming Campfire as the family {1229739, 1289723}. Both IDs share priority 90, the same 60-second recency semantics, and the same readable Class Buff arbitration on every tracked unit.
