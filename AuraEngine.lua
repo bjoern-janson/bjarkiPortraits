@@ -133,7 +133,9 @@ end
 local function readAuraStartTime(unit, aura, auraInstanceID)
     if C_UnitAuras and C_UnitAuras.GetAuraDuration and auraInstanceID then
         local ok, durationObject = pcall(C_UnitAuras.GetAuraDuration, unit, auraInstanceID)
-        if ok and durationObject and durationObject.GetStartTime then
+        if ok and R.CanAccess(durationObject) and durationObject ~= nil
+            and durationObject.GetStartTime
+        then
             local startOK, startTime = pcall(durationObject.GetStartTime, durationObject)
             if startOK and R.CanAccess(startTime) and type(startTime) == "number" then
                 return startTime, true, "durationObject"
@@ -250,8 +252,8 @@ getReadablePlayerAuraBySpellID = function(spellID)
 
     local ok, aura = pcall(C_UnitAuras.GetPlayerAuraBySpellID, spellID)
     if not ok then return nil, false, true end
-    if aura == nil then return nil, true, true end
     if not R.CanAccess(aura) then return nil, false, true end
+    if aura == nil then return nil, true, true end
 
     local auraSpellID, readable = R.ReadAuraField(aura, "spellId")
     if not readable or type(auraSpellID) ~= "number" then
@@ -264,7 +266,8 @@ getReadablePlayerAuraBySpellID = function(spellID)
     return aura, true, true
 end
 
-local function scanReadableWelcomingCampfire(unit)
+local function scanReadableUtilityWinner(unit)
+    local tier = findTierByKey("Utility")
     local meta = {
         welcomingDirect = false,
         welcomingDirectFound = false,
@@ -273,63 +276,63 @@ local function scanReadableWelcomingCampfire(unit)
         welcomingAppliedAt = nil,
         welcomingTimingSource = nil,
     }
-
-    local function makeCandidate(aura, spellID)
-        local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
-        if not instanceReadable or type(auraInstanceID) ~= "number" then
-            auraInstanceID = nil
-        end
-
-        local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
-        local appliedAt, timingReadable, timingSource
-        if expirationReadable and type(expirationTime) == "number" and expirationTime > 0 then
-            appliedAt = expirationTime - 60
-            timingReadable = true
-            timingSource = "welcomingExpiration60"
-        else
-            appliedAt, timingReadable, timingSource = readAuraStartTime(
-                unit, aura, auraInstanceID
-            )
-        end
-
-        meta.welcomingPresent = true
-        meta.welcomingAppliedAt = timingReadable and appliedAt or nil
-        meta.welcomingTimingSource = timingReadable and timingSource or nil
-
-        return {
-            aura = aura,
-            spellID = spellID,
-            auraInstanceID = auraInstanceID,
-            appliedAt = appliedAt,
-            timingReadable = timingReadable,
-            timingSource = timingSource,
-        }
-    end
-
-    -- Player has an extra exact direct path. Try both live family IDs.
-    if unit == "player" and getReadablePlayerAuraBySpellID then
-        for _, spellID in ipairs(WELCOMING_CAMPFIRE_DIRECT_IDS) do
-            local aura, readable, directAvailable = getReadablePlayerAuraBySpellID(spellID)
-            meta.welcomingDirect = meta.welcomingDirect or directAvailable
-            meta.welcomingReadable = meta.welcomingReadable or readable
-            if aura then
-                meta.welcomingDirectFound = true
-                return makeCandidate(aura, spellID), true, meta
-            end
-        end
-    end
-
+    if not tier or not tier.spellIDs then return nil, false, meta end
     if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then
         return nil, false, meta
     end
 
+    local candidates = {}
+    local seenInstances = {}
+    local complete = false
+
+    local function addCandidate(aura, spellID, direct)
+        local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
+        if not instanceReadable or type(auraInstanceID) ~= "number" then
+            return false
+        end
+
+        if not seenInstances[auraInstanceID] then
+            candidates[#candidates + 1] = {
+                aura = aura,
+                spellID = spellID,
+                auraInstanceID = auraInstanceID,
+                tier = tier,
+            }
+            seenInstances[auraInstanceID] = true
+        end
+
+        if isWelcomingCampfireSpellID(spellID) then
+            local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
+            local appliedAt, timingReadable, timingSource
+            if expirationReadable and type(expirationTime) == "number" and expirationTime > 0 then
+                appliedAt = expirationTime - 60
+                timingReadable = true
+                timingSource = "welcomingExpiration60"
+            else
+                appliedAt, timingReadable, timingSource = readAuraStartTime(
+                    unit, aura, auraInstanceID
+                )
+            end
+
+            meta.welcomingPresent = true
+            meta.welcomingAppliedAt = timingReadable and appliedAt or nil
+            meta.welcomingTimingSource = timingReadable and timingSource or nil
+            if direct then meta.welcomingDirectFound = true end
+        end
+
+        return true
+    end
+
+    -- First enumerate the full readable Utility candidate set. The secure lane
+    -- uses AuraInstanceIDOnly/Reverse, so readable arbitration must use the same
+    -- ordering before it is allowed to suppress that secure owner.
     for index = 1, 80 do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
             unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
         if not ok or not R.CanAccess(aura) then return nil, false, meta end
         if aura == nil then
-            meta.welcomingReadable = true
-            return nil, true, meta
+            complete = true
+            break
         end
 
         local spellID, readable = R.ReadAuraField(aura, "spellId")
@@ -337,13 +340,38 @@ local function scanReadableWelcomingCampfire(unit)
             return nil, false, meta
         end
 
-        if isWelcomingCampfireSpellID(spellID) then
-            meta.welcomingReadable = true
-            return makeCandidate(aura, spellID), true, meta
+        if tier.spellIDs[spellID] and not addCandidate(aura, spellID, false) then
+            return nil, false, meta
         end
     end
 
-    return nil, false, meta
+    if not complete then return nil, false, meta end
+
+    -- Forever has exposed Welcoming Campfire through a direct player lookup on
+    -- builds where the indexed stream was inconsistent. A positive direct
+    -- witness joins the SAME Utility election instead of short-circuiting it.
+    if unit == "player" and getReadablePlayerAuraBySpellID then
+        for _, spellID in ipairs(WELCOMING_CAMPFIRE_DIRECT_IDS) do
+            local aura, readable, directAvailable = getReadablePlayerAuraBySpellID(spellID)
+            meta.welcomingDirect = meta.welcomingDirect or directAvailable
+            meta.welcomingReadable = meta.welcomingReadable or readable
+            if aura and not addCandidate(aura, spellID, true) then
+                return nil, false, meta
+            end
+        end
+    end
+
+    meta.welcomingReadable = meta.welcomingReadable or complete
+    if #candidates == 0 then return nil, true, meta end
+
+    local best = candidates[1]
+    for i = 2, #candidates do
+        if candidates[i].auraInstanceID > best.auraInstanceID then
+            best = candidates[i]
+        end
+    end
+
+    return best, true, meta
 end
 
 local function scanLatestReadableExactTierAura(unit, tierKey, filter)
@@ -719,7 +747,7 @@ local function updateReadableWelcomingCampfire(host, baseEnabled)
         return
     end
 
-    local best, readable, meta = scanReadableWelcomingCampfire(host.unit)
+    local best, readable, meta = scanReadableUtilityWinner(host.unit)
     host._welcomingCampfireReadable = readable
     host._welcomingCampfireDirect = meta and meta.welcomingDirect or false
     host._welcomingCampfireDirectFound = meta and meta.welcomingDirectFound or false
@@ -728,7 +756,11 @@ local function updateReadableWelcomingCampfire(host, baseEnabled)
     host._welcomingCampfireTimingSource = meta and meta.welcomingTimingSource or nil
     host._welcomingCampfireActive = false
 
-    if not readable or not best then
+    -- This readable frame may suppress the merged secure Utility slot only
+    -- when the complete readable election proves Campfire is that slot's actual
+    -- AuraInstanceID winner. If another Utility buff is newer, leave secure
+    -- Utility authoritative.
+    if not readable or not best or not isWelcomingCampfireSpellID(best.spellID) then
         hideReadableExact(host.readableWelcomingCampfireFrame)
         return
     end
@@ -959,7 +991,11 @@ end
 
 function R.UpdateHost(host, forceContainerRefresh)
     if not host then return end
-    local base = R.IsUnitEnabled(host.unit) and not R.testMode
+    local unitExists, existsReadable = R.SafeBool(UnitExists, host.unit)
+    local present = not UnitExists or (existsReadable and unitExists)
+    local base = R.IsUnitEnabled(host.unit) and not R.testMode and present
+    host._unitExists = present and true or false
+    host._unitExistsReadable = existsReadable
     local hostileUnit = R.IsHostileUnit(host.unit)
     local isPlayer, playerReadable = R.PlayerUnitState(host.unit)
     local hostilePlayer = hostileUnit and playerReadable and isPlayer or false
@@ -1127,10 +1163,10 @@ local function showTest(host)
     local texture = 132298
     if C_Spell and C_Spell.GetSpellTexture then
         local ok, value = pcall(C_Spell.GetSpellTexture, 408)
-        if ok and value then texture = value end
+        if ok and R.CanAccess(value) and value ~= nil then texture = value end
     elseif GetSpellTexture then
         local ok, value = pcall(GetSpellTexture, 408)
-        if ok and value then texture = value end
+        if ok and R.CanAccess(value) and value ~= nil then texture = value end
     end
     host.testFrame.icon:SetTexture(texture)
     if host.testFrame.cooldown and host.testFrame.cooldown.SetCooldown then
