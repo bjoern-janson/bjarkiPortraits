@@ -29,11 +29,13 @@ events:SetScript("OnEvent", function(_, event, arg1)
     elseif event == "PLAYER_TARGET_CHANGED" then
         R.Refresh("target", true)
         R.Refresh("targettarget", true)
-        R.UpdateObservedPetPortraits()
+        R.UpdateObservedPetPortrait("target")
+        R.UpdateObservedPetPortrait("targettarget")
     elseif event == "PLAYER_FOCUS_CHANGED" then
         R.Refresh("focus", true)
         R.Refresh("focustarget", true)
-        R.UpdateObservedPetPortraits()
+        R.UpdateObservedPetPortrait("focus")
+        R.UpdateObservedPetPortrait("focustarget")
     elseif event == "PET_BAR_UPDATE" then
         R.UpdateLocalPetPortrait()
     end
@@ -60,10 +62,13 @@ local function installUnitStateEvents(unitA, unitB)
         else
             R.Refresh(unit, true)
         end
-        if unit == "target" or unit == "focus"
-            or unit == "targettarget" or unit == "focustarget"
+        -- Aura changes do not change pet identity/family. Reclassify only on
+        -- relation/state changes, and only for the unit that actually changed.
+        if event ~= "UNIT_AURA"
+            and (unit == "target" or unit == "focus"
+                or unit == "targettarget" or unit == "focustarget")
         then
-            R.UpdateObservedPetPortraits()
+            R.UpdateObservedPetPortrait(unit)
         end
     end)
     unitStateFrames[#unitStateFrames + 1] = frame
@@ -74,29 +79,20 @@ installUnitStateEvents("player", "target")
 installUnitStateEvents("focus", "targettarget")
 installUnitStateEvents("focustarget")
 
--- UNIT_TARGET is also noisy around many visible units. Only player/target/focus
--- can change a relationship token owned by this addon.
-local unitTargetFrames = {}
-local function installUnitTargetEvents(unitA, unitB)
-    local frame = CreateFrame("Frame")
-    if unitB then frame:RegisterUnitEvent("UNIT_TARGET", unitA, unitB)
-    else frame:RegisterUnitEvent("UNIT_TARGET", unitA) end
-    frame:SetScript("OnEvent", function(_, _, unit)
-        if unit == "target" then
-            R.Refresh("targettarget", true)
-            R.UpdateObservedPetPortraits()
-        elseif unit == "focus" then
-            R.Refresh("focustarget", true)
-            R.UpdateObservedPetPortraits()
-        elseif unit == "player" then
-            R.Refresh("target", true)
-            R.UpdateObservedPetPortraits()
-        end
-    end)
-    unitTargetFrames[#unitTargetFrames + 1] = frame
-end
-installUnitTargetEvents("player", "target")
-installUnitTargetEvents("focus")
+-- PLAYER_TARGET_CHANGED / PLAYER_FOCUS_CHANGED already own the outer tokens.
+-- UNIT_TARGET is needed only when target/focus changes its own target, which
+-- rebinds the derived ToT/FoT tokens.
+local unitTargetEvents = CreateFrame("Frame")
+unitTargetEvents:RegisterUnitEvent("UNIT_TARGET", "target", "focus")
+unitTargetEvents:SetScript("OnEvent", function(_, _, unit)
+    if unit == "target" then
+        R.Refresh("targettarget", true)
+        R.UpdateObservedPetPortrait("targettarget")
+    elseif unit == "focus" then
+        R.Refresh("focustarget", true)
+        R.UpdateObservedPetPortrait("focustarget")
+    end
+end)
 
 -- Only the player's pet can affect the local PetFrame foundation.
 local unitPetEvents = CreateFrame("Frame")
