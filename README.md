@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.45-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.46-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -19,7 +19,7 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - 43 spell/effect categories
 - 827 category memberships
 - 793 unique spell IDs
-- 45 priority lanes
+- 44 priority lanes
 
 ## Files
 
@@ -191,3 +191,10 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - Adds mechanically equivalent Forever/NPC Frostbolt snare variants 21369, 350025, 420526, and 1303226 to the Slows family alongside the normal player Frostbolt ranks.
 - Deliberately does not add the anomalous 406680 variant because its published slow data does not match ordinary Frostbolt semantics.
 - No geometry, timer, pet, or event changes.
+
+
+### v0.1.46
+- Camp Benefits is now part of the Class Buffs tier at priority 90.
+- `BaselineClass` securely unions `buffs_class_baseline` and `buffs_camp_benefits`, so there is one actual priority-90 lane rather than two same-priority siblings.
+- Camp Benefits automatically participates in the existing readable BaselineClass recency election because that scanner follows the tier's merged spell set.
+- Well Fed remains priority 110.
