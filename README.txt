@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.35-clean
+bjarkiPortraits 0.1.36-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -15,7 +15,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.35 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.36 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -263,3 +263,10 @@ v0.1.35-clean
 - Welcoming Campfire's direct player lookup can feed that shared election when the indexed stream omits it.
 - The separate readable Welcoming Campfire overlay is removed; the special secure lane remains underneath.
 - No priority number, taxonomy, geometry, timer, pet, or event changes.
+
+
+v0.1.36-clean
+- Priority-90 readable candidates no longer require a readable auraInstanceID to participate in recency arbitration.
+- Readable start/application time is the actual recency warrant.
+- auraInstanceID remains only an optional deterministic tie-break when both equal-time candidates expose it.
+- This specifically repairs Welcoming Campfire losing to older BaselineClass state when Forever exposes Campfire timing but not its instance ID.
