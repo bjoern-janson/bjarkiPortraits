@@ -38,9 +38,6 @@ R.TIERS = {
     exact("CampBenefits", "HELPFUL", 100, true, C.buffs_camp_benefits),
     exact("Thorns", "HELPFUL", 120, true, C.buffs_thorns),
     exact("WellFed", "HELPFUL", 125, true, C.buffs_well_fed),
-    -- Welcoming Campfire is its own temporary state above Well Fed but below
-    -- Elemental/Lightning Shield. Keep INCLUDE_NAME_PLATE_ONLY for Forever.
-    exact("WelcomingCampfire", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 126, true, C.buffs_welcoming_campfire),
     exact("ElementalShield", "HELPFUL", 130, true, C.buffs_lightning_shield),
     exact("SelfState", "HELPFUL", 150, true, union("buffs_other", "buffs_frost_armor")),
     -- Combat-safe hostile-NPC fallback for Frost Armor when spell identity is
@@ -98,6 +95,9 @@ R.TIERS = {
     exact("FoodDrink", "HELPFUL", 260, true, C.buffs_fooddrink),
     exact("Innervate", "HELPFUL", 261, true, C.buffs_innervate),
     exact("Utility", "HELPFUL", 270, true, C.buffs_utility),
+    -- Same priority band as Utility, but kept separate because Forever needs
+    -- INCLUDE_NAME_PLATE_ONLY and the confirmed two-ID Campfire witness path.
+    exact("WelcomingCampfire", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 270, true, C.buffs_welcoming_campfire),
     semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 279),
     exact("Offensive", "HELPFUL", 280, true, C.buffs_offensive),
     semantic("ExternalDef", "HELPFUL|EXTERNAL_DEFENSIVE", 288),
