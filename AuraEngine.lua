@@ -158,6 +158,10 @@ local function scanLatestReadableBaselineAura(unit)
     local complete = false
     local sawWelcoming = false
     local welcomingDirect = false
+    local welcomingDirectFound = false
+    local welcomingLookupReadable = false
+    local welcomingAppliedAt
+    local welcomingTimingSource
 
     local function addCandidate(aura, spellID)
         -- auraInstanceID is useful for DurationObject lookup and deterministic
@@ -167,9 +171,29 @@ local function scanLatestReadableBaselineAura(unit)
             auraInstanceID = nil
         end
 
-        local appliedAt, timingReadable, timingSource = readAuraStartTime(
-            unit, aura, auraInstanceID
-        )
+        local appliedAt, timingReadable, timingSource
+
+        if spellID == WELCOMING_CAMPFIRE_SPELL_ID then
+            -- Live Forever behavior exposes Welcoming Campfire as a visible
+            -- 60-second countdown. For this special aura, expirationTime is the
+            -- stable observable we actually care about; generic DurationObject
+            -- start semantics can refer to a different stored time span.
+            local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
+            if expirationReadable and type(expirationTime) == "number" and expirationTime > 0 then
+                appliedAt = expirationTime - 60
+                timingReadable = true
+                timingSource = "welcomingExpiration60"
+            else
+                appliedAt, timingReadable, timingSource = readAuraStartTime(
+                    unit, aura, auraInstanceID
+                )
+            end
+        else
+            appliedAt, timingReadable, timingSource = readAuraStartTime(
+                unit, aura, auraInstanceID
+            )
+        end
+
         if not timingReadable then allTimingReadable = false end
 
         candidates[#candidates + 1] = {
@@ -179,8 +203,26 @@ local function scanLatestReadableBaselineAura(unit)
             appliedAt = appliedAt,
             timingSource = timingSource,
         }
-        if spellID == WELCOMING_CAMPFIRE_SPELL_ID then sawWelcoming = true end
+
+        if spellID == WELCOMING_CAMPFIRE_SPELL_ID then
+            sawWelcoming = true
+            welcomingAppliedAt = appliedAt
+            welcomingTimingSource = timingSource
+        end
         return true
+    end
+
+    -- Campfire's direct player lookup is independent evidence and historically
+    -- proved more reliable than the indexed helpful stream. Admit that exact
+    -- witness first, then scan the stream for competing priority-90 class buffs.
+    if includeWelcoming and getReadablePlayerAuraBySpellID then
+        local aura, readable, directAvailable = getReadablePlayerAuraBySpellID(
+            WELCOMING_CAMPFIRE_SPELL_ID
+        )
+        welcomingDirect = directAvailable
+        welcomingLookupReadable = readable
+        welcomingDirectFound = aura ~= nil
+        if aura then addCandidate(aura, WELCOMING_CAMPFIRE_SPELL_ID) end
     end
 
     for index = 1, 80 do
@@ -199,10 +241,15 @@ local function scanLatestReadableBaselineAura(unit)
             return nil, false
         end
 
-        if tier.spellIDs[spellID]
-            or (includeWelcoming and spellID == WELCOMING_CAMPFIRE_SPELL_ID)
+        if tier.spellIDs[spellID] then
+            addCandidate(aura, spellID)
+        elseif includeWelcoming
+            and spellID == WELCOMING_CAMPFIRE_SPELL_ID
+            and not sawWelcoming
         then
-            if not addCandidate(aura, spellID) then return nil, false end
+            -- Indexed fallback only when the direct exact path did not already
+            -- supply the same Campfire aura.
+            addCandidate(aura, spellID)
         end
     end
 
@@ -210,25 +257,13 @@ local function scanLatestReadableBaselineAura(unit)
     -- stream ended. Only an observed nil terminator grants completeness.
     if not complete then return nil, false end
 
-    -- Welcoming Campfire historically needed the direct player lookup on some
-    -- Forever builds. A positive direct witness joins this SAME priority-90
-    -- election; it no longer gets a separate readable overlay.
-    if includeWelcoming and not sawWelcoming and getReadablePlayerAuraBySpellID then
-        local aura, _, directAvailable = getReadablePlayerAuraBySpellID(
-            WELCOMING_CAMPFIRE_SPELL_ID
-        )
-        welcomingDirect = directAvailable
-        if aura and not addCandidate(aura, WELCOMING_CAMPFIRE_SPELL_ID) then
-            return nil, false
-        end
-    end
-
     local meta = {
         welcomingPresent = sawWelcoming,
         welcomingDirect = welcomingDirect,
-        -- A complete readable indexed stream establishes whether the exact
-        -- Campfire identity is present even when the direct helper is unused.
-        welcomingReadable = includeWelcoming and complete or false,
+        welcomingDirectFound = welcomingDirectFound,
+        welcomingReadable = welcomingLookupReadable or sawWelcoming,
+        welcomingAppliedAt = welcomingAppliedAt,
+        welcomingTimingSource = welcomingTimingSource,
     }
 
     if #candidates == 0 then return nil, true, meta end
@@ -619,6 +654,10 @@ local function clearReadableBaseline(host)
         host._welcomingCampfireReadable = false
         host._welcomingCampfireActive = false
         host._welcomingCampfireDirect = false
+        host._welcomingCampfireDirectFound = false
+        host._welcomingCampfirePresent = false
+        host._welcomingCampfireAppliedAt = nil
+        host._welcomingCampfireTimingSource = nil
     end
 end
 
@@ -643,7 +682,11 @@ local function updateReadableBaseline(host, baseEnabled)
     host._baselineTimingSource = best and best.timingSource or nil
     host._baselineAppliedAt = best and best.appliedAt or nil
     host._welcomingCampfireDirect = meta and meta.welcomingDirect or false
+    host._welcomingCampfireDirectFound = meta and meta.welcomingDirectFound or false
+    host._welcomingCampfirePresent = meta and meta.welcomingPresent or false
     host._welcomingCampfireReadable = meta and meta.welcomingReadable or false
+    host._welcomingCampfireAppliedAt = meta and meta.welcomingAppliedAt or nil
+    host._welcomingCampfireTimingSource = meta and meta.welcomingTimingSource or nil
     host._welcomingCampfireActive = false
 
     if not complete or not best then
