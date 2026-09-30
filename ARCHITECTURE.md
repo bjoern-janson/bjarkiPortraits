@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.45-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.46-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -650,8 +650,7 @@ Higher numbers visually outrank lower numbers.
 60   Paladin Auras + Demon Skin/Armor + Stoneskin + Healing Stream
 70   Blood Pact
 80   Scrolls
-90   BaselineClass
-100  Camp Benefits
+90   BaselineClass + Camp Benefits
 110  Well Fed
 120  Thorns
 130  Elemental Shields
@@ -684,7 +683,7 @@ Higher numbers visually outrank lower numbers.
 330  Immunities
 ```
 
-There are 45 implementation lanes because some conceptual priorities have both exact and semantic mechanisms.
+There are 44 implementation lanes because some conceptual priorities have both exact and semantic mechanisms.
 
 ---
 
@@ -929,3 +928,10 @@ The secure Utility lane now unions `buffs_utility` and `buffs_welcoming_campfire
 v0.1.45 formalizes a simple taxonomy rule: when Forever exposes an NPC spell ID whose gameplay effect is the same tracked mechanic as the player spell, that ID belongs in the same exact family instead of receiving a separate approximation lane.
 
 For Frostbolt slows, the exact Slows family now includes NPC/Forever IDs 21369, 350025, 420526, and 1303226 in addition to the ordinary player ranks. The anomalous 406680 variant is intentionally excluded because its published movement-speed effect does not match ordinary Frostbolt semantics.
+
+
+## 35. Camp Benefits joins BaselineClass
+
+v0.1.46 moves Camp Benefits into the Class Buffs band at priority 90. Rather than leaving a second exact lane at the same numeric priority, `BaselineClass` now unions `buffs_class_baseline` and `buffs_camp_benefits` into one secure AuraSlot.
+
+The readable BaselineClass scanner already derives its candidate set from the tier's `spellIDs`, so Camp Benefits automatically joins the same newest-application/refresh election without an additional readable overlay.
