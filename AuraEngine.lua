@@ -708,7 +708,7 @@ local function updateReadableBaseline(host, baseEnabled)
 
     local shown = showReadableAura(host.readableBaselineFrame, best.aura, best.spellID)
     host._welcomingCampfireActive =
-        shown and best.isWelcomingCampfireSpellID(spellID) or false
+        shown and isWelcomingCampfireSpellID(best.spellID) or false
 end
 
 local function createTestFrame(host)
