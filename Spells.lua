@@ -214,6 +214,11 @@ PT.categories = {
         [10179] = true, -- Frostbolt Rank 8
         [10180] = true, -- Frostbolt Rank 9
         [10181] = true, -- Frostbolt Rank 10
+        -- Forever/NPC Frostbolt variants with the same snare semantics.
+        [21369] = true, -- Frostbolt (NPC/Forever variant)
+        [350025] = true, -- Frostbolt (Forever variant)
+        [420526] = true, -- Frostbolt (NPC/Forever variant)
+        [1303226] = true, -- Frostbolt (NPC/Forever variant)
         [3600] = true, -- Earthbind (Earthbind Totem slow aura)
     },
     slows_chilled = {
