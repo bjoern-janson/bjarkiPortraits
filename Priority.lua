@@ -35,9 +35,9 @@ R.TIERS = {
     exact("BloodPact", "HELPFUL", 70, true, C.buffs_blood_pact),
     exact("Scrolls", "HELPFUL", 80, true, C.buffs_scrolls),
     exact("BaselineClass", "HELPFUL", 90, true, C.buffs_class_baseline),
-    -- Same priority band as class buffs, but kept as its own lane because
-    -- Forever needs INCLUDE_NAME_PLATE_ONLY to surface this self-only aura.
-    exact("WelcomingCampfire", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 90, true, C.buffs_welcoming_campfire),
+    -- Welcoming Campfire is its own temporary state above Well Fed but below
+    -- Elemental/Lightning Shield. Keep INCLUDE_NAME_PLATE_ONLY for Forever.
+    exact("WelcomingCampfire", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 126, true, C.buffs_welcoming_campfire),
     exact("CampBenefits", "HELPFUL", 100, true, C.buffs_camp_benefits),
     exact("Thorns", "HELPFUL", 120, true, C.buffs_thorns),
     exact("WellFed", "HELPFUL", 125, true, C.buffs_well_fed),
