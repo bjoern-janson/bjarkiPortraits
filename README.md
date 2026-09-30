@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.38-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.39-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -17,8 +17,8 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 ## Current scale
 
 - 43 spell/effect categories
-- 821 category memberships
-- 787 unique spell IDs
+- 822 category memberships
+- 788 unique spell IDs
 - 46 priority lanes
 
 ## Files
@@ -41,7 +41,7 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - Both IDs are readable out of combat but not `NeverSecret`; exact identity becomes unavailable in combat.
 - The working in-combat solution is therefore a secure **non-identity metadata signature**.
 - Chilled and Frost Armor are now both confirmed rendering in combat on that NPC.
-- Live `/dump` evidence identifies the current Welcoming Campfire aura as **1289723** (60s); the older tracked ID 1229739 was incorrect for the live aura.
+- Live `/dump` evidence confirms **two** Welcoming Campfire aura IDs in current Forever: **1229739** and **1289723**, both 60s, depending on campfire source.
 - Hostile-player portrait aura selection has been correct across the current live sample.
 - After v0.1.24 scoped high-frequency unit events to owned tokens, a dense Booty Bay test no longer exhibited the reported lag.
 
@@ -146,3 +146,10 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - The correction is grounded in `C_UnitAuras.GetAuraDataBySpellName(..., "Welcoming Campfire", ...)`, which returned spellId 1289723, duration 60, and the visible aura data in-client.
 - Welcoming Campfire now participates in the shared priority-90 readable election on every tracked unit when its identity is readable, not only on the player frame.
 - No priority number, geometry, timer, pet, or event changes.
+
+
+### v0.1.39
+- Treats Welcoming Campfire as a two-ID live family: 1229739 and 1289723.
+- Both IDs were confirmed in-client by name lookup at different campfires.
+- The player direct lookup checks both IDs; indexed readable arbitration on all tracked units recognizes either identity.
+- Priority remains 90 and the 60-second recency witness is unchanged.
