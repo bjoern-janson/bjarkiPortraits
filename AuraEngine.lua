@@ -107,7 +107,7 @@ end
 
 local BOOSTED_REST_SPELL_ID = 1229451
 local RES_SICKNESS_SPELL_ID = 15007
-local WELCOMING_CAMPFIRE_SPELL_ID = 1229739
+local WELCOMING_CAMPFIRE_SPELL_ID = 1289723
 
 local function findTierByKey(key)
     for _, tier in ipairs(R.TIERS or {}) do
@@ -152,7 +152,7 @@ local function scanLatestReadableBaselineAura(unit)
     if not tier or not tier.spellIDs then return nil, false end
     if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false end
 
-    local includeWelcoming = unit == "player"
+    local includeWelcoming = true
     local candidates = {}
     local allTimingReadable = true
     local complete = false
@@ -212,10 +212,9 @@ local function scanLatestReadableBaselineAura(unit)
         return true
     end
 
-    -- Campfire's direct player lookup is independent evidence and historically
-    -- proved more reliable than the indexed helpful stream. Admit that exact
-    -- witness first, then scan the stream for competing priority-90 class buffs.
-    if includeWelcoming and getReadablePlayerAuraBySpellID then
+    -- Player gets an additional exact direct witness; all tracked units can
+    -- still admit the live Campfire ID through the indexed helpful stream.
+    if unit == "player" and getReadablePlayerAuraBySpellID then
         local aura, readable, directAvailable = getReadablePlayerAuraBySpellID(
             WELCOMING_CAMPFIRE_SPELL_ID
         )
