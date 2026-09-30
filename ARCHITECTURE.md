@@ -235,7 +235,7 @@ bjarkiPortraits instead tries to hand control back to a secure lane.
 
 ## 6. Exact lanes and semantic lanes
 
-`Priority.lua` defines 45 lanes.
+`Priority.lua` defines 44 lanes.
 
 ### Exact lane
 
@@ -529,8 +529,8 @@ Current formatting:
 
 ```text
 under 10 sec: one decimal
-10–60 sec: integer
-over 60 sec: numeric text hidden
+10–45 sec: integer
+over 45 sec: numeric text hidden
 ```
 
 Bling and edge are disabled. Swipe is off by default.
