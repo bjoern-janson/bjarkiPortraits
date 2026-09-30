@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.41-clean
+bjarkiPortraits 0.1.42-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -14,7 +14,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.41 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.42 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -302,3 +302,10 @@ v0.1.41-clean
 - Moves the WellFed lane from priority 110 to 125.
 - Priority neighborhood is now Thorns 120 < Well Fed 125 < Elemental/Lightning Shield 130.
 - No other priority, geometry, timer, pet, evidence, or event changes.
+
+
+v0.1.42-clean
+- Welcoming Campfire moves from priority 90 to 126.
+- Priority neighborhood is now Thorns 120 < Well Fed 125 < Welcoming Campfire 126 < Elemental/Lightning Shield 130.
+- Welcoming Campfire leaves the BaselineClass readable election and gets its own priority-126 readable surface using both confirmed live IDs.
+- BaselineClass returns to class-buff-only recency arbitration at priority 90.
