@@ -766,6 +766,7 @@ PT.categories = {
         [1225779] = true, -- Forever Well Fed: Agility + Stamina
         [1225780] = true, -- Forever Well Fed: Spell Damage/Healing + Stamina
         [1225782] = true, -- Forever Well Fed: AP/Spell/Healing + Stamina
+        [1248406] = true, -- Forever Well Fed: +1 Stamina
         [1248421] = true, -- Forever Well Fed: Intellect
         [1248422] = true, -- Forever Well Fed: Strength
         [1249519] = true, -- Forever Well Fed: Attack Power
