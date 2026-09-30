@@ -5,8 +5,8 @@ This file is the continuation point for the next bjarkiPortraits session.
 ## Current repository state
 
 - Repository: `bjoern-janson/bjarkiPortraits`
-- Current source: **v0.1.46-clean**
-- Runtime/source checkpoint before handoff-only documentation commits: `72240e0f197a37b6b3876c30bce03ff7f0393113`
+- Current source: **v0.1.47-clean**
+- Runtime/source checkpoint before handoff-only documentation commits: `e0aef4ef99b57eaac0163a92e4e37227c4cb915a`
 - Companion UI repository: `bjoern-janson/bjarkiUI`
 - Companion current source: **v0.2.19-ultralight**
 - Companion runtime/source checkpoint before the final documentation-only version-note fix: `377f593924108641c2e01ce7acfff2da0fc8649f`
@@ -25,6 +25,18 @@ Do not reconstruct old PortraitTimersForever architecture. Continue from the cur
 - High-frequency unit events must stay scoped to owned unit tokens; do not reintroduce global `UNIT_AURA`, `UNIT_TARGET`, `UNIT_FLAGS`, etc.
 - Do not use `unitAuraUpdateInfo.isFullUpdate`; older PTF builds hit secret-boolean taint there.
 - Structural destroy/rebuild remains combat-safe.
+
+## v0.1.47 source checkpoint
+
+- Utility/Welcoming Campfire now has one winner contract: the readable Campfire surface can suppress secure Utility only after a complete readable Utility-family election proves Campfire is the AuraInstanceID winner.
+- Control 310 excludes every Stun 320 spell ID; the prior 34-ID exact-lane overlap is gone.
+- PLAYER_TARGET_CHANGED owns the player's outer target refresh; UNIT_TARGET now handles only target/focus-derived ToT/FoT rebinding.
+- UNIT_AURA no longer triggers observed-pet classification. Pet foundations refresh only on referent/relation changes and only for the affected observed token.
+- Observed pet classification prefers positive UnitIsOtherPlayersPet evidence and performs at most one creature-family lookup per classification.
+- Empty target/focus/derived hosts stay pre-created for combat safety but their aura policy is dormant until UnitExists is readable and true.
+- Secret-value ordering was hardened in direct Campfire/duration/pet-texture paths.
+- Do **not** begin the large spell-equivalence expansion until this checkpoint has a live pass.
+- Next architectural candidate after that pass: consolidate 44 per-host AuraContainers into filter-string cohorts/AuraSlots; keep it separate from this correctness checkpoint.
 
 ## Current priority spine
 
