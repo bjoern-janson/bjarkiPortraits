@@ -752,7 +752,7 @@ local function updateReadableWelcomingCampfire(host, baseEnabled)
     local best, readable, meta = scanReadableUtilityWinner(host.unit)
     host._utilityReadable = readable
     host._utilityWinnerSpellID = best and best.spellID or nil
-    host._welcomingCampfireReadable = readable
+    host._welcomingCampfireReadable = meta and meta.welcomingReadable or false
     host._welcomingCampfireDirect = meta and meta.welcomingDirect or false
     host._welcomingCampfireDirectFound = meta and meta.welcomingDirectFound or false
     host._welcomingCampfirePresent = meta and meta.welcomingPresent or false
