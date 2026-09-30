@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.40-clean
+bjarkiPortraits 0.1.41-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -14,7 +14,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.40 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.41 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -295,3 +295,10 @@ v0.1.39-clean
 v0.1.40-clean
 - Fixes the v0.1.39 Lua error caused by calling the Welcoming family predicate as a field on the winner table.
 - Runtime behavior is otherwise unchanged.
+
+
+v0.1.41-clean
+- Adds Well Fed spell 1248406 (+1 Stamina) to the tracked Well Fed family.
+- Moves the WellFed lane from priority 110 to 125.
+- Priority neighborhood is now Thorns 120 < Well Fed 125 < Elemental/Lightning Shield 130.
+- No other priority, geometry, timer, pet, evidence, or event changes.
