@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.36-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.37-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -131,4 +131,11 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 ### v0.1.36
 - Fixes a remaining Class Buffs arbitration failure where Welcoming Campfire could be rejected from the priority-90 election if its auraInstanceID was unreadable.
 - A readable application/start time is now sufficient evidence for recency; auraInstanceID is optional and used only as an equal-time tie-break when readable on both candidates.
+- No priority number, taxonomy, geometry, timer, pet, or event changes.
+
+
+### v0.1.37
+- Welcoming Campfire is now queried directly before the indexed Class Buffs scan, restoring the independent exact witness that previously worked live.
+- For this special 60-second countdown aura, recency uses expirationTime - 60 as the application-time witness instead of generic DurationObject start semantics.
+- /bp debug now distinguishes direct API availability from actual Campfire presence and reports welcomingDirectFound, welcomingPresent, welcomingAppliedAt, and welcomingTimingSource.
 - No priority number, taxonomy, geometry, timer, pet, or event changes.
