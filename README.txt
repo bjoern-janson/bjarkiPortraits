@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.37-clean
+bjarkiPortraits 0.1.38-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -10,12 +10,11 @@ Visual contract:
 - Blizzard's own portrait mask is reused directly.
 - ToT/FoT use the same primitive as the large frames, with only their accepted
   optical icon/timer offsets.
-- Pet foundations are target/focus/PetFrame presentation only; they never run
-  on ToT/FoT and have no access to AuraContainer state.
+- Pet foundations cover target/focus/PetFrame plus ToT/FoT presentation and have no access to AuraContainer state.
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.37 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.38 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -277,3 +276,10 @@ v0.1.37-clean
 - Campfire recency is derived from the live 60-second countdown expiration (expirationTime - 60); generic DurationObject start semantics are not used for this special aura unless expirationTime is unavailable.
 - /bp debug now separates direct path availability from actual direct aura presence and exposes welcomingDirectFound, welcomingPresent, welcomingAppliedAt, and welcomingTimingSource.
 - No priority number, taxonomy, geometry, timer, pet, or event changes.
+
+
+v0.1.38-clean
+- Live client inspection identifies Welcoming Campfire as spellId 1289723, duration 60.
+- Replaces the incorrect 1229739 registry/engine identity with 1289723.
+- Welcoming Campfire can now enter the shared priority-90 readable Class Buff election on every tracked unit, not only player.
+- No priority number, geometry, timer, pet, or event changes.
