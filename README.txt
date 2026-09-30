@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.46-clean
+bjarkiPortraits 0.1.47-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -14,7 +14,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.46 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.47 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -335,3 +335,13 @@ v0.1.46-clean
 - Camp Benefits moves into the Class Buffs tier at priority 90.
 - BaselineClass now unions regular class buffs with Camp Benefits into one secure lane and one readable recency election.
 - Well Fed stays at 110, directly above the merged Class Buff tier.
+
+v0.1.47-clean
+- Repairs Utility/Welcoming Campfire arbitration: the readable Campfire witness suppresses the merged secure Utility lane only when a complete readable Utility election proves Campfire is the actual AuraInstanceID winner.
+- Makes explicit Control (310) disjoint from the dedicated Stun lane (320), eliminating the only exact runtime-lane spell-ID overlap.
+- Removes duplicate player-target forced refresh work and stops ordinary UNIT_AURA events from reclassifying all observed pet portraits.
+- Observed pet foundations now refresh per changed unit, prefer positive UnitIsOtherPlayersPet evidence, and reuse one creature-family lookup.
+- Prebuilt target/focus/ToT/FoT hosts stay structurally combat-safe but keep aura processing dormant while their unit token does not exist.
+- Hardens direct aura, duration-object, pet texture, and test-texture paths against secret/inaccessible values.
+- /bp debug now exposes unit-presence and Utility-election evidence.
+- The planned AuraContainer filter-cohort consolidation is intentionally not part of this checkpoint.
