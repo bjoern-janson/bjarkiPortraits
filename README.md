@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.41-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.42-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -164,3 +164,10 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - Adds the low-level Forever Well Fed aura 1248406 (+1 Stamina; +5% kill XP via the shared food effect) to the Well Fed family.
 - Moves WellFed from priority 110 to 125, placing it above Thorns (120) and below Elemental/Lightning Shield (130).
 - No other priority, geometry, timer, pet, evidence, or event changes.
+
+
+### v0.1.42
+- Moves Welcoming Campfire from priority 90 to 126, immediately above Well Fed (125) and below Elemental/Lightning Shield (130).
+- Removes Welcoming Campfire from the BaselineClass readable recency election and restores it as its own readable lane at priority 126 using the confirmed two-ID family {1229739, 1289723}.
+- BaselineClass returns to class buffs only at priority 90.
+- No spell taxonomy, geometry, timer, pet, or event changes.
