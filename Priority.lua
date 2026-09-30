@@ -94,10 +94,10 @@ R.TIERS = {
     exact("Shield", "HELPFUL", 250, true, C.buffs_shield),
     exact("FoodDrink", "HELPFUL", 260, true, C.buffs_fooddrink),
     exact("Innervate", "HELPFUL", 261, true, C.buffs_innervate),
-    exact("Utility", "HELPFUL", 270, true, C.buffs_utility),
-    -- Same priority band as Utility, but kept separate because Forever needs
-    -- INCLUDE_NAME_PLATE_ONLY and the confirmed two-ID Campfire witness path.
-    exact("WelcomingCampfire", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 270, true, C.buffs_welcoming_campfire),
+    -- One actual Utility lane. Welcoming Campfire shares this secure slot so
+    -- equal-priority effects cannot stack independent cooldown widgets.
+    exact("Utility", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 270, true,
+        union("buffs_utility", "buffs_welcoming_campfire")),
     semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 279),
     exact("Offensive", "HELPFUL", 280, true, C.buffs_offensive),
     semantic("ExternalDef", "HELPFUL|EXTERNAL_DEFENSIVE", 288),
