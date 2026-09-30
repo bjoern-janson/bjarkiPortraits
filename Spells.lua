@@ -791,7 +791,7 @@ PT.categories = {
         [1283391] = true, -- Campfire Nearby (Forever)
     },
     buffs_welcoming_campfire = {
-        [1229739] = true, -- Welcoming Campfire (Forever)
+        [1289723] = true, -- Welcoming Campfire (Forever live aura)
     },
     buffs_travel_utility = {
         [5697] = true, -- Unending Breath (Warlock)
