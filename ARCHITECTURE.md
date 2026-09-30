@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.44-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.45-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -652,8 +652,8 @@ Higher numbers visually outrank lower numbers.
 80   Scrolls
 90   BaselineClass
 100  Camp Benefits
+110  Well Fed
 120  Thorns
-125  Well Fed
 130  Elemental Shields
 150  Self State + Frost Armor semantic band
 160  Mobility
@@ -922,3 +922,10 @@ v0.1.43 moves Welcoming Campfire into the Utility band at priority 270. It remai
 v0.1.44 repairs the double-countdown artifact exposed by placing Welcoming Campfire at priority 270. Equal numeric priority is not sufficient when two independent AuraSlots both own cooldown widgets over the same portrait.
 
 The secure Utility lane now unions `buffs_utility` and `buffs_welcoming_campfire` into one `HELPFUL|INCLUDE_NAME_PLATE_ONLY` AuraSlot. The special readable Campfire witness remains for Forever compatibility, but while that exact readable witness is actively rendering, the merged secure Utility slot is suppressed. Therefore priority 270 has exactly one cooldown owner at a time.
+
+
+## 34. Equivalent NPC spell identities join existing semantic families
+
+v0.1.45 formalizes a simple taxonomy rule: when Forever exposes an NPC spell ID whose gameplay effect is the same tracked mechanic as the player spell, that ID belongs in the same exact family instead of receiving a separate approximation lane.
+
+For Frostbolt slows, the exact Slows family now includes NPC/Forever IDs 21369, 350025, 420526, and 1303226 in addition to the ordinary player ranks. The anomalous 406680 variant is intentionally excluded because its published movement-speed effect does not match ordinary Frostbolt semantics.
