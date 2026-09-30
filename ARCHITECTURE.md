@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.35-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.36-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -846,3 +846,18 @@ the indexed stream does not expose it.
 The secure lanes remain separate because Welcoming Campfire still needs
 HELPFUL|INCLUDE_NAME_PLATE_ONLY. Thus priority semantics are unified without
 collapsing distinct visibility mechanisms.
+
+
+## 28. Recency does not require aura identity-instance metadata
+
+v0.1.36 removes another accidental strengthening of evidence in the priority-90
+readable election. A candidate's auraInstanceID is not itself recency evidence
+and therefore is no longer required for the candidate to participate.
+
+If a candidate exposes a readable application/start time, that is sufficient for
+recency comparison. auraInstanceID is consulted only as a deterministic
+equal-start-time tie-break when both candidates expose one.
+
+This matters for Welcoming Campfire because Forever can expose the exact player
+aura and its timing while withholding or omitting auraInstanceID on the direct
+lookup path.
