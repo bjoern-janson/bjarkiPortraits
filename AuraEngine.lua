@@ -160,9 +160,11 @@ local function scanLatestReadableBaselineAura(unit)
     local welcomingDirect = false
 
     local function addCandidate(aura, spellID)
+        -- auraInstanceID is useful for DurationObject lookup and deterministic
+        -- equal-time ties, but it is NOT required evidence of recency.
         local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
         if not instanceReadable or type(auraInstanceID) ~= "number" then
-            return false
+            auraInstanceID = nil
         end
 
         local appliedAt, timingReadable, timingSource = readAuraStartTime(
@@ -236,8 +238,12 @@ local function scanLatestReadableBaselineAura(unit)
         local candidate = candidates[i]
         if allTimingReadable then
             local newer = candidate.appliedAt > best.appliedAt
-                or (candidate.appliedAt == best.appliedAt
-                    and candidate.auraInstanceID > best.auraInstanceID)
+            if candidate.appliedAt == best.appliedAt
+                and type(candidate.auraInstanceID) == "number"
+                and type(best.auraInstanceID) == "number"
+            then
+                newer = candidate.auraInstanceID > best.auraInstanceID
+            end
             if newer then best = candidate end
         end
     end
