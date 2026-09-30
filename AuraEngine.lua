@@ -107,7 +107,15 @@ end
 
 local BOOSTED_REST_SPELL_ID = 1229451
 local RES_SICKNESS_SPELL_ID = 15007
-local WELCOMING_CAMPFIRE_SPELL_ID = 1289723
+local WELCOMING_CAMPFIRE_SPELL_IDS = {
+    [1229739] = true,
+    [1289723] = true,
+}
+local WELCOMING_CAMPFIRE_DIRECT_IDS = { 1289723, 1229739 }
+
+local function isWelcomingCampfireSpellID(spellID)
+    return WELCOMING_CAMPFIRE_SPELL_IDS[spellID] == true
+end
 
 local function findTierByKey(key)
     for _, tier in ipairs(R.TIERS or {}) do
@@ -173,7 +181,7 @@ local function scanLatestReadableBaselineAura(unit)
 
         local appliedAt, timingReadable, timingSource
 
-        if spellID == WELCOMING_CAMPFIRE_SPELL_ID then
+        if isWelcomingCampfireSpellID(spellID) then
             -- Live Forever behavior exposes Welcoming Campfire as a visible
             -- 60-second countdown. For this special aura, expirationTime is the
             -- stable observable we actually care about; generic DurationObject
@@ -204,7 +212,7 @@ local function scanLatestReadableBaselineAura(unit)
             timingSource = timingSource,
         }
 
-        if spellID == WELCOMING_CAMPFIRE_SPELL_ID then
+        if isWelcomingCampfireSpellID(spellID) then
             sawWelcoming = true
             welcomingAppliedAt = appliedAt
             welcomingTimingSource = timingSource
@@ -215,13 +223,18 @@ local function scanLatestReadableBaselineAura(unit)
     -- Player gets an additional exact direct witness; all tracked units can
     -- still admit the live Campfire ID through the indexed helpful stream.
     if unit == "player" and getReadablePlayerAuraBySpellID then
-        local aura, readable, directAvailable = getReadablePlayerAuraBySpellID(
-            WELCOMING_CAMPFIRE_SPELL_ID
-        )
-        welcomingDirect = directAvailable
-        welcomingLookupReadable = readable
-        welcomingDirectFound = aura ~= nil
-        if aura then addCandidate(aura, WELCOMING_CAMPFIRE_SPELL_ID) end
+        for _, welcomingSpellID in ipairs(WELCOMING_CAMPFIRE_DIRECT_IDS) do
+            local aura, readable, directAvailable = getReadablePlayerAuraBySpellID(
+                welcomingSpellID
+            )
+            welcomingDirect = welcomingDirect or directAvailable
+            welcomingLookupReadable = welcomingLookupReadable or readable
+            if aura then
+                welcomingDirectFound = true
+                addCandidate(aura, welcomingSpellID)
+                break
+            end
+        end
     end
 
     for index = 1, 80 do
@@ -243,7 +256,7 @@ local function scanLatestReadableBaselineAura(unit)
         if tier.spellIDs[spellID] then
             addCandidate(aura, spellID)
         elseif includeWelcoming
-            and spellID == WELCOMING_CAMPFIRE_SPELL_ID
+            and isWelcomingCampfireSpellID(spellID)
             and not sawWelcoming
         then
             -- Indexed fallback only when the direct exact path did not already
@@ -695,7 +708,7 @@ local function updateReadableBaseline(host, baseEnabled)
 
     local shown = showReadableAura(host.readableBaselineFrame, best.aura, best.spellID)
     host._welcomingCampfireActive =
-        shown and best.spellID == WELCOMING_CAMPFIRE_SPELL_ID or false
+        shown and best.isWelcomingCampfireSpellID(spellID) or false
 end
 
 local function createTestFrame(host)
