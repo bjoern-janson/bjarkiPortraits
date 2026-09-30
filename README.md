@@ -31,6 +31,7 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - `Commands.lua` — `/bp` test/debug/configuration.
 - `Main.lua` — event lifecycle.
 - `ARCHITECTURE.md` — detailed model of Forever aura secrecy, secure filtering, recency, and rendering.
+- `NEXT_CHAT.md` — current continuation state, live-test boundary, and the exhaustive spell/aura equivalence audit plan.
 
 ## Live-tested facts
 
