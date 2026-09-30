@@ -8,8 +8,8 @@ This file is the continuation point for the next bjarkiPortraits session.
 - Current source: **v0.1.47-clean**
 - Runtime/source checkpoint before handoff-only documentation commits: `e0aef4ef99b57eaac0163a92e4e37227c4cb915a`
 - Companion UI repository: `bjoern-janson/bjarkiUI`
-- Companion current source: **v0.2.19-ultralight**
-- Companion runtime/source checkpoint before the final documentation-only version-note fix: `377f593924108641c2e01ce7acfff2da0fc8649f`
+- Companion current source: **v0.2.20-ultralight**
+- Companion runtime/source checkpoint before documentation: `6bfb30f185c9c95634b4be8e02c416e3c567e833`
 
 Do not reconstruct old PortraitTimersForever architecture. Continue from the current secure/readable two-plane engine.
 
