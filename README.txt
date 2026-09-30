@@ -1,4 +1,4 @@
-bjarkiPortraits 0.1.39-clean
+bjarkiPortraits 0.1.40-clean
 
 Fresh runtime. The established spell-ID catalog is retained as data, but the
 portrait engine was rebuilt from an empty implementation.
@@ -14,7 +14,7 @@ Visual contract:
 
 Commands: /bp help
 
-Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.39 code paths and known residual risks.
+Current architecture note: version entries below preserve the development history and may describe the intended policy of an intermediate build. ARCHITECTURE.md describes the actual current v0.1.40 code paths and known residual risks.
 
 
 v0.1.1-clean
@@ -290,3 +290,8 @@ v0.1.39-clean
 - Both IDs are now members of buffs_welcoming_campfire and share the same priority-90 Class Buff arbitration.
 - Player direct lookup tries both IDs; target/focus/ToT/FoT recognize either through indexed readable aura data.
 - No priority number, geometry, timer, pet, or event changes.
+
+
+v0.1.40-clean
+- Fixes the v0.1.39 Lua error caused by calling the Welcoming family predicate as a field on the winner table.
+- Runtime behavior is otherwise unchanged.
