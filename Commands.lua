@@ -66,7 +66,11 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
                 .. " resSicknessReadable=" .. tostring(host and host._resSicknessReadable or false)
                 .. " resSicknessActive=" .. tostring(host and host._resSicknessActive or false)
                 .. " welcomingDirect=" .. tostring(host and host._welcomingCampfireDirect or false)
+                .. " welcomingDirectFound=" .. tostring(host and host._welcomingCampfireDirectFound or false)
+                .. " welcomingPresent=" .. tostring(host and host._welcomingCampfirePresent or false)
                 .. " welcomingReadable=" .. tostring(host and host._welcomingCampfireReadable or false)
+                .. " welcomingAppliedAt=" .. tostring(host and host._welcomingCampfireAppliedAt or nil)
+                .. " welcomingTimingSource=" .. tostring(host and host._welcomingCampfireTimingSource or nil)
                 .. " welcomingActive=" .. tostring(host and host._welcomingCampfireActive or false))
         end
     elseif command == "reset" then
