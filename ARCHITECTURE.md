@@ -1,6 +1,6 @@
 # Architecture and inferred Forever aura model
 
-This document describes the current **bjarkiPortraits v0.1.40-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
+This document describes the current **bjarkiPortraits v0.1.41-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
 
 There are three different kinds of statement here:
 
@@ -652,8 +652,8 @@ Higher numbers visually outrank lower numbers.
 80   Scrolls
 90   BaselineClass + Welcoming Campfire
 100  Camp Benefits
-110  Well Fed
 120  Thorns
+125  Well Fed
 130  Elemental Shields
 150  Self State + Frost Armor semantic band
 160  Mobility
