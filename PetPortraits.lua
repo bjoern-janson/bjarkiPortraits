@@ -44,19 +44,19 @@ local function spellTexture(spellID)
     if not spellID then return nil end
     if C_Spell and C_Spell.GetSpellTexture then
         local ok, texture = pcall(C_Spell.GetSpellTexture, spellID)
-        if ok and not R.IsSecret(texture) then return texture end
+        if ok and R.CanAccess(texture) then return texture end
     elseif GetSpellTexture then
         local ok, texture = pcall(GetSpellTexture, spellID)
-        if ok and not R.IsSecret(texture) then return texture end
+        if ok and R.CanAccess(texture) then return texture end
     end
 end
 
 local function familyTexture(familyID)
     if familyID and C_CreatureInfo and C_CreatureInfo.GetCreatureFamilyInfo then
         local ok, info = pcall(C_CreatureInfo.GetCreatureFamilyInfo, familyID)
-        if ok and info and not R.IsSecret(info) then
+        if ok and R.CanAccess(info) and info ~= nil then
             local icon = info.iconFile
-            if icon and not R.IsSecret(icon) then return icon end
+            if R.CanAccess(icon) and icon ~= nil then return icon end
         end
     end
 end
@@ -65,26 +65,41 @@ local function petActionTexture()
     if not GetPetActionInfo then return nil end
     for slot = 1, (NUM_PET_ACTION_SLOTS or 10) do
         local ok, _, texture, isToken = pcall(GetPetActionInfo, slot)
-        if ok and texture and not R.IsSecret(texture) and isToken ~= true then return texture end
+        if ok and R.CanAccess(texture) and R.CanAccess(isToken)
+            and texture ~= nil and isToken ~= true
+        then
+            return texture
+        end
     end
 end
 
 local function classify(unit)
     local samePet, sameReadable = R.SafeBool(UnitIsUnit, unit, "pet")
-    if sameReadable and samePet then return classToken("player"), true end
+    if sameReadable and samePet then
+        local name, id = creatureFamily(unit)
+        return classToken("player"), true, name, id
+    end
 
-    local controlled, controlledReadable = R.SafeBool(UnitPlayerControlled, unit)
-    if not controlledReadable or not controlled then return nil, false end
+    -- Prefer positive pet identity. A merely player-controlled creature can be
+    -- charmed/mind-controlled and is not enough evidence for pet artwork.
+    if type(UnitIsOtherPlayersPet) == "function" then
+        local otherPet, otherReadable = R.SafeBool(UnitIsOtherPlayersPet, unit)
+        if not otherReadable or not otherPet then return nil, false, nil, nil end
+    else
+        -- Compatibility fallback for clients without UnitIsOtherPlayersPet.
+        local controlled, controlledReadable = R.SafeBool(UnitPlayerControlled, unit)
+        if not controlledReadable or not controlled then return nil, false, nil, nil end
+    end
+
     local name, id = creatureFamily(unit)
-    if WARLOCK_IDS[id] or WARLOCK_NAMES[name] then return "WARLOCK", false end
-    if HUNTER_IDS[id] or HUNTER_NAMES[name] then return "HUNTER", false end
-    return nil, false
+    if WARLOCK_IDS[id] or WARLOCK_NAMES[name] then return "WARLOCK", false, name, id end
+    if HUNTER_IDS[id] or HUNTER_NAMES[name] then return "HUNTER", false, name, id end
+    return nil, false, name, id
 end
 
 local function foundationTexture(unit)
-    local owner, own = classify(unit)
+    local owner, own, name, id = classify(unit)
     if owner ~= "HUNTER" and owner ~= "WARLOCK" then return nil end
-    local name, id = creatureFamily(unit)
     if owner == "HUNTER" then
         return familyTexture(id) or (own and petActionTexture()) or spellTexture(2649)
     end
@@ -103,20 +118,26 @@ local function createHostTexture(host)
     return texture
 end
 
+local OBSERVED_UNITS = { "target", "focus", "targettarget", "focustarget" }
+
+function R.UpdateObservedPetPortrait(unit)
+    local host = R.hosts[unit]
+    if not host then return end
+
+    local texture = observed[host]
+    local icon = R.db and R.db.petPortraits and foundationTexture(unit) or nil
+    if icon then
+        if not texture then texture = createHostTexture(host); observed[host] = texture end
+        texture:SetTexture(icon)
+        texture:Show()
+    elseif texture then
+        texture:Hide()
+    end
+end
+
 function R.UpdateObservedPetPortraits()
-    for _, unit in ipairs({ "target", "focus", "targettarget", "focustarget" }) do
-        local host = R.hosts[unit]
-        if host then
-            local texture = observed[host]
-            local icon = R.db and R.db.petPortraits and foundationTexture(unit) or nil
-            if icon then
-                if not texture then texture = createHostTexture(host); observed[host] = texture end
-                texture:SetTexture(icon)
-                texture:Show()
-            elseif texture then
-                texture:Hide()
-            end
-        end
+    for _, unit in ipairs(OBSERVED_UNITS) do
+        R.UpdateObservedPetPortrait(unit)
     end
 end
 
