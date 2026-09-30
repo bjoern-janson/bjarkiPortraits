@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current source: **v0.1.35-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
+Current source: **v0.1.36-clean**. v0.1.24 has live passes for Welcoming Campfire, the Frost Armor/Chilled NPC mechanism, hostile-player aura selection so far, and a dense Booty Bay check without the earlier reported lag. v0.1.25 is a data-only priority refinement for Shaman party totem auras.
 
 The addon turns Blizzard unit portraits into a single high-signal aura surface for:
 
@@ -126,3 +126,9 @@ It combines Blizzard's secure `AuraContainer` system with readable Lua fallbacks
 - On the player frame, Welcoming Campfire now participates in the same readable recency election as BaselineClass buffs.
 - Removes the separate lower readable Campfire overlay; one shared priority-90 readable winner now decides the portrait.
 - Welcoming Campfire retains its separate secure HELPFUL|INCLUDE_NAME_PLATE_ONLY lane underneath for Forever visibility compatibility.
+
+
+### v0.1.36
+- Fixes a remaining Class Buffs arbitration failure where Welcoming Campfire could be rejected from the priority-90 election if its auraInstanceID was unreadable.
+- A readable application/start time is now sufficient evidence for recency; auraInstanceID is optional and used only as an equal-time tie-break when readable on both candidates.
+- No priority number, taxonomy, geometry, timer, pet, or event changes.
