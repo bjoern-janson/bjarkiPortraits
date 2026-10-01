@@ -307,3 +307,277 @@ Warcraft.
 The point is to see whether ideas that survive abstract scrutiny also produce
 better engineering when exposed to a hostile, partially observable,
 relation-dependent, frequently changing real software environment.
+
+
+---
+
+## 9. Why this unusual integration exists
+
+### 9.1 Product ambition: the "Rolex" standard
+
+The ambition for **bjarkiPortraits** and **bjarkiUI** is not merely to make
+useful addons.
+
+The target is an unusually high standard simultaneously across:
+
+- **coding beauty** — small, legible, principled, unsurprising code;
+- **PvP competitiveness** — maximum useful signal with minimum perceptual cost;
+- **functionality** — robust behavior across the ugly edge cases of the real
+  client;
+- **native presentation** — the result should feel like Blizzard implemented
+  the interface correctly in the first place;
+- **runtime discipline** — event-driven, scoped, low-overhead, combat-safe;
+- **failure discipline** — unavailable evidence degrades safely rather than
+  being converted into invented certainty;
+- **polish** — 1 px geometry, stale frame state, wrong colors, duplicated
+  timers, priority collisions, and similar "small" defects are real defects.
+
+The metaphor used during development is:
+
+> Build the Rolex of WoW addons.
+
+This does **not** mean ornamental complexity, prestige features, or maximal
+configuration. It means that the visible simplicity should rest on unusually
+careful internal engineering.
+
+A successful implementation should often make the engineering disappear.
+Players should mostly notice that the addon feels exact.
+
+### 9.2 Functional division between the two addons
+
+A useful working distinction is:
+
+**bjarkiPortraits = epistemic precision**
+
+> Given the legally observable state of a unit, what is the single most
+> important thing the player should know right now?
+
+**bjarkiUI = interface precision**
+
+> How should Blizzard's existing information surfaces be presented so that
+> perception and action are not fighting unnecessary UI friction?
+
+This is not a mandatory ontology. Preserve it only while it continues to
+clarify real responsibilities.
+
+### 9.3 The research program is subordinate to the artifact
+
+The desired direction is:
+
+```text
+deep reasoning
+    ↓
+better invariant
+    ↓
+simpler implementation
+    ↓
+better competitive information
+```
+
+not:
+
+```text
+research concept
+    ↓
+more abstraction
+    ↓
+more addon code
+```
+
+If a theoretically elegant idea adds runtime complexity without paying for
+itself in correctness, simplicity, maintainability, or PvP utility, reject it.
+
+The addon is not a research demo.
+
+### 9.4 The outward discovery chain
+
+There is, however, a deliberate second-order goal.
+
+If the addons become unusually good, technically sophisticated on inspection,
+and competitively respected, outside observers may naturally ask:
+
+```text
+Why is this addon unusually clean/reliable?
+        ↓
+What design principles produced it?
+        ↓
+Where did those principles come from?
+        ↓
+What is the broader research program?
+        ↓
+Do any of these ideas matter for AI safety?
+```
+
+The intended chain is therefore:
+
+```text
+competitive artifact
+        ↓
+engineering curiosity
+        ↓
+design principles
+        ↓
+general research questions
+        ↓
+AI-safety research
+```
+
+Crucially, the artifact must earn attention **before** the larger interpretation
+is requested.
+
+Do not optimize the addon for rhetorical promotion of the research program.
+Do not plaster AI-safety terminology over the user-facing project. That would
+weaken both the addon and the evidence value of any genuine convergence.
+
+A preferable external reaction would be:
+
+> "I do not know whether the broader AI-safety generalization is right, but this
+> evidence/authority distinction is clearly useful engineering."
+
+That is a stronger result than agreement produced by branding.
+
+### 9.5 Why the apparent topic switch is intentional
+
+Astra will encounter a long sequence of abstract research repositories and then
+a World of Warcraft addon concerned with portrait auras, Frostbolt variants,
+secret values, taint, unit relations, reused Blizzard frames, and pixel-level
+presentation.
+
+The discontinuity is real and intentional.
+
+Do not assume the addon is merely a joke, distraction, or metaphorical
+appendix. It is a separate engineering project that independently encountered
+problems such as:
+
+- incomplete and secret observations;
+- UNKNOWN versus FALSE;
+- relation-dependent access;
+- observation versus identity;
+- identity versus authority to infer;
+- stale state carried through reused objects;
+- scope-limited mutation;
+- provenance of hardcoded classifications;
+- reality contradicting compiled assumptions;
+- preserving diagnostic traces rather than inferring causes from endpoints.
+
+These overlaps emerged under practical client pressure, not because the addon
+was originally designed to instantiate the research program.
+
+That makes the comparison interesting.
+
+It does **not** make the similarities automatically deep.
+
+### 9.6 The cross-domain test
+
+After completing the full research-program digestion, explicitly ask:
+
+1. Which principles appear independently in the abstract research and in addon
+   engineering?
+2. Are they structurally the same, or only linguistically/analogically similar?
+3. Does applying the research-derived formulation actually improve the addon?
+4. Can the improvement be expressed with *less* or equally simple runtime code?
+5. Does the addon expose counterexamples that should weaken or revise the
+   abstract research principle?
+6. Would an engineer with no interest in AI safety still regard the principle
+   as useful?
+
+Treat independent recurrence as **evidence worth investigating**, not proof of a
+universal law.
+
+The strongest outcome would be a principle that:
+
+- survived hostile review in the research corpus;
+- was independently rediscovered under WoW engineering pressure;
+- removes or prevents a concrete addon failure;
+- admits a clean implementation;
+- remains intelligible/useful without requiring belief in the larger theory.
+
+### 9.7 The addon can challenge the research too
+
+The direction of influence is bidirectional.
+
+Do not only ask:
+
+> How can the research improve the addon?
+
+Also ask:
+
+> Which research ideas fail when forced into an adversarial, partially
+> observable, permission-constrained production environment?
+
+WoW: Forever provides unusually concrete pressure:
+
+- APIs can expose information incompletely;
+- secrecy rules can vary by relation;
+- protected values can taint innocent-looking operations;
+- Blizzard can rewrite internal behavior;
+- frame objects are reused;
+- observed behavior can contradict documentation or historical assumptions;
+- performance and combat safety impose hard costs on abstraction.
+
+If a broad research principle cannot survive translation into this environment
+without becoming vague, bloated, or exception-ridden, that should count against
+the principle.
+
+### 9.8 Preserve the asymmetry between rich source and tiny executable consequence
+
+The preferred architecture is:
+
+```text
+research report / observation / provenance / reopening conditions
+        ↓
+offline audit or compiler
+        ↓
+verified narrow claim
+        ↓
+minimal runtime consequence
+```
+
+Example:
+
+```text
+rich evidence that NPC spell 123456 is equivalent to the tracked Frostbolt
+slow for the dimensions relevant to portrait classification
+        ↓
+offline verification
+        ↓
+SLOWS[123456] = true
+```
+
+The shipped addon should not carry the entire argument.
+
+### 9.9 Personal-repository permission
+
+This is a personal repository. It is acceptable for the repository itself to
+look unusual.
+
+The `research/` tree may contain dozens of Astra reports and a substantial
+research-program synthesis even though the shipped addon remains tiny.
+
+Judge cleanliness at the **execution/package boundary**, not by requiring the
+Git repository to resemble a conventional public addon distribution.
+
+The research corpus must remain outside the `.toc` load graph and must impose
+zero runtime cost.
+
+### 9.10 Instruction to Astra after full digestion
+
+When the whole-program parse is complete:
+
+- do not flatter the research program;
+- do not force a synthesis;
+- do not assume the addon validates the research;
+- do not assume similarities are meaningful because terminology can be mapped;
+- identify the strongest genuine overlaps and the strongest disanalogies;
+- propose concrete addon changes only where they improve the Rolex standard;
+- prefer offline tooling/tests/data generation over runtime machinery;
+- allow the addon to falsify or narrow research ideas;
+- preserve the possibility that the correct result is **no runtime integration**.
+
+The desired endpoint is not "AI safety implemented in WoW."
+
+It is:
+
+> Two functionally pristine competitive addons whose engineering can stand on
+> its own, with any connection to the broader research program earned through
+> independently useful design principles.
