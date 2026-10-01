@@ -65,3 +65,20 @@ Build the NPC aura equivalence corpus offline:
 Do not use localized name equality as mechanical proof.
 
 See `ARCHITECTURE.md` for the full model and anti-regression checklist.
+
+## Research-program integration handoff
+
+A separate plan now lives in `RESEARCH_PROGRAM_PLAN.md`.
+
+The wider ~65-repository research program is currently being re-parsed with
+Astra. Preserve each completed deep-parse report under
+`research/deep-parse/<repository>.md` and wait for Astra's full-program
+digestion before choosing which research concepts, if any, are promoted into
+addon engineering.
+
+Hard constraint: **functionally pristine addon first**. Research richness should
+remain offline unless it eliminates a demonstrated failure mode, improves
+correctness, simplifies runtime, or enables a genuinely useful behavior.
+
+Read `RESEARCH_PROGRAM_PLAN.md` before designing the NPC corpus, audit tooling,
+or any deliberate research → addon integration.
