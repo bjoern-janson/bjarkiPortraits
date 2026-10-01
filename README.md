@@ -2,7 +2,7 @@
 
 Portrait aura prioritization for **WoW: Forever**.
 
-Current checkpoint: **v0.1.56-local**.
+Current checkpoint: **v0.1.59-local**.
 
 bjarkiPortraits turns Blizzard unit portraits into one high-signal aura surface for
 player, target, focus, target-of-target, and focus-target. The runtime combines
@@ -36,6 +36,11 @@ identity is relation-gated.
 - `Main.lua` — lifecycle and scoped events.
 - `ARCHITECTURE.md` — detailed engineering model, failure history, NPC-aura plan, and anti-regression rules.
 - `NEXT_CHAT.md` — concise continuation state.
+
+
+- Fear Ward now shares Utility priority 270 with Nature's Grasp.
+- Taunt auras have a dedicated priority-195 lane: above DoTs 190 and below LowDebuff 200.
+- Druid Enrage shares the Innervate priority band at 261 while remaining a separate taxonomy family.
 
 ## Architecture direction
 

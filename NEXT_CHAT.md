@@ -3,7 +3,7 @@
 ## Current repository checkpoint
 
 - Repository: `bjoern-janson/bjarkiPortraits`
-- Current source: **v0.1.56-local**
+- Current source: **v0.1.59-local**
 - Companion repository: `bjoern-janson/bjarkiUI`
 - Companion source at this sync: **v0.2.45-local**
 
@@ -92,3 +92,10 @@ force a synthesis.
 The addon must stand on its own even if an external engineer rejects every
 AI-safety generalization. The strongest integrations are principles that remain
 useful under that condition.
+
+
+## v0.1.57–0.1.59 priority refinements
+
+- Fear Ward -> Utility 270, same band as Nature's Grasp.
+- Taunt -> dedicated harmful lane 195, immediately above DoTs 190.
+- Druid Enrage -> Innervate-level 261; taxonomy remains separate but one actual lane arbitrates equal-priority recency.

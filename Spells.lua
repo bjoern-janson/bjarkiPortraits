@@ -158,6 +158,45 @@ PT.categories = {
         [7922] = true, -- Charge Stun
         [5530] = true, -- Mace Spec Stun
     },
+    debuffs_taunts = {
+        -- Warrior
+        [355] = true,     -- Taunt
+        [1219541] = true, -- Taunt (Forever variant)
+        [1161] = true,    -- Challenging Shout
+        [694] = true,     -- Mocking Blow Rank 1
+        [7400] = true,    -- Mocking Blow Rank 2
+        [7402] = true,    -- Mocking Blow Rank 3
+        [20559] = true,   -- Mocking Blow Rank 4
+        [20560] = true,   -- Mocking Blow Rank 5
+
+        -- Druid
+        [6795] = true,    -- Growl
+        [1218506] = true, -- Growl (Forever variant)
+        [5209] = true,    -- Challenging Roar
+
+        -- Paladin
+        [1219206] = true, -- Hand of Reckoning
+        [20232] = true,   -- Judgement of Fury
+
+        -- Hunter / Warlock taunt-aura variants
+        [409372] = true,  -- Growl
+        [442226] = true,  -- Menace
+        [1219475] = true, -- Menace (Forever variant)
+
+        -- Shaman: Forever melee Earth Shock variants which apply Taunt aura
+        [1219379] = true,
+        [408681] = true,
+        [408683] = true,
+        [408685] = true,
+        [408687] = true,
+        [408688] = true,
+        [408689] = true,
+        [1220744] = true,
+        [1220746] = true,
+        [1220748] = true,
+        [1220749] = true,
+        [1220751] = true,
+    },
     debuffs_dots = {
         -- Mage residual/periodic damage
         [133] = true, [143] = true, [145] = true, [3140] = true,
@@ -317,7 +356,6 @@ PT.categories = {
         [14892] = true,
         [15362] = true,
         [15363] = true,
-        [6346] = true,
         [402004] = true,
         [425294] = true,
         [6229] = true,
@@ -382,6 +420,7 @@ PT.categories = {
         [20765] = true, -- Soulstone Resurrection Rank 5
         [1259691] = true, -- Energized (Read Ley Line, 15 min)
         [1270842] = true, -- Energized (Read Ley Line, 15 sec)
+        [6346] = true, -- Fear Ward
         [16689] = true, -- Nature's Grasp Rank 1
         [16810] = true, -- Nature's Grasp Rank 2
         [16811] = true, -- Nature's Grasp Rank 3
@@ -421,7 +460,6 @@ PT.categories = {
         [1850] = true,
         [9821] = true,
         [417141] = true,
-        [5229] = true, -- Enrage (Druid)
         [1259812] = true, -- Eureka! (Gnome Rogue)
         [1259813] = true, -- Eureka! (Gnome Warrior)
         [1259817] = true, -- Eureka! (Gnome Mage)
@@ -592,6 +630,9 @@ PT.categories = {
     },
     buffs_innervate = {
         [29166] = true, -- Innervate (Druid)
+    },
+    buffs_druid_enrage = {
+        [5229] = true, -- Enrage (Druid)
     },
     buffs_thorns = {
         [467] = true, -- Thorns Rank 1 (Druid)

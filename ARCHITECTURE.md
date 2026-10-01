@@ -1419,3 +1419,10 @@ A change is good when it:
 Or more compactly:
 
 > **Make the strongest presentation claim the evidence actually earns.**
+
+
+## Priority refinements through v0.1.59
+
+- Fear Ward is Utility 270 alongside Nature's Grasp.
+- Taunt is its own harmful exact lane at 195: DoTs 190 < Taunt 195 < LowDebuff 200.
+- Druid Enrage remains a distinct taxonomy family but shares the Innervate 261 runtime lane so equal-priority recency is elected on one surface.

@@ -74,6 +74,7 @@ R.TIERS = {
     semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 2),
 
     exact("DoTs", "HARMFUL", 190, false, C.debuffs_dots),
+    exact("Taunt", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 195, false, C.debuffs_taunts),
     exact("LowDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 200, false, C.debuffs_other),
     exact("Seal", "HELPFUL", 210, true, C.buffs_seals),
     exact("Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 220, false,
@@ -100,7 +101,10 @@ R.TIERS = {
     exact("HonorlessTarget", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 242, true, C.buffs_honorless_target, true),
     exact("Shield", "HELPFUL", 250, true, C.buffs_shield),
     exact("FoodDrink", "HELPFUL", 260, true, C.buffs_fooddrink),
-    exact("Innervate", "HELPFUL", 261, true, C.buffs_innervate),
+    -- Innervate and Druid Enrage intentionally share one actual priority
+    -- surface so equal-priority recency is arbitrated inside one lane.
+    exact("Innervate", "HELPFUL", 261, true,
+        union("buffs_innervate", "buffs_druid_enrage")),
     -- One actual Utility lane. Welcoming Campfire shares this secure slot so
     -- equal-priority effects cannot stack independent cooldown widgets.
     exact("Utility", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 270, true,
