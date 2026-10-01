@@ -82,10 +82,12 @@ correctness, simplifies runtime, or enables a genuinely useful behavior.
 
 Read **all of `RESEARCH_PROGRAM_PLAN.md`**, especially Section 9. That section
 contains the full motivation for the unusual research → WoW connection: the
-"Rolex of WoW addons" quality target, the desired outward chain from competitive
-artifact → engineering curiosity → design principles → broader research →
-AI-safety questions, the reason the abrupt topic switch is intentional, and the
-requirement to reject superficial analogies rather than force a synthesis.
+explicit **Lange & Söhne × Taco Bell** doctrine (haute-horlogerie output quality
+combined with brutally streamlined production/execution), the desired outward
+chain from competitive artifact → engineering curiosity → design principles →
+broader research → AI-safety questions, the reason the abrupt topic switch is
+intentional, and the requirement to reject superficial analogies rather than
+force a synthesis.
 
 The addon must stand on its own even if an external engineer rejects every
 AI-safety generalization. The strongest integrations are principles that remain
