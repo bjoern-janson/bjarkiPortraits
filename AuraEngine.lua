@@ -107,6 +107,8 @@ end
 
 local BOOSTED_REST_SPELL_ID = 1229451
 local RES_SICKNESS_SPELL_ID = 15007
+local RECENTLY_BANDAGED_SPELL_ID = 11196
+local GHOST_SPELL_ID = 8326
 local WELCOMING_CAMPFIRE_SPELL_IDS = {
     [1229739] = true,
     [1289723] = true,
@@ -560,6 +562,60 @@ local function showReadableAura(frame, aura, spellID)
     return true
 end
 
+local function showStaticSpell(frame, spellID)
+    if not frame then return false end
+
+    local texture
+    if C_Spell and C_Spell.GetSpellTexture then
+        local ok, value = pcall(C_Spell.GetSpellTexture, spellID)
+        if ok and R.CanAccess(value) then texture = value end
+    elseif GetSpellTexture then
+        local ok, value = pcall(GetSpellTexture, spellID)
+        if ok and R.CanAccess(value) then texture = value end
+    end
+
+    if not texture then
+        hideReadableExact(frame)
+        return false
+    end
+
+    pcall(frame.icon.SetTexture, frame.icon, texture)
+    if frame.cooldown then
+        if frame.cooldown.Clear then
+            pcall(frame.cooldown.Clear, frame.cooldown)
+        elseif frame.cooldown.SetCooldown then
+            pcall(frame.cooldown.SetCooldown, frame.cooldown, 0, 0)
+        end
+    end
+
+    frame:Show()
+    return true
+end
+
+local function updateGhostState(host, baseEnabled)
+    host._ghostReadable = false
+    host._ghostActive = false
+
+    local frame = host and host.readableGhostFrame
+    if not frame then return end
+    if not baseEnabled then
+        hideReadableExact(frame)
+        return
+    end
+
+    -- Ghost is a directly observable unit state. Prefer that state witness over
+    -- harmful aura identity, which Forever may relation-gate on self/friendly
+    -- units. UNKNOWN remains UNKNOWN; do not infer Ghost from "dead".
+    local isGhost, readable = R.SafeBool(UnitIsGhost, host.unit)
+    host._ghostReadable = readable
+
+    if readable and isGhost then
+        host._ghostActive = showStaticSpell(frame, GHOST_SPELL_ID)
+    else
+        hideReadableExact(frame)
+    end
+end
+
 local function clearReadableSlows(host)
     local frame = host and host.readableSlowsFrame
     if frame then hideReadableExact(frame) end
@@ -827,6 +883,8 @@ function R.DestroyHost(unit)
     if host.readableBaselineFrame then host.readableBaselineFrame:Hide() end
     if host.readableSlowsFrame then host.readableSlowsFrame:Hide() end
     if host.readableResSicknessFrame then host.readableResSicknessFrame:Hide() end
+    if host.readableRecentlyBandagedFrame then host.readableRecentlyBandagedFrame:Hide() end
+    if host.readableGhostFrame then host.readableGhostFrame:Hide() end
     if host.readableWelcomingCampfireFrame then host.readableWelcomingCampfireFrame:Hide() end
     restorePortrait(host)
     if host.ownsLayer and host.layer then host.layer:Hide() end
@@ -968,6 +1026,22 @@ function R.CreateHost(unit)
 
         local resTier = findTierByKey("ResSickness")
         host.readableResSicknessFrame = createReadableExactFrame(host, resTier and resTier.level or 241)
+
+        local recentlyBandagedTier = findTierByKey("RecentlyBandaged")
+        host.readableRecentlyBandagedFrame = createReadableExactFrame(
+            host, recentlyBandagedTier and recentlyBandagedTier.level or 229
+        )
+
+        local immunityTier = findTierByKey("Immunity")
+        host.readableGhostFrame = createReadableExactFrame(
+            host, immunityTier and immunityTier.level or 330
+        )
+        if host.readableGhostFrame and host.readableGhostFrame.SetFrameLevel then
+            -- State-derived Ghost should own the top-priority visual when active.
+            host.readableGhostFrame:SetFrameLevel(
+                (host.smallBaseLevel or 0) + (immunityTier and immunityTier.level or 330) + 2
+            )
+        end
     end
 
     return host
@@ -1078,6 +1152,37 @@ function R.UpdateHost(host, forceContainerRefresh)
         hideReadableExact(host.readableResSicknessFrame)
     end
 
+    -- Recently Bandaged is a self/friendly harmful state and therefore needs
+    -- the same exact-readable escape hatch when harmful spell-ID filtering is
+    -- relation-gated. Keep the exact secure lane whenever Blizzard permits it.
+    local recentlyBandagedTier = findTierByKey("RecentlyBandaged")
+    local recentlyBandagedSecureAllowed = recentlyBandagedTier and R.ExactFilterAllowed(
+        host.unit, false, recentlyBandagedTier.spellIDs, recentlyBandagedTier.allowNeverSecret
+    ) or false
+    host._recentlyBandagedReadable = false
+    host._recentlyBandagedActive = false
+    if not R.SMALL_UNITS[host.unit] and base and recentlyBandagedTier
+        and not recentlyBandagedSecureAllowed
+    then
+        local aura, readable = scanReadableExactAura(
+            host.unit, "HARMFUL", RECENTLY_BANDAGED_SPELL_ID
+        )
+        host._recentlyBandagedReadable = readable
+        if aura then
+            host._recentlyBandagedActive = showReadableAura(
+                host.readableRecentlyBandagedFrame, aura, RECENTLY_BANDAGED_SPELL_ID
+            )
+        else
+            hideReadableExact(host.readableRecentlyBandagedFrame)
+        end
+    elseif host.readableRecentlyBandagedFrame then
+        hideReadableExact(host.readableRecentlyBandagedFrame)
+    end
+
+    -- Ghost is a state-derived Immunity-tier witness. This is required on
+    -- self/friendly units where exact harmful aura identity may be unavailable.
+    updateGhostState(host, base)
+
     -- BaselineClass keeps its own priority-90 recency election.
     updateReadableBaseline(host, base)
 
@@ -1138,8 +1243,12 @@ function R.UpdateHost(host, forceContainerRefresh)
             -- Weakened Soul identity filtering is already legal.
             enabled = enabled and not weakenedSoulSecureAllowed
         elseif tier.exact then
-            if tier.key == "ResSickness" then
+            if tier.key == "ImmunityHarmful" and host._ghostActive then
+                enabled = false
+            elseif tier.key == "ResSickness" then
                 enabled = enabled and resSecureAllowed
+            elseif tier.key == "RecentlyBandaged" then
+                enabled = enabled and recentlyBandagedSecureAllowed
             else
                 -- ExactFilterAllowed owns the complete relation rule. In
                 -- particular, an allowNeverSecret lane may legally cross the

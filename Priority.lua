@@ -33,8 +33,8 @@ end
 -- that lane is decided by AuraInstanceID rather than by sibling-frame accident.
 R.TIERS = {
     exact("Plainsrunning", "HELPFUL", 10, true, union("buffs_plainsrunning", "buffs_elemental_blessing"), true),
-    exact("BoostedRest", "HARMFUL", 20, false, C.debuffs_boosted_rest, true),
-    exact("CampfireNearby", "HELPFUL", 30, true, C.buffs_campfire_nearby),
+    exact("BoostedRest", "HARMFUL", 1, false, C.debuffs_boosted_rest, true),
+    exact("CampfireNearby", "HELPFUL", 0, true, C.buffs_campfire_nearby),
     exact("TravelUtility", "HELPFUL", 50, true, C.buffs_travel_utility),
     exact("RighteousFury", "HELPFUL", 59, true, C.buffs_righteous_fury),
     exact("PaladinAura", "HELPFUL", 60, true, union("buffs_paladin_auras", "buffs_warlock_armor")),
@@ -71,7 +71,7 @@ R.TIERS = {
     -- exact harmful spell-ID filtering can be unavailable. This broad secure
     -- lane means only "some harmful state is present", so it is deliberately
     -- the lowest-priority aura surface. Any known tracked state must outrank it.
-    semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 1),
+    semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 2),
 
     exact("DoTs", "HARMFUL", 190, false, C.debuffs_dots),
     exact("LowDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 200, false, C.debuffs_other),
@@ -88,7 +88,8 @@ R.TIERS = {
         isFromPlayerOrPlayerPet = false,
     }),
     exact("WeakenedSoul", "HARMFUL", 230, false, C.debuffs_weakenedsoul),
-    semantic("WeakenedSoulFallback", "HARMFUL", 229, {
+    exact("RecentlyBandaged", "HARMFUL", 229, false, C.debuffs_recently_bandaged, true),
+    semantic("WeakenedSoulFallback", "HARMFUL", 228, {
         maxDuration = 15.1,
         excludeSpellIDs = C.debuffs_dots,
         excludeDispelTypes = { Magic = true, Curse = true, Disease = true, Poison = true, Bleed = true },
@@ -115,6 +116,7 @@ R.TIERS = {
     -- the dedicated 320 Stun lane owns every stun ID.
     exact("Control", "HARMFUL", 310, false, unionExcept("stuns", "interrupts", "cc")),
     exact("Stun", "HARMFUL", 320, false, C.stuns),
+    exact("ImmunityHarmful", "HARMFUL", 330, false, C.immunities_harmful),
     exact("Immunity", "HELPFUL", 330, true, C.immunities),
 }
 

@@ -1,937 +1,1421 @@
-# Architecture and inferred Forever aura model
+# bjarkiPortraits Architecture
 
-This document describes the current **bjarkiPortraits v0.1.47-clean** source and, more importantly, what the development process appears to have revealed about WoW: Forever's aura/UI model. Live-tested observations are identified separately from implementation changes that still need broader in-client coverage.
-
-There are three different kinds of statement here:
-
-1. **Upstream engine evidence** — behavior visible in Blizzard's AuraContainer UI source.
-2. **Forever live evidence** — behavior observed directly in the client while testing this addon.
-3. **Addon policy** — choices bjarkiPortraits makes on top of those constraints.
-
-Forever may diverge from upstream FrameXML, so live behavior wins whenever the two disagree.
+> Engineering notes for **WoW: Forever**.
+>
+> This document records the architecture, security/taint constraints, priority
+> model, Blizzard implementation details, performance findings, failure modes,
+> and live-test lessons behind bjarkiPortraits.
+>
+> Reference runtime: **0.1.56-local**.
 
 ---
 
-## 1. The core difficulty: aura information has multiple visibility regimes
+## 1. Purpose
 
-A naive portrait addon could do:
+bjarkiPortraits overlays one prioritized aura icon on Blizzard portrait surfaces
+for:
 
-```text
-read every aura
-→ compare spell IDs
-→ choose winner
-→ draw icon
-```
+- `player`
+- `target`
+- `focus`
+- `targettarget`
+- `focustarget`
 
-Forever does not always allow that.
+It also provides optional pet-family portrait foundations for the local PetFrame
+and observed player pets.
 
-Depending on the unit relation and state, addon Lua may receive:
+The addon is deliberately **not** a general aura frame. Its job is to compress
+combat state into one high-signal portrait slot while preserving Blizzard's
+native unit frames, chrome, portrait masks, cooldown machinery, and protected
+state model.
 
-- a fully readable aura object;
-- a readable aura object with some unreadable/secret fields;
-- an inaccessible value;
-- or no exact identity that addon Lua may legally inspect.
+The core design target is:
 
-At the same time, Blizzard's secure `AuraContainer` machinery can still evaluate some properties internally.
+> **Show the highest-priority legally observable state without pretending that
+> inaccessible aura identity is absence.**
 
-So bjarkiPortraits is fundamentally a **two-plane system**:
-
-```text
-READABLE LUA PLANE
-exact spell ID, timing, auraInstanceID when accessible
-
-SECURE AURACONTAINER PLANE
-Blizzard filters/sorts protected aura state internally
-without exposing protected identity to addon Lua
-```
-
-The addon tries to use the strongest justified plane available, and abstains rather than inventing identity when access disappears.
+That sentence drives most of the architecture.
 
 ---
 
-## 2. Unit tokens are relationships, not permanent entities
+## 2. File responsibilities
 
-The addon tracks:
+### `Core.lua`
 
-```text
-player
-target
-focus
-targettarget
-focustarget
-```
+Owns shared runtime primitives:
 
-A token such as `targettarget` is not an object identity. It means “the current target of the current target.” Its referent can change whenever the outer relationship changes.
+- version/runtime table
+- tracked-unit list
+- SavedVariables defaults
+- secret/accessibility helpers
+- player/hostile relation helpers
+- NeverSecret queries
+- exact-filter authorization policy
+- portrait discovery
+- point capture/restore
+- numeric timer formatter
 
-That is why `AuraEngine.lua` does not assume a host remains correct forever. `hostStillCurrent()` resolves the Blizzard portrait/frame again and compares it with the cached host.
+### `Spells.lua`
 
-This matters especially for the small derived frames.
+The spell/aura corpus.
 
-### The ToT/FoT disappearance investigation
+This is the semantic inventory: explicit spell IDs grouped into conceptual
+families such as roots, stuns, slows, class buffs, defensives, food/drink,
+DoTs, immunities, and special Forever mechanics.
 
-During development, ToT and FoT appeared to have been destroyed by addon changes. Eventually we disabled the addon entirely and found the native Blizzard frames were still hidden.
+### `Priority.lua`
 
-The objects existed, alpha was 1, but `IsShown()` was false. The decisive discovery was:
+Turns spell families into **runtime lanes**.
 
-```text
-showTargetOfTarget = 0
-```
+A lane has:
 
-On this Forever build, `/console showTargetOfTarget 1` did not restore it. Out of combat:
+- a stable key
+- Blizzard aura filter string
+- priority level
+- helpful/harmful polarity where exact
+- exact spell-ID set, or
+- semantic candidate filters
+
+This file is the policy boundary between the corpus and the engine.
+
+### `AuraEngine.lua`
+
+Owns portrait hosts, Blizzard `CustomAuraContainer` instances, readable scans,
+secure/readable arbitration, icon placement, cooldown presentation, and
+state-derived witnesses.
+
+### `PetPortraits.lua`
+
+Adds family/class visual foundations for player pets while preserving native
+portrait chrome and ownership semantics.
+
+### `Main.lua`
+
+Owns lifecycle and unit-scoped event wiring.
+
+### `Commands.lua`
+
+Debug/test/toggle surface. `/bp debug` exposes the engine's evidence state and
+is intentionally useful for diagnosing secrecy/relation problems.
+
+---
+
+## 3. The two-plane aura model
+
+Forever cannot be treated like old Classic aura Lua.
+
+An aura may be visible to the player while some of its fields, especially
+identity, are inaccessible to addon Lua or unavailable for a particular
+relation.
+
+bjarkiPortraits therefore uses two evidence planes.
+
+### Plane A: readable Lua evidence
+
+When Blizzard exposes aura fields to Lua, the addon can inspect things such as:
+
+- spell ID
+- duration
+- expiration time
+- dispel type
+- source flags
+- aura instance ID
+- priority metadata
+
+Readable evidence is used for:
+
+- exact readable witnesses
+- recency elections
+- special state interpretation
+- relation-aware fallback suppression
+- diagnostics
+
+### Plane B: Blizzard-managed secure aura selection
+
+`CustomAuraContainer` and candidate filters allow Blizzard to make selection
+choices using information the addon may not itself be allowed to inspect.
+
+The addon supplies:
+
+- filter strings
+- candidate filters
+- exact spell-ID sets where authorized
+- priority lane geometry
+
+Blizzard owns the protected parse and decides what can legally match.
+
+### Why both planes exist
+
+Readable Lua alone misses protected identities.
+
+Secure filtering alone cannot always tell the addon *why* something matched,
+and relation restrictions can make an exact whitelist unavailable on one unit
+while valid on another.
+
+The engine therefore treats the two planes as complementary evidence sources,
+not interchangeable APIs.
+
+---
+
+## 4. UNKNOWN is not false
+
+This is the most important correctness rule in the addon.
+
+If a value is secret, inaccessible, missing because of relation rules, or an API
+cannot safely answer, the result is **UNKNOWN**.
+
+UNKNOWN must not silently become:
+
+- false
+- zero
+- nil-as-absence
+- "not a player"
+- "not hostile"
+- "aura not present"
+
+`Core.lua` centralizes this discipline with:
+
+- `R.IsSecret`
+- `R.CanAccess`
+- `R.SafeBool`
+- `R.SafeString`
+- `R.ReadAuraField`
+
+The rule is especially important before:
+
+- boolean branching
+- arithmetic
+- string matching
+- table indexing
+- identity inference
+
+Historical failures in Forever showed that even an apparently harmless boolean
+check can become a taint boundary when the value is secret.
+
+---
+
+## 5. Relation-aware exact identity
+
+Exact spell-ID filtering is not universally legal.
+
+`R.ExactFilterAllowed(unit, helpful, spellIDs, allowNeverSecret)` encodes the
+current conservative policy.
+
+Broadly:
+
+- helpful auras on self are allowed
+- helpful auras on controlled/group/assistable units can be allowed
+- harmful auras on non-assistable units can be allowed
+- the opposite relation fails closed
+- an all-NeverSecret exact set can bypass the ordinary relation test when the
+  lane explicitly opts into that policy
+
+A subtle bug fixed earlier is worth preserving in documentation:
 
 ```lua
-C_CVar.SetCVar("showTargetOfTarget", "1")
+helpful and assist or not assist
 ```
 
-did restore them.
+is **not** a safe spelling of the policy. If `helpful == true` and
+`assist == false`, Lua falls through to `not assist` and returns true, thereby
+authorizing hostile helpful identity by accident.
 
-That falsified an important earlier hypothesis: the current visual primitive itself was not what had permanently removed the frames.
+The current implementation uses explicit branches.
 
 ---
 
-## 3. The visual primitive that actually works
+## 6. NeverSecret: useful, but the current gate is conservative
 
-The live-tested rendering model is empirical rather than theoretically “clean.”
+`C_Secrets.GetSpellAuraSecrecy(spellID)` can identify a spell as
+`Enum.SecrecyLevel.NeverSecret`.
 
-For each tracked portrait:
+bjarkiPortraits caches only known answers. UNKNOWN is not cached as false.
 
-1. Record the portrait's original parent and anchor points.
-2. Create an addon-owned frame one strata step below the native parent.
-3. Reparent the native portrait into that lower layer while preserving its geometry.
-4. Create the aura anchor in the same lower layer.
-5. Create one secure AuraContainer for each priority lane.
-6. Leave Blizzard's surrounding ring/chrome in its native higher layer.
+The current helper `R.SetIsNeverSecret(spellIDs)` requires **every** member of an
+exact family to be NeverSecret before granting the family-level bypass.
 
-Conceptually:
+### Important architectural finding
 
-```text
-Blizzard ring / chrome / frame
-─────────────────────────────
-highest active aura
-native portrait
-─────────────────────────────
-bjarkiPortraits lower layer
-```
+Blizzard's own `AuraContainerUtil.CanApplyIdentityCandidateFilters` evaluates
+identity permission **per aura**, not necessarily as one binary property of the
+whole whitelist.
 
-That is why the aura looks like it **becomes the portrait**, instead of a square sticker covering the frame.
+That means a mixed family can contain:
 
-On host teardown, the original parent and anchor points are restored.
+- members whose identity is legally matchable,
+- members whose identity is not,
 
-### ToT/FoT tuning
+without requiring the entire slot to be conceptually discarded.
 
-The small frames use the same primitive with only optical corrections:
+The current whole-family gate is therefore intentionally conservative but not
+maximally expressive.
 
-```text
-targettarget icon: +2 px X
-targettarget timer: 0, -1
+Future refactoring should consider a relation authority model such as:
 
-focustarget icon: +1 px X
-focustarget timer: +1, -1
-```
+- COMPLETE
+- PARTIAL
+- NONE
 
-Their countdown font is reduced by two points.
+rather than a single boolean.
 
-Hunter/Warlock pet-foundation artwork now uses the same lower-layer portrait
-surface on targettarget/focustarget as on target/focus. Aura buttons remain
-above that foundation, so an active tracked aura still replaces the pet-family
-art exactly as it does on the large frames.
-
-These values are presentation constants, not aura-selection rules.
+This becomes particularly important before large NPC/mechanical-equivalence ID
+expansion.
 
 ---
 
-## 4. Blizzard explicitly distinguishes identity filtering from metadata filtering
+## 7. Priority lanes are the runtime unit
 
-The most important upstream source is:
+The spell taxonomy and runtime lane topology are separate concepts.
 
-```text
-Blizzard_AuraContainer/Blizzard_AuraContainerUtil.lua
-```
-
-Two functions are especially informative:
-
-- `CanApplyIdentityCandidateFilters()`
-- `DoesAuraPassCandidateFilters()`
-
-The engine treats `includeSpellIDs` / `excludeSpellIDs` as **identity filters**.
-
-The general relation rule is approximately:
-
-```text
-HELPFUL identity
-    normally filterable on self/group/assistable units
-    not normally filterable on hostile/non-assistable units
-
-HARMFUL identity
-    normally filterable on hostile/non-assistable units
-    not normally filterable on friendly/assistable units
-
-NeverSecret spell
-    exempt from that identity restriction
-```
-
-This explains two observations that initially looked like bugs:
-
-```text
-enemy Prowl
-    helpful on hostile unit
-    exact spell-ID path may be unavailable
-
-Chilled on yourself
-    harmful on friendly/self unit
-    exact spell-ID path may be unavailable
-```
-
-### Metadata filters survive where identity filters do not
-
-The same AuraContainer code evaluates other candidate fields outside that identity gate, including things such as:
-
-- dispel type;
-- maximum duration;
-- `isFromPlayerOrPlayerPet`;
-- `isRoleAura`;
-- `isPriorityAura`;
-- `isStealable`;
-- nameplate visibility flags;
-- processed aura type.
-
-That is why a secure signature can continue working in combat even when the addon is no longer allowed to know the exact spell ID.
-
----
-
-## 5. Secret/inaccessible is a third state
-
-The addon treats inaccessible data as neither false nor absent.
-
-`Core.lua` wraps access through:
-
-```text
-IsSecret
-CanAccess
-SafeBool
-SafeString
-ReadAuraField
-```
-
-The policy is:
-
-```text
-inaccessible ≠ false
-inaccessible ≠ nil evidence of absence
-inaccessible ⇒ do not make an exact-identity claim
-```
-
-This is important because a common addon mistake is:
-
-```lua
-if not protectedValue then ...
-```
-
-which silently turns “I am not allowed to know” into “false.”
-
-bjarkiPortraits instead tries to hand control back to a secure lane.
-
----
-
-## 6. Exact lanes and semantic lanes
-
-`Priority.lua` defines 44 lanes.
-
-### Exact lane
-
-An exact lane has an explicit spell set:
-
-```lua
-exact(key, filter, level, helpful, spellIDs, allowNeverSecret)
-```
-
-Its secure candidate filter is essentially:
-
-```lua
-{ includeSpellIDs = spellIDs }
-```
-
-when the relation allows identity filtering.
-
-### Semantic lane
-
-A semantic lane says “match this safe shape,” not “match this exact ID”:
-
-```lua
-semantic(key, filter, level, candidateFilters)
-```
-
-Examples include Blizzard classifications such as Crowd Control / Big Defensive and our Frost Armor / Chilled combat signatures.
-
-This distinction is fundamental:
-
-```text
-exact lane:
-    "this is spell 6136"
-
-semantic lane:
-    "this is a harmful Magic aura <=5.1 sec with these safe flags"
-```
-
-The second is weaker evidence, but it is legal/useful when exact identity is sealed.
-
----
-
-## 7. One conceptual priority should be one candidate pool
-
-Separate AuraContainers at the same frame level do **not** magically create one globally ordered same-tier set.
-
-So when effects really share a priority, bjarkiPortraits unions them into one exact set.
+A conceptual category can overlap another category in `Spells.lua`, but the
+**exact runtime lane sets must not accidentally overlap** unless the overlap is
+intentional and has a single owner.
 
 Example:
 
-```text
-Paladin auras
-Demon Skin
-Demon Armor
-```
+- stuns are conceptually crowd control
+- the runtime `Stun` lane owns stun IDs at priority 320
+- `Control` is built as `interrupts ∪ (cc - stuns)` at priority 310
 
-all share the same `PaladinAura` candidate pool.
+This prevents one exact spell from existing in two sibling secure lanes where
+frame/update order could determine the winner.
 
-Likewise Food/Drink now shares one pool with:
+### Current priority spine
 
-- Cannibalize;
-- Evocation.
+Lower number = lower priority.
 
-Innervate is one level above that pool, and Rapid Regeneration belongs to Utility.
+| Level | Lane | Notes |
+|---:|---|---|
+| 0 | CampfireNearby | absolute bottom |
+| 1 | BoostedRest | harmful camp/rest state |
+| 2 | SmallFriendlyHarmful | broad derived-friendly fallback |
+| 10 | Plainsrunning | includes Elemental Blessing |
+| 50 | TravelUtility | travel effects |
+| 59 | RighteousFury | dedicated baseline |
+| 60 | PaladinAura | Paladin auras + warlock armor family |
+| 70 | BloodPact | dedicated class baseline |
+| 80 | Scrolls | scroll buffs |
+| 90 | BaselineClass | class buffs + Camp Benefits |
+| 110 | WellFed | includes Minor Troll's Blood Elixir family additions |
+| 120 | Thorns | dedicated lane |
+| 130 | ElementalShield | Lightning Shield family |
+| 150 | SelfState | other self states + Frost Armor |
+| 150 | FrostArmorSignature | hostile-NPC semantic fallback |
+| 150 | HostileHelpful | protected hostile-helpful fallback |
+| 160 | Mobility | Ghost Wolf/Cheetah family |
+| 170 | LoneWolf | dedicated |
+| 180 | HuntersMark | below DoTs |
+| 190 | DoTs | damage-over-time family |
+| 200 | LowDebuff | Curse of Weakness/Faerie Fire-style low debuffs |
+| 210 | Seal | Paladin seals |
+| 220 | Slows | explicit slows |
+| 220 | ChilledSignature | semantic Chilled fallback |
+| 228 | WeakenedSoulFallback | broad semantic fallback |
+| 229 | RecentlyBandaged | exact harmful lane |
+| 230 | WeakenedSoul | exact |
+| 238 | PriorityDebuff | Blizzard priority-aura semantic lane |
+| 240 | Forbearance | exact |
+| 241 | ResSickness | exact + readable fallback path |
+| 242 | HonorlessTarget | exact helpful |
+| 250 | Shield | Power Word: Shield family |
+| 260 | FoodDrink | food, drink, first aid/bandage channels |
+| 261 | Innervate | dedicated |
+| 270 | Utility | includes Welcoming Campfire |
+| 279 | Important | Blizzard IMPORTANT semantic lane |
+| 280 | Offensive | offensive cooldowns |
+| 288 | ExternalDef | Blizzard external defensive semantic lane |
+| 289 | BigDef | Blizzard big defensive semantic lane |
+| 290 | Defensive | explicit defensives, including Shatter Curse |
+| 300 | Roots | exact roots |
+| 309 | CrowdControl | Blizzard CC semantic lane |
+| 310 | Control | interrupts + non-stun explicit CC |
+| 320 | Stun | exact stuns |
+| 330 | ImmunityHarmful | Ghost/death harmful family |
+| 330 | Immunity | helpful immunities |
 
-This means same-tier recency is decided **inside one container**, not by an accident of sibling frame ordering.
-
----
-
-## 8. Secure recency and why refreshes are special
-
-Secure exact lanes use:
-
-```text
-AuraContainerSortMethod.AuraInstanceIDOnly
-AuraContainerSortDirection.Reverse
-```
-
-So newer aura instances normally replace older aura instances in the same pool.
-
-But refreshing an existing aura can preserve the same `auraInstanceID`.
-
-That is why BaselineClass has an additional readable arbitration rule.
-
----
-
-## 9. BaselineClass: latest application or refresh wins
-
-For class-maintenance buffs, the desired rule is:
-
-> if two buffs share the tier, whichever was applied or refreshed most recently wins.
-
-When all competing aura timing is readable:
-
-```text
-appliedAt = expirationTime - duration
-```
-
-The largest `appliedAt` wins, with `auraInstanceID` as tie-breaker.
-
-If timing is not readable for every candidate, the addon falls back to newest `auraInstanceID` across the candidate set rather than favoring only the subset whose timing happened to be readable.
-
-If identity itself becomes unavailable, the readable BaselineClass overlay abstains and the secure BaselineClass container remains underneath.
-
-This is what restores behavior like:
-
-```text
-Arcane Intellect active
-→ cast Mark of the Wild
-→ Mark wins
-
-later refresh Arcane Intellect
-→ Intellect wins
-```
+The table documents intent, not a promise that every lane is available on every
+relation. Relation/secrecy authority still governs exact matching.
 
 ---
 
-## 10. Hostile helpful effects
+## 8. Equal-priority effects need one election surface
 
-Helpful auras on hostile units sit on the wrong side of the exact-ID relation boundary.
+If two categories truly share priority, they should generally share one actual
+runtime lane.
 
-### When identity is readable
+Why:
 
-`scanReadableHostileHelpful()` directly scans the helpful stream and accepts only spell IDs that already belong to tracked helpful categories.
+Two sibling containers at the same priority can both produce buttons. Their
+relative outcome can then depend on frame/container update order rather than an
+explicit recency rule.
 
-Winner selection is:
+Examples already consolidated:
 
-1. highest priority;
-2. newest auraInstanceID within that priority.
+- Welcoming Campfire shares the `Utility` lane
+- Elemental Blessing shares `Plainsrunning`
+- Camp Benefits shares `BaselineClass`
 
-That prevents a random visible NPC maintenance buff from winning merely because it exists.
-
-### When hostile-player identity is unreadable
-
-For hostile players, `HostileHelpful` is a broad secure fallback lane. It is enabled only when the readable hostile path is unavailable.
-
-That is less exact than the readable whitelist, but it preserves some visibility through Blizzard's secure machinery.
-
-### Hostile NPCs
-
-NPCs motivated a narrower strategy: identify specific important effects out of combat, then construct secure metadata signatures that still work when combat seals their identity.
+Within one lane, reverse `AuraInstanceID` ordering provides the intended recent
+winner.
 
 ---
 
-## 11. Frost Armor and Chilled: the clearest live experiment
+## 9. Secure container architecture
 
-The Scarlet Initiate test produced unusually clean evidence.
+The current implementation creates one `CustomAuraContainer` per runtime lane
+per host.
 
-### Out of combat
+With ~46 lanes and 5 hosts this is roughly **230 managed containers**.
 
-The target's helpful stream was readable:
+This works and has been carefully stabilized, but it is not the end-state
+architecture.
 
-```text
-Frost Armor spellID = 12544
-```
+### Important Blizzard-source finding
 
-The debuff applied to the player was readable:
+A single `CustomAuraContainer` supports multiple AuraSlots.
 
-```text
-Chilled spellID = 6136
-```
+`ManagedAuraContainer` can deduplicate parse filters **within the same
+container**.
 
-### Secrecy classification
+The current lane set uses only a small number of distinct filter strings,
+roughly these families:
 
-The client reported all tested relevant Frost Armor and Chilled IDs as:
+1. `HELPFUL`
+2. `HARMFUL`
+3. `HELPFUL|INCLUDE_NAME_PLATE_ONLY`
+4. `HARMFUL|INCLUDE_NAME_PLATE_ONLY`
+5. `HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE`
+6. `HELPFUL|EXTERNAL_DEFENSIVE`
+7. `HELPFUL|BIG_DEFENSIVE`
+8. `HARMFUL|CROWD_CONTROL`
 
-```text
-NeverSecret = false
-```
+### Safer future consolidation
 
-So an exact cross-relation spell-ID filter cannot be relied on in combat.
+A conservative next architecture is:
 
-### In combat
+> **one container per filter-string cohort per host**
 
-The readable exact identity disappeared, but secure metadata filtering still worked.
+That would reduce ~230 containers to roughly ~40 while preserving lane identity
+as separate AuraSlots.
 
-#### Chilled signature
+Only after that is proven should a one-container-per-host design be considered.
 
-The working semantic lane is:
+### Why consolidation matters
 
-```text
-HARMFUL
-Magic
-maximum duration <= 5.1 sec
-nameplateShowPersonal = true
-not from player/player pet
-priority = Slows
-```
+Each visible/enabled managed container participates in Blizzard update paths,
+including UNIT_AURA handling/private-aura machinery and internal dirty-phase
+work.
 
-That is now confirmed working in combat.
-
-#### Frost Armor signature
-
-The working semantic lane is:
-
-```text
-HELPFUL
-Magic
-maximum duration <= 1800.1 sec
-not from player/player pet
-priority = SelfState
-```
-
-An earlier signature also required `isStealable=true`. The secure lane failed to match the live NPC cast. Removing only that predicate made Frost Armor work in combat.
-
-That is a useful example of how the addon is being developed: **live falsification removes unsupported predicates**.
-
-### Current v0.1.24 semantic gating
-
-The semantic signatures are no longer left enabled in parallel with stronger evidence.
-
-The current order is:
-
-```text
-Frost Armor
-    readable exact hostile-helpful identity when available
-    → semantic signature only after readable identity disappears
-      AND the hostile unit is positively established as non-player
-
-Chilled
-    secure exact identity when relation permits
-    → readable exact Slows witness when available
-    → semantic signature only when both stronger paths are unavailable
-
-Weakened Soul
-    secure exact identity when relation permits
-    → short-harmful semantic fallback only where exact harmful identity is relation-gated
-```
-
-This does not make the semantic signatures equivalent to exact identity. It narrows when their equivalence classes are allowed to compete, reducing collision surface while preserving the live-tested combat fallback design.
+The addon itself has no OnUpdate loop, but Blizzard's managed containers still
+have lifecycle cost.
 
 ---
 
-## 12. Why semantic signatures can collide
+## 10. Do not churn slot state
 
-Once exact identity is unavailable, the addon is matching an equivalence class.
+Blizzard's `CustomAuraContainerSharedMixin:SetAuraSlotEnabled` can trigger a full
+`UpdateAllAuras()` path even when the desired semantic state appears unchanged
+from the addon's point of view.
 
-For example:
+Therefore future multi-slot consolidation should cache desired slot enabled
+states and call the API only on actual transitions.
 
-```text
-HELPFUL + Magic + <=30 min + non-player source
-```
+By contrast, `AuraContainerSharedMixin:SetEnabled(enabled)` is internally
+guarded against redundant same-state calls.
 
-is not logically equivalent to “Frost Armor 12544.”
+Historical concern that repeated same-state `SetEnabled` itself caused rebuild
+churn was incorrect.
 
-The risk is reduced by combining multiple safe features:
+The expensive operations to watch are:
 
-- helpful vs harmful;
-- dispel type;
-- duration bound;
-- source flags;
-- nameplate flags;
-- priority/context.
-
-But another aura could still share the same tuple.
-
-So the correct interpretation is:
-
-> this hidden aura satisfies the secure signature assigned to this priority lane.
-
-Not:
-
-> the addon secretly recovered the protected spell ID.
-
-If a collision is observed, the right fix is to add another **safe discriminator** or tighten lane context — not to infer protected identity from forbidden data.
+- forced `UpdateAllAuras()`
+- unnecessary slot toggles
+- needless managed-container count
 
 ---
 
-## 13. Readable exception surfaces
+## 11. Readable scans: current shape and future snapshot design
 
-Some policies cannot be expressed by a single secure exact container, so the addon creates small readable overlays when the evidence is directly accessible.
+Several special mechanisms perform readable aura walks with different filters.
 
-Current examples include:
+Examples include:
 
-- BaselineClass refresh-aware recency;
-- friendly/self Slows exact fallback;
-- Resurrection Sickness;
-- Welcoming Campfire;
-- tracked hostile helpful selection.
+- BaselineClass recency
+- Utility/Welcoming Campfire arbitration
+- hostile helpful fallback
+- Slows
+- Boosted Rest
+- Resurrection Sickness
+- readable exact witnesses
 
-These readable overlays sit just above their corresponding secure priority level. Higher-priority lanes still outrank them.
+This is correct but creates repeated walks over overlapping aura surfaces.
 
-The secure layer is kept underneath wherever possible, so loss of readable access does not necessarily mean loss of display.
+### Future optimization
 
----
+For each host update, snapshot each required filter exactly once, then derive all
+readable mechanisms from those snapshots.
 
-## 14. Countdown presentation
+However, do **not** merge filter domains just because they sound similar.
 
-Each aura button owns a Blizzard `CooldownFrameTemplate`.
+In particular:
 
-Current formatting:
+- `HARMFUL`
+- `HARMFUL|INCLUDE_NAME_PLATE_ONLY`
 
-```text
-under 10 sec: one decimal
-10–45 sec: integer
-over 45 sec: numeric text hidden
-```
+must remain distinct until equivalence is proven for the relevant Forever APIs.
 
-Bling and edge are disabled. Swipe is off by default.
-
-The small ToT/FoT timer font is reduced by two points and optically offset separately.
-
----
-
-## 15. Pet portrait foundations are deliberately separate
-
-`PetPortraits.lua` is presentation-only.
-
-It does not own:
-
-- AuraContainer truth;
-- priority;
-- secret-value policy.
-
-It only provides underlying pet artwork on:
-
-```text
-PetFrame
-target
-focus
-```
-
-It intentionally does not operate on ToT/FoT.
-
-Hunter pets are recognized from readable creature-family information and use family artwork where available. Warlock demons map to summon-spell artwork.
-
-The local Hunter fallback can use `GetPetActionInfo()`; the current implementation uses the actual return positions `name, texture, isToken, ...`, which fixed an earlier pet-texture bug.
+A snapshot refactor must preserve completeness/UNKNOWN semantics, not merely
+reduce loops.
 
 ---
 
-## 16. Event and combat lifecycle
+## 12. Host lifecycle and portrait layering
 
-`Main.lua` uses targeted events:
+The addon targets native Blizzard portraits rather than building replacement
+unit frames.
 
-```text
-PLAYER_LOGIN / PLAYER_ENTERING_WORLD
-    build hosts
+For a normal host, the construction pattern is:
 
-PLAYER_TARGET_CHANGED
-    refresh target + targettarget
+1. discover the native portrait/mask/frame
+2. capture the portrait's original parent and points
+3. create an addon layer at a safe strata/frame-level below native chrome
+4. reparent the portrait while preserving geometry
+5. create the aura anchor/button surfaces in that layer
+6. leave the native ring/chrome above the addon layer
+7. restore original parent/points during teardown
 
-PLAYER_FOCUS_CHANGED
-    refresh focus + focustarget
+This architecture exists because earlier direct layout approaches caused
+`UntrustedLayoutScriptExecution` and other protected-layout failures.
 
-UNIT_TARGET
-    unit-scoped to player / target / focus
-    refresh only the affected derived token
+### Non-negotiable lesson
 
-UNIT_AURA / UNIT_FACTION / UNIT_FLAGS / UNIT_CONNECTION
-    unit-scoped to player / target / focus / targettarget / focustarget
-    refresh only the matching tracked unit
+Do not casually replace this with broad `SetAllPoints`/reanchor behavior on
+protected native frames.
 
-UNIT_PET
-    unit-scoped to player
-
-PET_BAR_UPDATE
-    refresh local pet artwork
-```
-
-New secure hosts are not built during combat lockdown. Structural teardown/reparent restoration is also deferred out of combat. If reconciliation is required, the queued build/rebuild runs on `PLAYER_REGEN_ENABLED`.
-
-Enabled Blizzard AuraContainers process `UNIT_AURA` internally. bjarkiPortraits therefore does not force a second full `UpdateAllAuras()` pass for ordinary aura events. Explicit full refreshes remain for target/focus/derived-token and relation lifecycle changes where the unit token's referent or identity-filter authorization can change.
-
-As of v0.1.24, the addon also uses `RegisterUnitEvent` for its high-frequency unit-state paths. This keeps unrelated nearby-unit traffic out of addon Lua. A dense Booty Bay live check after this change did not reproduce the previously reported lag; that is supporting evidence, not yet an isolated performance benchmark.
-
-Existing Blizzard AuraContainers can still process their secure aura state while combat is active.
+The visual result may look trivial while the protected-layout dependency is not.
 
 ---
 
-## 17. Debugging: rendering vs admission
+## 13. Combat-time structural mutation
 
-Two commands intentionally answer different questions.
+Structural host teardown/rebuild is avoided during combat.
 
-### `/bp test`
+If a rebuild is needed while protected state is active, queue it for
+`PLAYER_REGEN_ENABLED`.
 
-Tests the visual surface:
+Presentation refresh is preferred over structural reconstruction whenever
+possible.
 
-> Can the addon resolve the portrait and draw an icon/timer there?
-
-It says nothing about whether a real aura is admitted correctly.
-
-### `/bp debug`
-
-Tests the policy state:
-
-- host exists;
-- portrait exists;
-- number of containers;
-- reparented state;
-- hostile-unit/player relation;
-- exact helpful authority;
-- hostile readability and winner;
-- BaselineClass readability/winner/timing;
-- Slows readability/winner;
-- Resurrection Sickness readable state;
-- Welcoming Campfire readable state.
-
-This separation was crucial: several bugs occurred where `/bp test` worked perfectly while real aura admission was wrong.
+This is an anti-taint rule, not just an optimization.
 
 ---
 
-## 18. Current priority spine
+## 14. Timer presentation
 
-Higher numbers visually outrank lower numbers.
+The numeric timer cutoff is currently **60 seconds**.
 
-```text
-1    Small friendly harmful fallback
-10   Plainsrunning
-20   Boosted Rest
-30   Campfire Nearby
-50   Travel Utility
-59   Righteous Fury
-60   Paladin Auras + Demon Skin/Armor + Stoneskin + Healing Stream
-70   Blood Pact
-80   Scrolls
-90   BaselineClass + Camp Benefits
-110  Well Fed
-120  Thorns
-130  Elemental Shields
-150  Self State + Frost Armor semantic band
-160  Mobility
-170  Lone Wolf
-180  Hunter's Mark
-190  DoTs
-200  low debuffs
-210  Seals
-220  Slows + Chilled semantic band
-230  Weakened Soul
-238  generic priority debuff
-240  Forbearance
-241  Resurrection Sickness
-242  Honorless Target
-250  Power Word: Shield
-260  Food / Drink / Cannibalize / Evocation
-261  Innervate
-270  Utility / Rapid Regeneration / Welcoming Campfire
-279  Blizzard Important
-280  Offensive
-288  External Defensive
-289  Big Defensive
-290  Defensive
-300  Roots
-309  Blizzard Crowd Control
-310  explicit Control
-320  Stuns
-330  Immunities
-```
+With decimals enabled:
 
-There are 44 implementation lanes because some conceptual priorities have both exact and semantic mechanisms.
+- below 10s: one decimal place
+- 10s through 60s: whole seconds
+- above 60s: no numeric text
+
+With decimals disabled:
+
+- 0 through 60s: whole seconds
+- above 60s: no numeric text
+
+The cooldown surface can still exist for longer effects; the numeric text is the
+part intentionally suppressed.
+
+The timer cutoff has been tested at both 45s and 60s. The current conclusion is
+that 60s retains useful medium-duration combat information without turning long
+buffs into persistent text clutter.
+
+ToT/ToF use smaller timer typography than the large player/target/focus
+portraits.
 
 ---
 
-## 19. What the addon deliberately does not assume
+## 15. Readable exact witnesses
 
-The current discipline is:
+Some states deserve a readable exact path in addition to secure filtering.
 
-```text
-inaccessible aura      ≠ absent aura
-secret boolean         ≠ false
-same icon/effect       ≠ same spell ID
-same frame level       ≠ globally ordered sibling containers
-safe signature         ≠ exact identity
-upstream FrameXML      ≠ guaranteed Forever behavior
-```
+This is useful when:
 
-And one more lesson from the ToT/FoT saga:
+- the secure lane is relation-gated
+- exact identity is readable in the current context
+- a semantic fallback would otherwise be too broad
 
-```text
-correlation with an addon change ≠ proof the addon caused the native frame state
-```
+The preferred evidence ladder is:
 
-The CVar incident mattered because we had repeatedly redesigned working portrait geometry around a false causal hypothesis.
+> secure exact → readable exact witness → semantic fallback
+
+Slows are closer to this ideal than some older mechanisms.
+
+Weakened Soul remains an example where the semantic fallback is necessarily
+weaker and should be treated cautiously.
 
 ---
 
-## 20. The architecture in one ladder
+## 16. Semantic fallbacks are bounded claims
 
-The current system can be summarized as:
+A semantic lane does not mean "this is definitely spell X."
+
+It means the observed safe metadata satisfies a deliberately bounded signature.
+
+Examples:
+
+### Frost Armor signature
+
+For hostile NPCs where spell identity disappears, a 30-minute Magic,
+spellstealable helpful aura can serve as a combat-safe presentation fallback.
+
+### Chilled signature
+
+The Frost Armor proc path can hide the exact `Chilled` identity while exposing a
+short harmful Magic aura with the expected nameplate/source metadata.
+
+### SmallFriendlyHarmful
+
+On ToT/FoT, exact harmful identity may be unavailable for friendly derived
+units. A broad "some harmful state exists" lane is therefore permitted only at
+very low priority so every known tracked state outranks it.
+
+### Rule
+
+Semantic metadata is evidence for a **presentation class**, not permission to
+invent a spell identity.
+
+---
+
+## 17. Hostile helpful auras and opposite faction visibility
+
+Helpful aura identity on hostile/opposite-faction units is one of the most
+important secrecy/relation edge cases.
+
+When readable identity is available, bjarkiPortraits prefers explicit tracked
+spell families.
+
+When identities become sealed, `HostileHelpful` provides a deliberately broad
+secure surface.
+
+This mechanism must not be interpreted as proving the underlying buff identity.
+
+The long-running "opposite faction aura visibility" problem is therefore partly
+an information-authority problem, not merely a missing spell-ID list.
+
+---
+
+## 18. Utility/Welcoming Campfire arbitration
+
+Welcoming Campfire originally behaved badly when treated as an independent
+special case at the same priority as Utility.
+
+The current design treats Utility as one actual lane and computes a readable
+Utility winner using the same reverse AuraInstanceID recency principle.
+
+A readable direct Welcoming Campfire witness suppresses secure Utility only when
+Campfire is actually the readable Utility winner.
+
+This prevents a readable lower-recency special aura from incorrectly masking a
+newer utility effect.
+
+General lesson:
+
+> A special-case witness that shares a priority must participate in the whole
+> lane's election, not merely prove its own presence.
+
+---
+
+## 19. BaselineClass recency
+
+Baseline class buffs and Camp Benefits share a lane.
+
+Readable arbitration tracks the latest eligible aura rather than depending on
+which sibling mechanism refreshed last.
+
+The engine records diagnostics such as:
+
+- winner spell ID
+- timing readability
+- timing source
+- applied-at estimate
+
+This exists because "last applied should win" is a semantic requirement, not a
+frame-order preference.
+
+---
+
+## 20. Recently Bandaged
+
+`Recently Bandaged` is a harmful state and belongs just below Weakened Soul.
+
+Current priorities:
+
+- WeakenedSoulFallback: 228
+- RecentlyBandaged: 229
+- WeakenedSoul: 230
+
+The exact aura is spell `11196`.
+
+A readable exact path exists because self/friendly harmful exact secure identity
+can be relation-gated.
+
+Bandage/First Aid **channels** belong separately in FoodDrink at priority 260.
+The channel and `Recently Bandaged` debuff are intentionally distinct states.
+
+---
+
+## 21. Ghost/death state
+
+Ghost exposed a particularly clean architectural lesson.
+
+Simply adding Ghost spell IDs to a harmful exact Immunity lane did not make the
+player portrait show Ghost.
+
+Why:
+
+- Ghost is harmful
+- the player is assistable/self
+- exact harmful identity can be denied by relation policy
+
+So the exact lane could be valid data yet unavailable on the relation where it
+mattered most.
+
+### Current solution
+
+Use `UnitIsGhost(unit)` as the authoritative readable state witness.
+
+When true:
+
+- render the canonical Ghost icon
+- place it at Immunity priority 330
+- do not fabricate a duration/timer
+
+Lifecycle refreshes include:
+
+- `PLAYER_DEAD`
+- `PLAYER_ALIVE`
+- `PLAYER_UNGHOST`
+
+Known Ghost-family IDs remain in the harmful Immunity corpus as backup where
+exact identity is legal.
+
+General lesson:
+
+> If the game exposes a direct state predicate that exactly answers the semantic
+> question, prefer it over forcing a relation-gated aura identity path.
+
+---
+
+## 22. State witness vs aura witness
+
+The Ghost fix suggests a useful taxonomy for future mechanisms.
+
+### Aura witness
+
+Evidence comes from the aura system:
+
+- exact readable aura
+- secure exact slot
+- semantic aura metadata
+
+### State witness
+
+Evidence comes from an independent unit/game state API:
+
+- `UnitIsGhost`
+- potentially other direct state predicates where Blizzard exposes them
+
+A state witness should not be rewritten as a fake aura scan merely to fit one
+engine abstraction.
+
+The presentation layer can accept both, provided priority and teardown semantics
+remain explicit.
+
+---
+
+## 23. NPC aura coverage: the expansion plan
+
+Hand-adding one NPC spell ID at a time is not a scalable architecture.
+
+The intended long-term approach is an **offline mechanical-equivalence corpus**.
+
+For each canonical tracked effect:
+
+1. start from the player/canonical spell family
+2. discover candidate Forever spell IDs
+3. verify which spell/aura is actually applied
+4. compare meaningful mechanics, not name alone
+5. alias verified equivalents into the existing conceptual family
+6. keep runtime lookup as ordinary exact set membership
+
+Examples of families suitable for this approach:
+
+- Faerie Fire
+- Frostbolt/Chilled slow families
+- Entangling Roots
+- stuns
+- crowd control
+- shields
+- DoTs
+- defensives
+- utility buffs
+
+### Why names are insufficient
+
+NPC abilities frequently reuse names while differing in:
+
+- applied aura ID
+- duration
+- dispel type
+- mechanic
+- magnitude
+- secondary effect
+
+The cast spell can also differ from the aura spell it applies.
+
+Therefore:
+
+> **same name ≠ same mechanical family**
+
+### Runtime performance goal
+
+The expansion should happen offline or during corpus construction, not by
+searching the spell database during combat.
+
+A large verified hash/set of spell IDs is cheap. Runtime discovery is not the
+plan.
+
+---
+
+## 24. NPC expansion and secrecy interact
+
+Adding more exact IDs does not automatically make more relations observable.
+
+A family with 100 mechanically equivalent IDs still faces:
+
+- NeverSecret rules
+- helpful/harmful relation authority
+- readable identity availability
+- secure candidate-filter legality
+
+This is why the future PARTIAL/COMPLETE/NONE authority model matters before
+mechanical-equivalence expansion becomes large.
+
+The corpus answers:
+
+> "Which IDs mean this mechanic?"
+
+The evidence engine separately answers:
+
+> "Which of those identities may be observed here?"
+
+Do not conflate the two.
+
+---
+
+## 25. Pet portrait foundations
+
+Pet artwork is presentation-only and must not imply identity without evidence.
+
+### Local pet
+
+`UnitIsUnit(unit, "pet")` is positive ownership evidence.
+
+The local pet foundation is drawn:
+
+- above the native BACKGROUND portrait
+- below Blizzard's BORDER chrome
+- with the native mask when available
+
+### Other players' pets
+
+Prefer `UnitIsOtherPlayersPet` when the client exposes it.
+
+Only fall back to `UnitPlayerControlled` on clients where the positive pet API
+is absent.
+
+Why:
+
+A merely player-controlled unit can be charmed or mind-controlled. That is not
+enough evidence for pet-family artwork.
+
+### Family classification
+
+Pet family is resolved only when readable. Hunter and Warlock families map to
+appropriate foundation spell/art textures.
+
+Secret/inaccessible texture results are rejected rather than coerced.
+
+---
+
+## 26. Pet portrait update scope
+
+Observed pet portrait classification is **not** recomputed on every UNIT_AURA.
+
+It is updated on state/relation/rebinding events that can actually change the
+referent.
+
+This matters in dense areas because aura traffic is much noisier than pet
+identity changes.
+
+General rule:
+
+> Do not attach identity classification to an unrelated high-frequency event
+> merely because that event is convenient.
+
+---
+
+## 27. Unit/frame event scoping
+
+`Main.lua` uses narrow registrations where possible.
+
+The tracked portrait unit set is fixed and small.
+
+For unit-state events such as:
+
+- `UNIT_AURA`
+- `UNIT_FACTION`
+- `UNIT_FLAGS`
+- `UNIT_CONNECTION`
+
+registration is scoped to the units the addon actually owns.
+
+`UNIT_TARGET` is registered only for:
+
+- `target`
+- `focus`
+
+because:
+
+- `PLAYER_TARGET_CHANGED` owns the outer target transition
+- `PLAYER_FOCUS_CHANGED` owns the outer focus transition
+- only target/focus changing *their own* target can rebind ToT/FoT
+
+`UNIT_PET` is registered only for `player`.
+
+This avoids feeding dense-hub unrelated traffic into addon Lua.
+
+---
+
+## 28. Unit existence is evidence too
+
+Hosts for ToT/FoT can exist as frame objects even when the corresponding unit
+does not currently exist.
+
+The engine therefore distinguishes:
+
+- host object exists
+- unit exists
+- unit existence was readable
+
+A prebuilt frame is not evidence that an aura-processing subject exists.
+
+For nonexistent target/focus/derived units, the aura-processing base is false
+until `UnitExists` is readable/true.
+
+---
+
+## 29. Player identity fallback
+
+`UnitIsPlayer` can itself become protected in some contexts.
+
+When that happens, a readable GUID type can supply positive evidence:
+
+- `Player-...` => player
+- readable non-player GUID => not player
+
+But an inaccessible/missing GUID remains UNKNOWN.
+
+`UnitPlayerControlled` is **not** used as a player-identity fallback because pets
+and other controlled creatures satisfy it without being players.
+
+This is an example of avoiding an attractive but semantically weaker proxy.
+
+---
+
+## 30. Cooldown/timer rendering
+
+The addon uses Blizzard cooldown primitives rather than maintaining a custom
+countdown loop.
+
+No addon-owned `OnUpdate` is used for timer text.
+
+Earlier attempts to hook protected cooldown scripts such as `OnShow` caused
+blocked-action behavior. The current architecture avoids that pattern.
+
+The portrait timer system is intentionally declarative:
+
+- Blizzard owns cooldown progression
+- bjarkiPortraits supplies formatter/presentation rules
+
+---
+
+## 31. Taint history that must not be repeated
+
+Several failures from the earlier PortraitTimersForever iterations define the
+current boundaries.
+
+### `SetAllPoints` / protected anchoring
+
+Produced `UntrustedLayoutScriptExecution` in native frame relationships.
+
+Current response: controlled portrait reparenting/layering with point capture
+and restoration.
+
+### Cooldown `HookScript("OnShow")`
+
+Blocked in protected paths.
+
+Current response: configure cooldown presentation without attaching unsafe
+script hooks.
+
+### Secret TextStatusBar numbers
+
+Arithmetic/inspection of protected values produced strong taint.
+
+Current response: validate accessibility before any branch or arithmetic.
+
+### `unitAuraUpdateInfo.isFullUpdate`
+
+A secret boolean caused tainted boolean evaluation.
+
+Current invariant:
+
+> Never read `unitAuraUpdateInfo.isFullUpdate` in addon Lua.
+
+### Nil-call regression
+
+Earlier code paths assumed optional client functions existed.
+
+Current style prefers explicit capability checks and `pcall` around version-
+sensitive APIs.
+
+---
+
+## 32. Test mode and debug mode
+
+`/bp test` is a visual construction test, not proof that all live aura authority
+paths are correct.
+
+`/bp debug` is the semantic diagnostic surface.
+
+Useful fields include:
+
+- host existence
+- unit existence/readability
+- container count
+- reparenting status
+- hostile/player relation state
+- exact helpful/harmful authority
+- small-friendly fallback state
+- hostile-helpful completeness
+- baseline winner/timing
+- slows witness
+- Resurrection Sickness witness
+- Utility winner
+- Welcoming Campfire witness
+
+When a screenshot says "the icon isn't showing," the right diagnostic question
+is often not "is the spell ID in Spells.lua?" but:
+
+> **Which evidence plane had authority for this relation, and what did it know?**
+
+---
+
+## 33. Current visual invariants
+
+The portrait presentation has been tuned at pixel scale. Preserve these unless a
+new live comparison justifies changing them.
+
+- player/target/focus portrait aura treatment is accepted
+- ToT aura icon: approximately +2px X relative adjustment
+- ToT timer: approximately `(0, -1)` relative adjustment
+- FoT aura icon: approximately +1px X
+- FoT timer: approximately `(+1, -1)`
+- ToT/FoT timer font is 2 points smaller
+- icon crop/zoom has been tuned away from the original over-crop
+- incoming-number positioning belongs to bjarkiUI/other presentation work, not
+  this addon
+- focus castbar centering experiments were reverted and are not part of this
+  architecture
+
+Do not "clean up" these offsets merely because they are asymmetric. They are
+optical corrections to asymmetric Blizzard art.
+
+---
+
+## 34. Priority changes should be data changes first
+
+If a user asks:
+
+> "put spell X in tier Y"
+
+prefer a `Spells.lua`/`Priority.lua` data edit over adding a procedural branch to
+`AuraEngine.lua`.
+
+Procedural logic is warranted only when the evidence mechanism itself differs,
+for example:
+
+- Ghost state witness
+- hostile identity protection
+- readable recency election
+- semantic fallback metadata
+
+The engine should not become a pile of spell-name exceptions.
+
+---
+
+## 35. Corpus hygiene
+
+Spell IDs are the primary exact identity key.
+
+Comments should record human-readable names and important provenance, but names
+are not runtime authority.
+
+Before adding a candidate ID:
+
+- verify whether it is the cast spell or applied aura
+- verify polarity
+- verify duration/mechanic where relevant
+- check whether it duplicates another exact runtime lane
+- check relation/NeverSecret implications
+
+For bulk NPC expansion, automate these checks offline where possible.
+
+---
+
+## 36. Semantic-lane exclusions
+
+Semantic Blizzard lanes such as Important/BigDef/ExternalDef/CC can overlap
+explicit exact families unless exclusions are supplied.
+
+`R.CandidateFilters` excludes known explicit spell IDs from broad semantic
+surfaces where appropriate.
+
+This prevents a known spell from being represented twice by:
+
+- its exact lane, and
+- a generic Blizzard metadata lane.
+
+Any new exact family should be reviewed against these exclusion sets.
+
+---
+
+## 37. Exact-lane overlap audit
+
+A useful static audit is:
+
+1. enumerate every exact runtime lane
+2. map each spell ID to all owning lanes
+3. fail on unintended multi-owner IDs
+
+This caught the conceptual CC/stun overlap before it could remain a runtime
+ambiguity.
+
+The audit should remain part of major taxonomy changes, especially before NPC
+corpus expansion.
+
+---
+
+## 38. Readable timing is its own evidence dimension
+
+Knowing *which* aura is present is not identical to knowing *when* it was
+applied.
+
+For recency arbitration, the engine tracks whether timing was readable and the
+source used to derive it.
+
+Do not silently manufacture ordering from table traversal when the semantic
+requirement is "latest applied wins."
+
+When exact application timing is unavailable, prefer Blizzard's own stable
+AuraInstanceID ordering where that ordering is the lane contract.
+
+---
+
+## 39. 60-second timer cutoff and aura priority are independent
+
+Priority decides **which aura wins**.
+
+The timer formatter decides **how much numeric duration text is shown**.
+
+A high-priority 30-minute immunity/buff can still win the portrait while showing
+no numeric timer after the 60-second display threshold.
+
+Do not lower an aura's priority merely to reduce duration-text clutter.
+
+---
+
+## 40. Architecture for future NPC coverage
+
+The intended flow is:
 
 ```text
-1. exact readable evidence, when accessible
+Forever spell corpus
         ↓
-2. secure exact AuraContainer, when relation permits identity filtering
+offline candidate discovery
         ↓
-3. secure semantic signature, when identity is sealed but safe metadata remains
+mechanical equivalence verification
         ↓
-4. abstain rather than invent protected identity
+canonical conceptual families in Spells.lua
+        ↓
+Priority.lua lane construction
+        ↓
+relation/secrecy authority decision
+        ↓
+secure/readable/state witness arbitration
+        ↓
+one portrait winner
 ```
 
-That hybrid design is not accidental complexity. It is a response to the game exposing **different epistemic surfaces for the same aura depending on relation and combat state**.
+The key separation is:
 
-The strongest parts of the addon are where each transition in that ladder is explicit.
+```text
+mechanical equivalence ≠ observability authority
+```
 
-The main current weakness is that NPC semantic signatures still describe equivalence classes rather than exact identity. v0.1.24 narrows Frost Armor admission to hostile units positively established as non-player, but collision testing still matters. Further hardening should preserve the now-confirmed Frost Armor and Chilled combat behavior.
+A correct corpus does not authorize an observation, and an observable aura does
+not prove it belongs to a canonical mechanical family.
 
 ---
 
-## Upstream source references used for the model
+## 41. What not to do for NPC auras
 
-The key upstream UI-source mirror is `Gethe/wow-ui-source`, especially:
+Do not:
 
-- `Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerUtil.lua`
-  - `CanApplyIdentityCandidateFilters`
-  - `DoesAuraPassCandidateFilters`
-  - AuraContainer sort comparators
-- `Interface/AddOns/Blizzard_AuraContainer/Blizzard_CustomAuraContainer.lua`
-  - candidate-filter validation and secure custom-container plumbing
+- enumerate every NPC spell in runtime Lua by scanning the spell database
+- match solely on localized spell name
+- assume cast spell ID equals aura ID
+- add a procedural `if spellName == ...` branch per screenshot
+- broaden semantic filters until the desired icon happens to appear
+- collapse a protected identity to "not present"
 
-Those sources explain the general mechanism. The actual Forever client and live tests remain authoritative for this project.
+These approaches either bloat runtime work or weaken epistemic correctness.
 
+---
 
-## 21. Post-v0.1.17 deltas
+## 42. Recommended NPC corpus artifact
 
-The core secrecy/secure-container model above remains the architecture. Later live-tested changes add:
+A future generated corpus can be auditable data rather than handwritten code.
 
-- a lower-layer local PetFrame family foundation so Blizzard chrome remains on top;
-- a secure generic harmful lane for readably assistable ToT/FoT where exact harmful identity is relation-gated;
-- direct `GetPlayerAuraBySpellID(1229739)` lookup for Welcoming Campfire before indexed scanning;
-- Elemental Blessing in the same actual priority-10 pool as Plainsrunning;
-- Walk on Air in Utility;
-- v0.1.23 fallback repair for Welcoming Campfire, semantic-lane gating, canonical priority data, combat-safe structural teardown, and event-path refresh discipline;
-- v0.1.24 tri-state player identity, repaired ToT/FoT generic harmful admission, explicit Lua-visible-stream completeness, and unit-scoped high-frequency events;
-- v0.1.25 moves Stoneskin and Healing Stream into the persistent party-aura priority band;
-- v0.1.26 adds Righteous Fury as an exact helpful lane immediately below that band.
+For each member, record fields such as:
 
-These are incremental policy/data/lifecycle changes, not a replacement of the two-plane readable/secure model.
+- canonical family
+- spell/aura ID
+- source/provenance
+- polarity
+- duration class
+- dispel type
+- mechanic flags
+- verification status
+- NeverSecret result if known
+- notes on player/NPC equivalence
 
+The generated Lua sets can then be deterministic outputs of that corpus.
 
-## 22. v0.1.27 epistemic hardening
+This keeps `Spells.lua` reviewable even when coverage becomes much larger.
 
-v0.1.27 tightens three evidence boundaries without changing the live selection policy:
+---
 
-- a newly selected readable hostile aura must establish its own texture or the readable overlay is hidden;
-- exhausting a bounded 80-entry readable scan is not treated as observing the end of the aura stream;
-- a failed or inaccessible NeverSecret lookup fails closed for that check but is not cached as a durable negative fact.
+## 43. Architecture debt explicitly accepted today
 
-The unresolved hostile-visible completeness assumption is intentionally unchanged. A terminated, nonempty Lua-visible hostile stream whose exposed identities are all readable can still suppress broader secure fallbacks. That remains an empirical policy assumption to test adversarially rather than silently redesign.
+The current runtime is stable, but these are known areas for later improvement:
 
+1. ~46 containers per host instead of filter-cohort containers
+2. repeated readable aura walks instead of per-filter snapshots
+3. whole-family NeverSecret gate instead of per-member/partial authority
+4. some readable-special spell IDs duplicated as local constants rather than
+   derived from the canonical corpus
+5. Weakened Soul fallback is weaker than the ideal evidence ladder
+6. NPC mechanical-equivalence coverage is still manually sparse
 
-## 23. BaselineClass recency witness
+These are **known debt**, not invitations to refactor all at once.
 
-v0.1.29 removes an unsupported implication from BaselineClass arbitration:
+The safe order is incremental and live-tested.
+
+---
+
+## 44. Refactor order if performance becomes a problem
+
+Preferred order:
+
+1. preserve behavior and add measurement/debug visibility
+2. consolidate containers by identical filter string
+3. cache AuraSlot enable state
+4. snapshot readable filters once per host update
+5. derive special readable sets from `Spells.lua`
+6. refine exact authority to COMPLETE/PARTIAL/NONE
+7. only then consider deeper container unification
+
+Do not combine architecture cleanup with major spell-corpus expansion in the same
+untested step.
+
+---
+
+## 45. Anti-regression checklist: security
+
+Before shipping an engine change, verify:
+
+- [ ] no secret value is used in a boolean test before accessibility validation
+- [ ] no secret number enters arithmetic
+- [ ] UNKNOWN is not cached as a permanent false secrecy result
+- [ ] hostile helpful exact identity is not accidentally authorized
+- [ ] friendly/self harmful exact identity is not assumed available
+- [ ] `unitAuraUpdateInfo.isFullUpdate` is not read
+- [ ] no combat-time protected structural rebuild was introduced
+
+---
+
+## 46. Anti-regression checklist: runtime topology
+
+- [ ] exact runtime lane sets are disjoint unless explicitly intended
+- [ ] equal-priority conceptual categories that need recency share one election
+      surface
+- [ ] broad semantic lanes exclude explicit tracked IDs where required
+- [ ] ToT/FoT nonexistent units do not process auras merely because frames exist
+- [ ] no new cosmetic OnUpdate loop was added
+- [ ] high-frequency events use `RegisterUnitEvent` when possible
+- [ ] pet classification is not attached to UNIT_AURA
+
+---
+
+## 47. Anti-regression checklist: visuals
+
+- [ ] native portrait ring/chrome remains above addon art
+- [ ] portrait mask remains applied
+- [ ] ToT/FoT optical offsets remain intact
+- [ ] timer decimals work below 10s when enabled
+- [ ] numeric timer text stops after 60s
+- [ ] cooldown swipe setting still toggles cleanly
+- [ ] test mode does not leave stale buttons after exit
+- [ ] pet foundations do not paint over native frame chrome
+
+---
+
+## 48. Anti-regression checklist: evidence fallbacks
+
+For every new fallback, document:
+
+- what exact state it claims
+- which readable fields support that claim
+- when it is enabled
+- what stronger evidence suppresses it
+- what unrelated states could satisfy the same signature
+
+If those questions cannot be answered, the fallback is probably too broad.
+
+---
+
+## 49. Live-test methodology
+
+A surprising amount of this addon was discovered through screenshot + debug
+iteration rather than source inspection alone.
+
+The preferred loop is:
+
+1. observe a concrete missing/wrong icon
+2. identify unit relation and combat state
+3. run `/bp debug` if authority is unclear
+4. inspect Forever Blizzard source for the owning API path
+5. change the smallest mechanism
+6. test the exact scenario again
+7. only then generalize
+
+A screenshot can disprove an architectural assumption even when the code looks
+internally consistent.
+
+---
+
+## 50. Interpreting "not working"
+
+For portrait auras, "not working" can mean several fundamentally different
+things:
+
+- ID absent from corpus
+- wrong cast-vs-aura ID
+- wrong polarity/filter
+- exact identity not authorized on that relation
+- identity secret in combat
+- semantic lane excluded/suppressed
+- lower-priority aura legitimately losing
+- stale/rebound unit host
+- nonexistent derived unit
+- special readable winner arbitration choosing another aura
+- direct game state should have been used instead of aura identity
+
+Do not respond to all of these by adding more IDs.
+
+---
+
+## 51. Current Ghost family lesson as a template
+
+The Ghost failure is a model debugging case:
 
 ```text
-higher auraInstanceID != newer application
+symptom:
+  Ghost icon absent on player portrait
+
+first hypothesis:
+  missing Ghost aura ID
+
+change:
+  add harmful Immunity exact IDs
+
+result:
+  still absent
+
+structural diagnosis:
+  self/friendly harmful exact identity is relation-gated
+
+better evidence source:
+  UnitIsGhost(player)
+
+final architecture:
+  state witness at Immunity priority + exact lane as backup
 ```
 
-The readable BaselineClass helper now prefers the start time exposed by
-`C_UnitAuras.GetAuraDuration(unit, auraInstanceID):GetStartTime()`. If that
-start time is not readable, it can still derive a start witness from
-`expirationTime - duration`.
+This is the preferred reasoning pattern for future stubborn states.
 
-A readable newest-aura override is authorized only when every competing
-BaselineClass candidate has readable start time. `auraInstanceID` remains a
-deterministic tie-break for equal start times, but no longer carries recency
-semantics. If timing evidence is incomplete, the readable override abstains and
-the secure BaselineClass container remains underneath.
+---
 
+## 52. Current runtime invariants
 
-## 24. Friendly Boosted Rest fallback
+At the time of this document:
 
-Boosted Rest (1229451) exposed a relation asymmetry: a friendly player could show
-the debuff through ToT/FoT's broad secure HARMFUL surface while the same unit as
-a large target could not authorize the exact harmful-ID AuraContainer.
+- five portrait hosts are tracked
+- Ghost is state-derived on readable units and also represented in harmful
+  Immunity exact data
+- timer numeric cutoff is 60 seconds
+- Recently Bandaged sits immediately below Weakened Soul
+- Campfire Nearby is absolute bottom priority
+- Boosted Rest is priority 1
+- SmallFriendlyHarmful is priority 2
+- Utility is one actual lane including Welcoming Campfire
+- Control exact lane excludes Stuns
+- pet identity prefers positive `UnitIsOtherPlayersPet`
+- `UNIT_AURA` does not drive pet reclassification
+- unit events are scoped narrowly
+- no addon-owned OnUpdate loop exists
+- inaccessible evidence remains UNKNOWN
 
-v0.1.31 keeps the large-frame claim narrow. Player/target/focus gain a readable
-exact 1229451 witness only when the secure exact BoostedRest lane is unavailable.
-It renders at priority 20 and abstains if the aura identity is not directly
-readable. Large frames do not gain the generic SmallFriendlyHarmful lane.
+---
 
+## 53. Working definition of a good bjarkiPortraits change
 
-## 25. Small-frame generic harmful fallback
+A change is good when it:
 
-The secure SmallFriendlyHarmful surface carries only presence-level evidence:
-"some harmful aura exists." It does not preserve exact spell identity or the
-tracked priority taxonomy.
+1. improves a concrete combat-state presentation problem,
+2. states exactly what evidence supports the icon,
+3. respects relation/secrecy authority,
+4. preserves the priority election model,
+5. does not create an overlapping exact lane by accident,
+6. does not add high-frequency work without need,
+7. leaves native protected frame ownership intact,
+8. survives live combat testing without taint.
 
-v0.1.32 therefore moves that lane to priority 1, below every tracked aura tier.
-The fallback still replaces the native portrait when no tracked state is
-available, but it can no longer outrank a known tracked aura merely because the
-unit is being observed through ToT/FoT.
+Or more compactly:
 
-
-## 26. Welcoming Campfire priority
-
-v0.1.34 moves Welcoming Campfire into the Class Buffs priority band at level 90.
-
-It remains a separate implementation lane rather than being unioned into
-BaselineClass because Forever requires HELPFUL|INCLUDE_NAME_PLATE_ONLY for its
-secure visibility path, and the addon also keeps a narrow player-only readable
-exact witness. The two mechanisms therefore share priority semantics without
-collapsing their distinct evidence/visibility requirements.
-
-
-## 27. Priority-90 shared readable arbitration
-
-v0.1.34 put Welcoming Campfire and BaselineClass at the same numeric priority
-while leaving them with separate readable overlays. BaselineClass's readable
-overlay intentionally sat one frame level above an ordinary exact witness, so
-the two "equal" lanes were not actually equal in presentation.
-
-v0.1.35 removes that accidental frame-order policy. On the player frame,
-BaselineClass and Welcoming Campfire enter one readable recency election using
-the same application/refresh-time evidence. A positive direct
-GetPlayerAuraBySpellID witness can add Welcoming Campfire to that election when
-the indexed stream does not expose it.
-
-The secure lanes remain separate because Welcoming Campfire still needs
-HELPFUL|INCLUDE_NAME_PLATE_ONLY. Thus priority semantics are unified without
-collapsing distinct visibility mechanisms.
-
-
-## 28. Recency does not require aura identity-instance metadata
-
-v0.1.36 removes another accidental strengthening of evidence in the priority-90
-readable election. A candidate's auraInstanceID is not itself recency evidence
-and therefore is no longer required for the candidate to participate.
-
-If a candidate exposes a readable application/start time, that is sufficient for
-recency comparison. auraInstanceID is consulted only as a deterministic
-equal-start-time tie-break when both candidates expose one.
-
-This matters for Welcoming Campfire because Forever can expose the exact player
-aura and its timing while withholding or omitting auraInstanceID on the direct
-lookup path.
-
-
-## 29. Welcoming Campfire direct timing witness
-
-The v0.1.35-v0.1.36 shared priority-90 election still hid an important
-distinction: "the direct lookup API is readable" is not the same statement as
-"the exact Campfire aura was returned", and the generic DurationObject start
-time is not assumed to represent the visible one-minute Campfire countdown.
-
-v0.1.37 restores the direct player-spell lookup as independent exact evidence
-before the indexed Class Buffs scan. When Welcoming Campfire is present, its
-recency witness is derived from the live 60-second countdown expiration:
-
-```text
-campfireAppliedAt = expirationTime - 60
-```
-
-This keeps the shared priority-90 election while grounding Campfire recency in
-the observable countdown the player actually sees.
-
-Diagnostics now separate path availability, exact presence, and timing source.
-
-
-## 30. Welcoming Campfire identity correction
-
-The Campfire debugging isolated the failure upstream of arbitration. Live name-based inspection first returned:
-
-    name      = Welcoming Campfire
-    spellId   = 1289723
-    duration  = 60
-
-A later test at a different campfire returned:
-
-    name      = Welcoming Campfire
-    spellId   = 1229739
-    duration  = 60
-
-So 1229739 was not globally obsolete; Forever currently has at least two live aura identities for the same visible Welcoming Campfire effect. The exact source mapping is not yet claimed.
-
-v0.1.39 therefore models Welcoming Campfire as the family {1229739, 1289723}. Both IDs share priority 90, the same 60-second recency semantics, and the same readable Class Buff arbitration on every tracked unit.
-
-
-## 31. Welcoming Campfire becomes an independent priority band
-
-v0.1.42 moves Welcoming Campfire from the Class Buffs band at 90 to priority 126, above Well Fed (125) and below Elemental/Lightning Shield (130).
-
-Because that makes Campfire semantically independent of BaselineClass, its readable path is split back out of the priority-90 recency election. BaselineClass now arbitrates only class buffs. Welcoming Campfire has its own readable surface at priority 126 and recognizes both confirmed live aura identities, 1229739 and 1289723.
-
-
-## 32. Welcoming Campfire joins Utility
-
-v0.1.43 moves Welcoming Campfire into the Utility band at priority 270. It remains a separate exact implementation lane because Forever still needs `HELPFUL|INCLUDE_NAME_PLATE_ONLY` plus the confirmed two-ID witness family `{1229739, 1289723}`.
-
-`createReadableExactFrame` normally adds one frame level above its secure lane. For Campfire that implicit bonus is explicitly removed: both the secure lane and readable witness sit on the same priority-270 surface as ordinary Utility buffs.
-
-
-## 33. Utility is one actual lane
-
-v0.1.44 repairs the double-countdown artifact exposed by placing Welcoming Campfire at priority 270. Equal numeric priority is not sufficient when two independent AuraSlots both own cooldown widgets over the same portrait.
-
-The secure Utility lane now unions `buffs_utility` and `buffs_welcoming_campfire` into one `HELPFUL|INCLUDE_NAME_PLATE_ONLY` AuraSlot. The special readable Campfire witness remains for Forever compatibility, but while that exact readable witness is actively rendering, the merged secure Utility slot is suppressed. Therefore priority 270 has exactly one cooldown owner at a time.
-
-
-## 34. Equivalent NPC spell identities join existing semantic families
-
-v0.1.45 formalizes a simple taxonomy rule: when Forever exposes an NPC spell ID whose gameplay effect is the same tracked mechanic as the player spell, that ID belongs in the same exact family instead of receiving a separate approximation lane.
-
-For Frostbolt slows, the exact Slows family now includes NPC/Forever IDs 21369, 350025, 420526, and 1303226 in addition to the ordinary player ranks. The anomalous 406680 variant is intentionally excluded because its published movement-speed effect does not match ordinary Frostbolt semantics.
-
-
-## 35. Camp Benefits joins BaselineClass
-
-v0.1.46 moves Camp Benefits into the Class Buffs band at priority 90. Rather than leaving a second exact lane at the same numeric priority, `BaselineClass` now unions `buffs_class_baseline` and `buffs_camp_benefits` into one secure AuraSlot.
-
-The readable BaselineClass scanner already derives its candidate set from the tier's `spellIDs`, so Camp Benefits automatically joins the same newest-application/refresh election without an additional readable overlay.
+> **Make the strongest presentation claim the evidence actually earns.**

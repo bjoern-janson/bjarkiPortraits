@@ -5,6 +5,7 @@ local events = CreateFrame("Frame")
 R.eventFrame = events
 for _, event in ipairs({
     "ADDON_LOADED", "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_ENABLED",
+    "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST",
     "PLAYER_TARGET_CHANGED", "PLAYER_FOCUS_CHANGED", "PET_BAR_UPDATE",
 }) do events:RegisterEvent(event) end
 
@@ -26,6 +27,8 @@ events:SetScript("OnEvent", function(_, event, arg1)
             R.DestroyAll()
         end
         if R.buildQueued then R.BuildAll() end
+    elseif event == "PLAYER_DEAD" or event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST" then
+        R.Refresh("player", true)
     elseif event == "PLAYER_TARGET_CHANGED" then
         R.Refresh("target", true)
         R.Refresh("targettarget", true)

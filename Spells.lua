@@ -2,6 +2,11 @@ local addonName, PT = ...
 
 -- Canonical spell/category data. Runtime logic does not live in this file.
 PT.categories = {
+    immunities_harmful = {
+        [8326] = true,    -- Ghost (death debuff)
+        [9036] = true,    -- Ghost (passive death aura)
+        [1278162] = true, -- Ghost (Forever model variant; no native aura icon)
+    },
     immunities = {
         [3169] = true,
         [16621] = true,
@@ -305,6 +310,7 @@ PT.categories = {
         [10901] = true, -- Power Word: Shield
     },
     buffs_defensive = {
+        [1299026] = true, -- Shatter Curse
         [23493] = true,
         [23506] = true,
         [29506] = true,
@@ -466,6 +472,9 @@ PT.categories = {
     debuffs_weakenedsoul = {
         [6788] = true, -- Weakened Soul (Priest)
     },
+    debuffs_recently_bandaged = {
+        [11196] = true, -- Recently Bandaged
+    },
     buffs_seals = {
         [20154] = true, -- Seal of Righteousness Rank 1 (Paladin)
         [20287] = true, -- Seal of Righteousness Rank 2 (Paladin)
@@ -488,6 +497,24 @@ PT.categories = {
         [20577] = true, -- Cannibalize activation (Undead)
         [20578] = true, -- Cannibalize channel aura (Undead)
         [12051] = true, -- Evocation (Mage)
+        -- First Aid / bandage channels
+        [746] = true, -- First Aid Rank 1 (Linen Bandage)
+        [1159] = true, -- First Aid Rank 2 (Heavy Linen Bandage)
+        [3267] = true, -- First Aid Rank 3 (Wool Bandage)
+        [3268] = true, -- First Aid Rank 4 (Heavy Wool Bandage)
+        [7926] = true, -- First Aid Rank 5 (Silk Bandage)
+        [7927] = true, -- First Aid Rank 6 (Heavy Silk Bandage)
+        [10838] = true, -- First Aid Rank 7 (Mageweave Bandage)
+        [10839] = true, -- First Aid Rank 8 (Heavy Mageweave Bandage)
+        [18608] = true, -- First Aid Rank 9 (Runecloth Bandage)
+        [18610] = true, -- First Aid Rank 10 (Heavy Runecloth Bandage)
+        [23567] = true, -- First Aid (Warsong Gulch Runecloth Bandage)
+        [23568] = true, -- First Aid (Warsong Gulch Mageweave Bandage)
+        [23569] = true, -- First Aid (Warsong Gulch Silk Bandage)
+        [23696] = true, -- First Aid (Alterac Heavy Runecloth Bandage)
+        [24412] = true, -- First Aid (Arathi Basin Silk Bandage)
+        [24413] = true, -- First Aid (Arathi Basin Mageweave Bandage)
+        [24414] = true, -- First Aid (Arathi Basin Runecloth Bandage)
         -- Food (Vanilla/Forever eating auras)
         [433] = true, -- Food
         [434] = true, -- Food
@@ -758,6 +785,7 @@ PT.categories = {
         [1229741] = true, -- Camp Benefits (Forever camping)
     },
     buffs_well_fed = {
+        [3219] = true, -- Minor Troll's Blood Elixir
         -- Visible Well Fed auras, including profession-oriented variants.
         [19705] = true, -- Well Fed: +2 Stamina/Spirit
         [19706] = true, -- Well Fed: +4 Stamina/Spirit
