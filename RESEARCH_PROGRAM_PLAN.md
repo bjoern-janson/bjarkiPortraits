@@ -313,32 +313,75 @@ relation-dependent, frequently changing real software environment.
 
 ## 9. Why this unusual integration exists
 
-### 9.1 Product ambition: the "Rolex" standard
+### 9.1 Product ambition: **Lange & Söhne × Taco Bell**
 
 The ambition for **bjarkiPortraits** and **bjarkiUI** is not merely to make
 useful addons.
 
-The target is an unusually high standard simultaneously across:
+The explicit development doctrine is:
 
-- **coding beauty** — small, legible, principled, unsurprising code;
-- **PvP competitiveness** — maximum useful signal with minimum perceptual cost;
-- **functionality** — robust behavior across the ugly edge cases of the real
-  client;
-- **native presentation** — the result should feel like Blizzard implemented
-  the interface correctly in the first place;
-- **runtime discipline** — event-driven, scoped, low-overhead, combat-safe;
-- **failure discipline** — unavailable evidence degrades safely rather than
-  being converted into invented certainty;
-- **polish** — 1 px geometry, stale frame state, wrong colors, duplicated
-  timers, priority collisions, and similar "small" defects are real defects.
+> **Lange & Söhne × Taco Bell**
 
-The metaphor used during development is:
+The two halves are intentionally extreme and complementary.
 
-> Build the Rolex of WoW addons.
+**Lange & Söhne** means the output standard:
 
-This does **not** mean ornamental complexity, prestige features, or maximal
-configuration. It means that the visible simplicity should rest on unusually
-careful internal engineering.
+- coding beauty — small, legible, principled, unsurprising code;
+- PvP competitiveness — maximum useful signal with minimum perceptual cost;
+- functionality — robust behavior across the ugly edge cases of the real client;
+- native presentation — the result should feel like Blizzard implemented the
+  interface correctly in the first place;
+- failure discipline — unavailable evidence degrades safely rather than being
+  converted into invented certainty;
+- craftsmanship all the way down — 1 px geometry, stale frame state, wrong
+  colors, duplicated timers, priority collisions, and similar "small" defects
+  are real defects;
+- internals should remain worth inspecting even when users never see them.
+
+**Taco Bell** means the production/execution standard:
+
+- standardized workflows;
+- aggressive elimination of unnecessary choices;
+- reusable proven patterns;
+- offline preprocessing and generation where possible;
+- tiny hot paths;
+- cheap iteration;
+- fast packaging and verification;
+- do difficult reasoning once, then turn the answer into machinery so the same
+  class of work does not need to be handcrafted repeatedly.
+
+The synthesis is:
+
+```text
+haute-horlogerie reasoning upstream
+        ↓
+compressed invariant
+        ↓
+fast-food execution downstream
+```
+
+or more simply:
+
+```text
+deep design
+    ↓
+compressed execution
+```
+
+The goal is **not** to rush by lowering standards.
+
+The goal is to rush by making the production system faster while preserving an
+extremely high output standard.
+
+A useful test for future changes is:
+
+> Does this move complexity upstream and leave execution simpler?
+
+If yes, it is probably aligned with the doctrine.
+
+If it moves complexity into combat-time Lua, adds generalized framework
+machinery, or forces runtime to carry the whole explanation around with it, it
+is probably not.
 
 A successful implementation should often make the engineering disappear.
 Players should mostly notice that the addon feels exact.
@@ -569,7 +612,7 @@ When the whole-program parse is complete:
 - do not assume the addon validates the research;
 - do not assume similarities are meaningful because terminology can be mapped;
 - identify the strongest genuine overlaps and the strongest disanalogies;
-- propose concrete addon changes only where they improve the Rolex standard;
+- propose concrete addon changes only where they improve the **Lange & Söhne × Taco Bell** standard;
 - prefer offline tooling/tests/data generation over runtime machinery;
 - allow the addon to falsify or narrow research ideas;
 - preserve the possibility that the correct result is **no runtime integration**.
