@@ -80,5 +80,13 @@ Hard constraint: **functionally pristine addon first**. Research richness should
 remain offline unless it eliminates a demonstrated failure mode, improves
 correctness, simplifies runtime, or enables a genuinely useful behavior.
 
-Read `RESEARCH_PROGRAM_PLAN.md` before designing the NPC corpus, audit tooling,
-or any deliberate research → addon integration.
+Read **all of `RESEARCH_PROGRAM_PLAN.md`**, especially Section 9. That section
+contains the full motivation for the unusual research → WoW connection: the
+"Rolex of WoW addons" quality target, the desired outward chain from competitive
+artifact → engineering curiosity → design principles → broader research →
+AI-safety questions, the reason the abrupt topic switch is intentional, and the
+requirement to reject superficial analogies rather than force a synthesis.
+
+The addon must stand on its own even if an external engineer rejects every
+AI-safety generalization. The strongest integrations are principles that remain
+useful under that condition.
