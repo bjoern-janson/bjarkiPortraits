@@ -11,7 +11,7 @@ SLASH_BJARKIPORTRAITS1 = "/bp"
 SlashCmdList.BJARKIPORTRAITS = function(message)
     local command, arg = (message or ""):lower():match("^(%S*)%s*(.-)$")
     if command == "" or command == "help" then
-        R.Print("/bp test | on | off | player | target | focus | tot | fot | swipe | pets | debug | reset")
+        R.Print("/bp test | on | off | player | target | focus | tot | fot | swipe | decimals | pets | debug | reset")
     elseif command == "test" then
         R.testMode = not R.testMode
         R.RefreshAll()
@@ -33,6 +33,11 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
         setToggle("focustarget", not R.db.focustarget); R.Print("focustarget " .. tostring(R.db.focustarget))
     elseif command == "swipe" then
         R.db.showSwipe = not R.db.showSwipe; R.ApplyPresentation(); R.Print("swipe " .. tostring(R.db.showSwipe))
+    elseif command == "decimals" then
+        R.db.showDecimals = not R.db.showDecimals
+        R._formatter, R._formatterKey = nil, nil
+        R.ApplyPresentation()
+        R.Print("decimals " .. tostring(R.db.showDecimals))
     elseif command == "pets" then
         R.db.petPortraits = not R.db.petPortraits; R.UpdatePetPortraits(); R.Print("pet portraits " .. tostring(R.db.petPortraits))
     elseif command == "debug" then

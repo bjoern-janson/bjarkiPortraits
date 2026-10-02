@@ -1287,6 +1287,8 @@ end
 function R.Refresh(unit, forceContainerRefresh)
     local host = R.hosts[unit]
     if not R.db or not R.db.enabled then
+        -- A stale host may still await combat-safe restoration. Hide its
+        -- presentation without entering the replacement/construction path.
         if host then
             if host.testFrame then host.testFrame:Hide() end
             R.UpdateHost(host)

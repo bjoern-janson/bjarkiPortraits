@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.60-local"
+R.VERSION = "0.1.61-local"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
@@ -23,6 +23,7 @@ local defaults = {
     targettarget = true,
     focustarget = true,
     showSwipe = false,
+    showDecimals = true,
     petPortraits = true,
 }
 
@@ -38,8 +39,6 @@ function R.ApplyDefaults()
         if BjarkiPortraitsDB[key] == nil then BjarkiPortraitsDB[key] = value end
     end
     R.db = BjarkiPortraitsDB
-    -- Timers have one supported format; retire the old saved toggle on upgrade.
-    R.db.showDecimals = nil
 end
 
 function R.IsSecret(value)
@@ -231,28 +230,48 @@ function R.ReadAuraField(aura, key)
 end
 
 function R.GetCountdownFormatter()
-    if R._formatter then return R._formatter end
+    local key = R.db and R.db.showDecimals and 1 or 0
+    if R._formatter and R._formatterKey == key then return R._formatter end
     if not C_StringUtil or not C_StringUtil.CreateNumericRuleFormatter then return nil end
     local formatter = C_StringUtil.CreateNumericRuleFormatter()
     if not formatter or not formatter.SetBreakpoints then return nil end
-    formatter:SetBreakpoints({
-        { threshold = 0, format = "%.0f" },
-        { threshold = 60.000001, format = "" },
-    })
-    R._formatter = formatter
+
+    if key == 1 then
+        formatter:SetBreakpoints({
+            { threshold = 0, format = "%.1f" },
+            { threshold = 10, format = "%.0f" },
+            { threshold = 60.000001, format = "" },
+        })
+    else
+        formatter:SetBreakpoints({
+            { threshold = 0, format = "%.0f" },
+            { threshold = 60.000001, format = "" },
+        })
+    end
+
+    R._formatter, R._formatterKey = formatter, key
     return formatter
 end
 
 function R.ApplyCountdownFormat(cooldown)
-    if cooldown.SetCountdownMillisecondsThreshold then
-        pcall(cooldown.SetCountdownMillisecondsThreshold, cooldown, 0)
+    if cooldown.SetHideCountdownNumbers then
+        pcall(cooldown.SetHideCountdownNumbers, cooldown, false)
     end
+
     local formatter = R.GetCountdownFormatter()
     local applied = false
     if formatter and cooldown.SetCountdownFormatter then
         applied = pcall(cooldown.SetCountdownFormatter, cooldown, formatter)
     end
-    if cooldown.SetHideCountdownNumbers then
-        pcall(cooldown.SetHideCountdownNumbers, cooldown, not applied)
+
+    -- Compatibility fallback: if this client does not accept the formatter,
+    -- retain the user's decimal preference through the native millisecond
+    -- threshold. The 60s cutoff is guaranteed by the formatter path.
+    if not applied and cooldown.SetCountdownMillisecondsThreshold then
+        pcall(
+            cooldown.SetCountdownMillisecondsThreshold,
+            cooldown,
+            R.db and R.db.showDecimals and 10 or 0
+        )
     end
 end
