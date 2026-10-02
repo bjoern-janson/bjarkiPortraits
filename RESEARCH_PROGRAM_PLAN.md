@@ -624,3 +624,211 @@ It is:
 > Two functionally pristine competitive addons whose engineering can stand on
 > its own, with any connection to the broader research program earned through
 > independently useful design principles.
+
+---
+
+## 10. Current concrete addon backlog for Astra
+
+These are **explicit user-requested product changes** to carry into the next
+Astra implementation pass. They are not research-derived requirements and they
+do not need to wait for a grand conceptual synthesis merely to be recorded.
+Implement them only with the same source-discipline used elsewhere in this
+document: inspect the current runtime first, preserve native ownership where
+possible, and do not invent client contracts.
+
+The current source checkpoints to reason from are:
+
+- **bjarkiPortraits**: `0.1.59-local`
+- **bjarkiUI**: `0.2.57-local`
+
+The October 2 deep parses identified additional confirmed/conditional defects.
+Those findings should be considered alongside this backlog rather than
+overwritten by it.
+
+### 10.1 bjarkiUI requests
+
+#### Fix the ToT / ToF wrong-health-color bug
+
+Target-of-target and focus-target are reusable Blizzard frames. The intended
+invariant is that their health color always reflects the **current referent**,
+not the unit that previously occupied the frame.
+
+Requirements:
+
+- reproduce the wrong-color case in the real client if possible;
+- identify the final native writer/rebind sequence before changing code;
+- re-derive the full health presentation after the referent is finalized;
+- preserve player class color, pet green, NPC/reaction/tap state, and the
+  current uniform health/power bar visual language;
+- do not solve stale color by polling;
+- do not broaden hooks to unrelated unit frames.
+
+The existing `UnitFrame_Update` post-hook is intended to solve this class of
+problem, so treat a surviving bug as evidence that the hook timing, frame
+identity, resolver, or a later native writer is still wrong. Diagnose the
+actual final writer rather than adding another unconditional repaint.
+
+#### Add deterministic group-frame sorting
+
+For the raid-style party/group frame presentation, use a stable order with the
+player at the bottom.
+
+Desired order:
+
+```text
+party1
+party2
+party3
+party4
+player
+```
+
+For smaller groups, preserve the same relative rule: party members remain in
+ascending party-token order and the player is always last/bottom.
+
+Requirements:
+
+- use the native compact/raid-style party frame system rather than constructing
+  a replacement party-frame addon;
+- preserve Blizzard frame reuse and group membership behavior;
+- avoid per-frame polling;
+- verify joins/leaves, group conversion, reload, zoning, and Edit Mode/layout
+  changes;
+- do not reorder full raid groups unless that follows from the explicitly
+  selected raid-style party-frame surface and is intended.
+
+#### Add a small movement-speed and duel-flag distance display below the PRD
+
+Add a compact information line immediately below the Personal Resource Display
+containing:
+
+- current movement speed;
+- current distance in yards from the duel flag when that measurement is
+  meaningfully available.
+
+Design requirements:
+
+- visually subordinate to the PRD; small, native-looking, low-clutter text;
+- do not fabricate precision the client does not expose;
+- duel-flag distance should disappear or degrade cleanly when no relevant duel
+  flag can be identified;
+- prefer native events/state changes for movement speed;
+- if exact flag distance genuinely requires periodic sampling, justify the
+  minimum bounded cadence and isolate it to the duel-active lifetime rather
+  than introducing a permanent addon-wide polling loop;
+- secret/protected/inaccessible coordinates or distance evidence remain
+  UNKNOWN, not zero;
+- verify behavior when a duel starts, flag becomes available/unavailable,
+  player moves, duel ends, player dies, zones, or reloads.
+
+This feature should remain presentation-only. Do not create gameplay state from
+an inferred duel object if the client cannot identify one reliably.
+
+### 10.2 bjarkiPortraits requests
+
+#### Remove decimal timer text
+
+Portrait timers should use integer seconds only.
+
+Current desired behavior:
+
+- retain the current **60-second** numeric timer cutoff;
+- remove the sub-10-second one-decimal format;
+- do not show decimal countdown text anywhere in normal portrait-timer
+  presentation;
+- reconcile/remove the old `showDecimals` setting and `/bp decimals` command
+  if they no longer have a meaningful supported behavior, rather than leaving a
+  dead option that claims to work;
+- preserve native cooldown progression and avoid addon-owned timer arithmetic.
+
+#### Put all taunts at the Faerie Fire tier
+
+Taunts should no longer live in a separate "just above DoTs" priority band.
+
+Desired policy:
+
+> **all verified taunt auras share Faerie Fire's display priority.**
+
+Where technically possible, equal-priority harmful effects that are intended
+to be behaviorally equivalent for portrait election should share the **same
+actual lane/election surface**, not merely the same numeric frame level.
+
+Requirements:
+
+- identify the current Faerie Fire category/lane from source rather than
+  hardcoding a stale priority number from documentation;
+- move the verified taunt aura family into that same presentation tier;
+- preserve exact-ID disjointness;
+- do not add threat-only abilities that apply no aura;
+- continue verifying Forever/NPC variants by applied aura ID/mechanics rather
+  than spell-name equality alone.
+
+#### Add Demoralizing Shout and Demoralizing Roar below the DoT tier
+
+Track the Warrior and Druid demoralizing debuff families:
+
+- Demoralizing Shout
+- Demoralizing Roar
+
+Their portrait priority should be **below DoTs**.
+
+Requirements:
+
+- verify all relevant classic/Forever ranks and the actual applied aura IDs;
+- give them one coherent exact harmful family/lane;
+- keep them below the current DoT tier in display priority;
+- do not assume localized-name equality proves mechanical identity;
+- include NPC/mechanically equivalent variants only when the evidence standard
+  used by the NPC corpus supports them.
+
+#### Add Raptor Punch to the food-buff family
+
+Track **Raptor Punch** at the same presentation priority/election family as the
+current food/well-fed-style buff requested by the user.
+
+Before adding it:
+
+- identify the actual Forever spell/aura ID;
+- verify that the tracked aura is the persistent buff the user means, not only
+  an activation/consumable spell ID;
+- place the verified aura in the existing food-buff category/lane rather than
+  creating a new priority surface;
+- preserve equal-priority recency behavior already used by that lane.
+
+### 10.3 Keep the deep-parse defects in scope
+
+Do not let the feature backlog displace the concrete defects found by the
+October 2 audit.
+
+In particular, bjarkiPortraits should still close the confirmed global-off
+lifecycle:
+
+- `/bp off` must prevent later events from recreating portrait hosts;
+- local pet artwork must also obey the global enabled state;
+- off -> event -> still off must become a repeatable regression check;
+- preserve known false values in diagnostics rather than collapsing them to
+  nil.
+
+The readable-stream completeness, direct-Utility UNKNOWN, inaccessible
+instance-ordering, UI unknown-creature, and UI tap-color findings remain
+**contract questions unless/until live Forever behavior establishes the
+relevant input combinations**. Do not silently "fix" them by assuming stronger
+client contracts or by making broad runtime changes.
+
+### 10.4 Acceptance discipline for this backlog
+
+For every requested change:
+
+1. identify the current native/addon writer that owns the behavior;
+2. state the smallest invariant that would satisfy the request;
+3. implement at that ownership boundary;
+4. keep hot-path/runtime cost flat or justify any increase;
+5. compile/check the changed Lua;
+6. preserve existing static invariants and source custody;
+7. distinguish offline/mock evidence from real-client validation;
+8. leave a concise architecture note when the change teaches a reusable
+   ownership/evidence lesson.
+
+Do not combine unrelated requests into one large runtime abstraction merely
+because they arrived in one backlog.
+
