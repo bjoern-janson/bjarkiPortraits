@@ -125,7 +125,7 @@ function R.UpdateObservedPetPortrait(unit)
     if not host then return end
 
     local texture = observed[host]
-    local icon = R.db and R.db.petPortraits and foundationTexture(unit) or nil
+    local icon = R.db and R.db.enabled and R.db.petPortraits and foundationTexture(unit) or nil
     if icon then
         if not texture then texture = createHostTexture(host); observed[host] = texture end
         texture:SetTexture(icon)
@@ -166,9 +166,13 @@ local function ensureLocalPetTexture()
 end
 
 function R.UpdateLocalPetPortrait()
+    if not R.db or not R.db.enabled or not R.db.petPortraits then
+        if localPet then localPet:Hide() end
+        return
+    end
     local texture = ensureLocalPetTexture()
     if not texture then return end
-    local icon = R.db and R.db.petPortraits and foundationTexture("pet") or nil
+    local icon = foundationTexture("pet")
     if icon then texture:SetTexture(icon); texture:Show() else texture:Hide() end
 end
 

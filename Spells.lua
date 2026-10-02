@@ -484,6 +484,20 @@ PT.categories = {
         [14325] = true, -- Hunter's Mark Rank 4
         [1213268] = true, -- Hunter's Mark Rank 4 (Forever alternate aura)
     },
+    -- Player rank families verified against Forever build 1.60.1.70170.
+    -- Applied attack-power auras, not name-matched NPC variants; see SPELL_EVIDENCE.md.
+    debuffs_demoralizing = {
+        [1160] = true,  -- Demoralizing Shout Rank 1
+        [6190] = true,  -- Demoralizing Shout Rank 2
+        [11554] = true, -- Demoralizing Shout Rank 3
+        [11555] = true, -- Demoralizing Shout Rank 4
+        [11556] = true, -- Demoralizing Shout Rank 5
+        [99] = true,    -- Demoralizing Roar Rank 1
+        [1735] = true,  -- Demoralizing Roar Rank 2
+        [9490] = true,  -- Demoralizing Roar Rank 3
+        [9747] = true,  -- Demoralizing Roar Rank 4
+        [9898] = true,  -- Demoralizing Roar Rank 5
+    },
     debuffs_other = {
         [770] = true, -- Faerie Fire Rank 1
         [778] = true, -- Faerie Fire Rank 2
@@ -826,6 +840,7 @@ PT.categories = {
         [1229741] = true, -- Camp Benefits (Forever camping)
     },
     buffs_well_fed = {
+        [6114] = true, -- Raptor Punch: persistent 5-minute stat aura, not item 5342
         [3219] = true, -- Minor Troll's Blood Elixir
         -- Visible Well Fed auras, including profession-oriented variants.
         [19705] = true, -- Well Fed: +2 Stamina/Spirit

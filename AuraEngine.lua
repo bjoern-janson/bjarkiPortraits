@@ -32,13 +32,7 @@ local function configureCooldown(cooldown, unit)
     if cooldown.SetDrawBling then cooldown:SetDrawBling(false) end
     if cooldown.SetDrawEdge then cooldown:SetDrawEdge(false) end
     if cooldown.SetDrawSwipe then cooldown:SetDrawSwipe(R.db and R.db.showSwipe or false) end
-    if cooldown.SetHideCountdownNumbers then cooldown:SetHideCountdownNumbers(false) end
-    local formatter = R.GetCountdownFormatter()
-    if formatter and cooldown.SetCountdownFormatter then
-        pcall(cooldown.SetCountdownFormatter, cooldown, formatter)
-    elseif cooldown.SetCountdownMillisecondsThreshold then
-        pcall(cooldown.SetCountdownMillisecondsThreshold, cooldown, R.db and R.db.showDecimals and 10 or 0)
-    end
+    R.ApplyCountdownFormat(cooldown)
     if cooldown.SetSwipeTexture then cooldown:SetSwipeTexture(R.SWIPE_TEXTURE) end
 
     local geometry = SMALL_GEOMETRY[unit]
@@ -903,6 +897,8 @@ function R.DestroyAll()
 end
 
 function R.CreateHost(unit)
+    -- Events and commands can reach this boundary without going through BuildAll.
+    if not R.db or not R.db.enabled then return nil end
     local existing = R.hosts[unit]
     if existing and hostStillCurrent(existing) then return existing end
     if InCombatLockdown and InCombatLockdown() then
@@ -1084,7 +1080,7 @@ function R.UpdateHost(host, forceContainerRefresh)
     host._hostilePlayer = hostilePlayer
     if playerReadable then host._isPlayer = isPlayer else host._isPlayer = nil end
     host._playerReadable = playerReadable
-    host._assistable = assistReadable and assistable or nil
+    if assistReadable then host._assistable = assistable else host._assistable = nil end
     host._assistReadable = assistReadable
 
     local hostileReadable = false
@@ -1290,6 +1286,13 @@ end
 
 function R.Refresh(unit, forceContainerRefresh)
     local host = R.hosts[unit]
+    if not R.db or not R.db.enabled then
+        if host then
+            if host.testFrame then host.testFrame:Hide() end
+            R.UpdateHost(host)
+        end
+        return
+    end
     if host and not hostStillCurrent(host) then
         if InCombatLockdown and InCombatLockdown() then
             R.buildQueued = true
@@ -1330,16 +1333,10 @@ function R.BuildAll()
 end
 
 function R.ApplyPresentation()
-    R._formatter = nil
     for _, host in pairs(R.hosts) do
         for _, cooldown in ipairs(host.cooldowns or {}) do
             if cooldown.SetDrawSwipe then pcall(cooldown.SetDrawSwipe, cooldown, R.db.showSwipe) end
-            local formatter = R.GetCountdownFormatter()
-            if formatter and cooldown.SetCountdownFormatter then
-                pcall(cooldown.SetCountdownFormatter, cooldown, formatter)
-            elseif cooldown.SetCountdownMillisecondsThreshold then
-                pcall(cooldown.SetCountdownMillisecondsThreshold, cooldown, R.db.showDecimals and 10 or 0)
-            end
+            R.ApplyCountdownFormat(cooldown)
         end
     end
 end

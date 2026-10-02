@@ -73,9 +73,11 @@ R.TIERS = {
     -- the lowest-priority aura surface. Any known tracked state must outrank it.
     semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 2),
 
+    exact("Demoralizing", "HARMFUL", 185, false, C.debuffs_demoralizing),
     exact("DoTs", "HARMFUL", 190, false, C.debuffs_dots),
-    exact("Taunt", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 195, false, C.debuffs_taunts),
-    exact("LowDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 200, false, C.debuffs_other),
+    -- Taunts and Faerie Fire share one election, including equal-tier recency.
+    exact("LowDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 200, false,
+        union("debuffs_other", "debuffs_taunts")),
     exact("Seal", "HELPFUL", 210, true, C.buffs_seals),
     exact("Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 220, false,
         union("slows", "slows_chilled")),
