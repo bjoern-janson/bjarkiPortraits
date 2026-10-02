@@ -1,0 +1,10 @@
+bjarkiPortraits
+Declared addon version: 0.1.60-local
+Source commit: e487412c0bfa2a55edc4364c6067f30f9e06e342
+
+Includes integer timers with the 60-second cutoff, taunts sharing Faerie Fire election, Demoralizing Shout/Roar below DoTs, Raptor Punch in WellFed, and global-off ownership fixes. Twenty-one offline regression tests pass; live-client validation remains pending.
+
+Extract this ZIP into the game Interface/AddOns directory.
+The resulting path should be Interface/AddOns/bjarkiPortraits/bjarkiPortraits.toc.
+This package contains runtime files, both client manifests, change/source notes and this build note.
+Offline source/Lua checks do not replace live-client combat, taint, or rendering validation.

@@ -26,7 +26,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
             R.forceRebuildQueued = false
             R.DestroyAll()
         end
-        if R.buildQueued then R.BuildAll() end
+        if R.buildQueued then
+            R.BuildAll()
+            R.UpdatePetPortraits()
+        end
     elseif event == "PLAYER_DEAD" or event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST" then
         R.Refresh("player", true)
     elseif event == "PLAYER_TARGET_CHANGED" then
