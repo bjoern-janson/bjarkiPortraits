@@ -11,7 +11,7 @@ SLASH_BJARKIPORTRAITS1 = "/bp"
 SlashCmdList.BJARKIPORTRAITS = function(message)
     local command = (message or ""):lower():match("^(%S*)%s*(.-)$")
     if command == "" or command == "help" then
-        R.Print("/bp test | on | off | player | target | focus | tot | fot | swipe | decimals | pets | debug | reset")
+        R.Print("/bp test | on | off | player | target | focus | tot | fot | swipe | decimals | pets | debug | audit | reset")
     elseif command == "test" then
         R.testMode = not R.testMode
         R.RefreshAll()
@@ -84,6 +84,31 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
                 .. " welcomingAppliedAt=" .. tostring(host and host._welcomingCampfireAppliedAt or nil)
                 .. " welcomingTimingSource=" .. tostring(host and host._welcomingCampfireTimingSource or nil)
                 .. " welcomingActive=" .. tostring(host and host._welcomingCampfireActive or false))
+        end
+    elseif command == "audit" then
+        local audit = R.TIER_AUDIT or {}
+        R.Print("audit version=" .. tostring(R.VERSION)
+            .. " enabled=" .. tostring(R.db and R.db.enabled == true)
+            .. " exactLanes=" .. tostring(audit.exactLaneCount or 0)
+            .. " memberships=" .. tostring(audit.exactMemberships or 0)
+            .. " distinctSpellIDs=" .. tostring(audit.distinctExactSpellIDs or 0)
+            .. " overlaps=" .. tostring(audit.overlapCount or 0))
+
+        for _, overlap in ipairs(audit.overlaps or {}) do
+            R.Print("WARNING overlap spell=" .. tostring(overlap.spellID)
+                .. " first=" .. tostring(overlap.first)
+                .. " second=" .. tostring(overlap.second))
+        end
+
+        for _, unit in ipairs(R.TRACKED_UNITS) do
+            local host = R.hosts[unit]
+            R.Print(unit
+                .. " enabled=" .. tostring(R.IsUnitEnabled(unit))
+                .. " host=" .. tostring(host ~= nil)
+                .. " containers=" .. tostring(host and #host.containers or 0)
+                .. " unitExistsReadable=" .. tostring(host and host._unitExistsReadable or false)
+                .. " playerReadable=" .. tostring(host and host._playerReadable or false)
+                .. " assistReadable=" .. tostring(host and host._assistReadable or false))
         end
     elseif command == "reset" then
         BjarkiPortraitsDB = nil; R.ApplyDefaults(); R.DestroyAll(); R.BuildAll(); R.UpdatePetPortraits(); R.Print("reset")

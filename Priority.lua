@@ -127,6 +127,55 @@ R.TIERS = {
     exact("Immunity", "HELPFUL", 330, true, C.immunities),
 }
 
+-- Immutable lookup indexes derived once from the frozen tier table. These do
+-- not change priority semantics; they only replace repeated linear scans.
+R.TIER_BY_KEY = {}
+R.HELPFUL_TIER_BY_SPELL = {}
+
+local exactOwners = {}
+local exactOverlaps = {}
+local exactLaneCount, exactMemberships, distinctExactSpellIDs = 0, 0, 0
+
+for _, tier in ipairs(R.TIERS) do
+    if tier.key then
+        R.TIER_BY_KEY[tier.key] = tier
+    end
+
+    if tier.exact then
+        exactLaneCount = exactLaneCount + 1
+        for spellID in pairs(tier.spellIDs or {}) do
+            exactMemberships = exactMemberships + 1
+
+            local owner = exactOwners[spellID]
+            if not owner then
+                exactOwners[spellID] = tier.key
+                distinctExactSpellIDs = distinctExactSpellIDs + 1
+            elseif owner ~= tier.key then
+                exactOverlaps[#exactOverlaps + 1] = {
+                    spellID = spellID,
+                    first = owner,
+                    second = tier.key,
+                }
+            end
+
+            if tier.helpful then
+                local current = R.HELPFUL_TIER_BY_SPELL[spellID]
+                if not current or (tier.level or 0) > (current.level or 0) then
+                    R.HELPFUL_TIER_BY_SPELL[spellID] = tier
+                end
+            end
+        end
+    end
+end
+
+R.TIER_AUDIT = {
+    exactLaneCount = exactLaneCount,
+    exactMemberships = exactMemberships,
+    distinctExactSpellIDs = distinctExactSpellIDs,
+    overlapCount = #exactOverlaps,
+    overlaps = exactOverlaps,
+}
+
 local helpfulExplicit, harmfulExplicit = {}, {}
 for _, tier in ipairs(R.TIERS) do
     if tier.exact then

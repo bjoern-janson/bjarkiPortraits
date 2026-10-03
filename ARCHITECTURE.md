@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes the current implementation of **bjarkiPortraits 0.1.63-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
+This document describes the current implementation of **bjarkiPortraits 0.1.64-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into seven Lua modules:
 
@@ -248,3 +248,17 @@ Version 0.1.63 adds the Forever Warrior Bloodrage aura (spell ID 29131) to the
 same priority-261 secure lane as Innervate and Druid Enrage. All three effects
 therefore use one shared within-lane recency election rather than independent
 equal-priority frames.
+
+
+## 16. Immutable priority indexes and audit
+
+Version 0.1.64 derives two immutable lookup indexes once from `R.TIERS`:
+`TIER_BY_KEY` and `HELPFUL_TIER_BY_SPELL`. AuraEngine uses these indexes for
+ordinary tier lookup while retaining the old linear scan as a defensive
+load-order fallback. Priority levels, candidate filters, secure containers, and
+winner election semantics are unchanged.
+
+The same derivation records exact-lane membership and overlap diagnostics.
+`/bp audit` reports version/enabled state, exact-lane counts, duplicate spell-ID
+ownership if any, and bounded host/readability state. The command is read-only:
+it does not rebuild, repair, refresh, or mutate presentation.

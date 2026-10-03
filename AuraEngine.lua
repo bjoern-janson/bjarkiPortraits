@@ -88,6 +88,10 @@ end
 
 local function findHelpfulTierForSpell(spellID)
     if type(spellID) ~= "number" then return nil end
+    local indexed = R.HELPFUL_TIER_BY_SPELL and R.HELPFUL_TIER_BY_SPELL[spellID]
+    if indexed then return indexed end
+
+    -- Defensive fallback if load order is ever changed outside the shipped TOC.
     local best
     for _, tier in ipairs(R.TIERS or {}) do
         if tier.exact and tier.helpful and tier.spellIDs and tier.spellIDs[spellID] then
@@ -112,6 +116,10 @@ local function isWelcomingCampfireSpellID(spellID)
 end
 
 local function findTierByKey(key)
+    local indexed = R.TIER_BY_KEY and R.TIER_BY_KEY[key]
+    if indexed then return indexed end
+
+    -- Defensive fallback if load order is ever changed outside the shipped TOC.
     for _, tier in ipairs(R.TIERS or {}) do
         if tier.key == key then return tier end
     end
