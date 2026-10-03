@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes the current implementation of **bjarkiPortraits 0.1.64-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
+This document describes the current implementation of **bjarkiPortraits 0.1.65-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into seven Lua modules:
 
@@ -262,3 +262,30 @@ The same derivation records exact-lane membership and overlap diagnostics.
 `/bp audit` reports version/enabled state, exact-lane counts, duplicate spell-ID
 ownership if any, and bounded host/readability state. The command is read-only:
 it does not rebuild, repair, refresh, or mutate presentation.
+
+
+## 17. Evidence-boundary hardening
+
+Version 0.1.65 tightens the runtime boundary between observation, warrant, and
+presentation without changing the configured priority ladder.
+
+- `UnitExists` is never truth-tested directly. Existence now has an explicit
+  readable/UNKNOWN state, and exact-filter authorization fails closed when that
+  witness is unavailable.
+- hostility has an explicit tri-state evidence path. UNKNOWN relation state is
+  retained for diagnostics instead of being represented as a negative fact.
+- readable same-tier elections no longer synthesize `auraInstanceID = 0` when
+  native ordering evidence is inaccessible. A single candidate remains
+  displayable; multiple candidates require a readable ordering witness.
+- baseline-buff recency likewise refuses an unresolved equal-time tie when the
+  native instance ordering is unavailable.
+- hostile readable selection suppresses the broader secure fallback only when
+  the visible identity stream is complete and any same-tier winner is actually
+  warranted.
+- hiding a readable hostile fallback clears its cooldown as well as the icon, so
+  stale presentation state cannot survive revocation.
+- the bounded Lua aura scan budget is defined once as `AURA_SCAN_LIMIT`.
+
+The operative rule is: **absence, identity, ordering, and relation are distinct
+facts**. An inaccessible fact must not be converted into a convenient default
+merely to keep presentation deterministic.
