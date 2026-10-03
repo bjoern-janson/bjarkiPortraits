@@ -1103,7 +1103,7 @@ end
 
 function R.UpdateHost(host, forceContainerRefresh)
     if not host then return end
-    local unitExists, existsReadable = R.SafeBool(UnitExists, host.unit)
+    local unitExists, existsReadable = R.UnitExistsState(host.unit)
     local present = not UnitExists or (existsReadable and unitExists)
     local base = R.IsUnitEnabled(host.unit) and not R.testMode and present
     host._unitExists = present and true or false
