@@ -302,7 +302,8 @@ PT.categories = {
         [18118] = true, -- Aftermath
         [1264735] = true, -- Pinch
         [1264736] = true, -- Pinch
-        [1265039] = true, -- Tendon Rip},
+        [1265039] = true, -- Tendon Rip
+    },
     slows_chilled = {
         [6136] = true, -- Chilled (Frost Armor)
         [7321] = true, -- Chilled (Ice/Frost Armor family)
