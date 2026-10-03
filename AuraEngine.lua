@@ -376,62 +376,78 @@ end
 
 local function scanLatestReadableExactTierAura(unit, tierKey, filter)
     local tier = findTierByKey(tierKey)
-    if not tier or not tier.spellIDs then return nil, false end
-    if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false end
+    if not tier or not tier.spellIDs then return nil, false, false end
+    if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false, false end
 
-    local best
+    local candidates = {}
     local complete = false
     for index = 1, 80 do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
-        if not ok or not R.CanAccess(aura) then return nil, false end
+        if not ok or not R.CanAccess(aura) then return nil, false, false end
         if aura == nil then
             complete = true
             break
         end
 
         local spellID, readable = R.ReadAuraField(aura, "spellId")
-        if not readable or type(spellID) ~= "number" then return nil, false end
+        if not readable or type(spellID) ~= "number" then return nil, false, false end
 
         if tier.spellIDs[spellID] then
             local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
-            if not instanceReadable or type(auraInstanceID) ~= "number" then auraInstanceID = 0 end
-            if not best or auraInstanceID > best.auraInstanceID then
-                best = {
-                    aura = aura,
-                    spellID = spellID,
-                    auraInstanceID = auraInstanceID,
-                    tier = tier,
-                }
-            end
+            candidates[#candidates + 1] = {
+                aura = aura,
+                spellID = spellID,
+                auraInstanceID = instanceReadable and type(auraInstanceID) == "number"
+                    and auraInstanceID or nil,
+                tier = tier,
+            }
         end
     end
 
-    if not complete then return nil, false end
-    return best, true
+    if not complete then return nil, false, false end
+    if #candidates == 0 then return nil, true, true end
+    if #candidates == 1 then return candidates[1], true, true end
+
+    -- The fallback contract is "latest within this tier". If several tracked
+    -- candidates exist and their ordering witness is inaccessible, selecting
+    -- the first one would turn UNKNOWN recency into a fabricated winner.
+    for _, candidate in ipairs(candidates) do
+        if type(candidate.auraInstanceID) ~= "number" then
+            return nil, true, false
+        end
+    end
+
+    local best = candidates[1]
+    for i = 2, #candidates do
+        if candidates[i].auraInstanceID > best.auraInstanceID then
+            best = candidates[i]
+        end
+    end
+    return best, true, true
 end
 
 local function scanReadableHostileHelpful(unit)
     if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then
-        return nil, false, 0
+        return nil, false, 0, false, false
     end
 
-    local best
+    local candidates = {}
     local count = 0
-    local allReadable = true
+    local allIdentitiesReadable = true
     local complete = false
 
     for index = 1, 80 do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
             unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
         if not ok then
-            allReadable = false
+            allIdentitiesReadable = false
             break
         end
 
         -- Never compare/index an inaccessible aura object. If Forever seals the
         -- object itself, the secure HostileHelpful lane remains authoritative.
         if not R.CanAccess(aura) then
-            allReadable = false
+            allIdentitiesReadable = false
             break
         end
         if aura == nil then
@@ -442,34 +458,63 @@ local function scanReadableHostileHelpful(unit)
 
         local spellID, idReadable = R.ReadAuraField(aura, "spellId")
         if not idReadable or type(spellID) ~= "number" then
-            allReadable = false
+            allIdentitiesReadable = false
         else
             local tier = findHelpfulTierForSpell(spellID)
             if tier then
                 local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
-                if not instanceReadable or type(auraInstanceID) ~= "number" then auraInstanceID = 0 end
-                local candidate = {
+                candidates[#candidates + 1] = {
                     aura = aura,
                     spellID = spellID,
                     tier = tier,
-                    auraInstanceID = auraInstanceID,
+                    auraInstanceID = instanceReadable and type(auraInstanceID) == "number"
+                        and auraInstanceID or nil,
                 }
-                if not best
-                    or (tier.level or 0) > (best.tier.level or 0)
-                    or ((tier.level or 0) == (best.tier.level or 0)
-                        and candidate.auraInstanceID > best.auraInstanceID)
-                then
-                    best = candidate
+            end
+        end
+    end
+
+    local best
+    local electionReadable = true
+    if #candidates > 0 then
+        local topLevel = candidates[1].tier.level or 0
+        for i = 2, #candidates do
+            topLevel = math.max(topLevel, candidates[i].tier.level or 0)
+        end
+
+        local top = {}
+        for _, candidate in ipairs(candidates) do
+            if (candidate.tier.level or 0) == topLevel then
+                top[#top + 1] = candidate
+            end
+        end
+
+        if #top == 1 then
+            best = top[1]
+        else
+            for _, candidate in ipairs(top) do
+                if type(candidate.auraInstanceID) ~= "number" then
+                    electionReadable = false
+                    break
+                end
+            end
+            if electionReadable then
+                best = top[1]
+                for i = 2, #top do
+                    if top[i].auraInstanceID > best.auraInstanceID then
+                        best = top[i]
+                    end
                 end
             end
         end
     end
 
-    -- `complete` closes only the Lua-visible stream. It does NOT prove the
-    -- secure AuraContainer plane is empty: Forever may omit protected auras
-    -- from Lua entirely. Suppress secure fallback only after at least one aura
-    -- was actually exposed and every exposed identity was readable.
-    return best, allReadable and complete and count > 0, count, complete
+    -- A complete Lua-visible stream still does not prove the secure plane empty.
+    -- It can, however, authorize this readable projection when at least one aura
+    -- was exposed, every identity was readable, and any same-tier winner is
+    -- actually ordered by readable evidence.
+    local authoritative = allIdentitiesReadable and complete and count > 0 and electionReadable
+    return best, authoritative, count, complete, electionReadable
 end
 
 local function createReadableExactFrame(host, level)
@@ -599,6 +644,7 @@ local function clearReadableSlows(host)
     if frame then hideReadableExact(frame) end
     if host then
         host._slowsReadable = false
+        host._slowsElectionReadable = false
         host._slowsSpellID = nil
         host._slowsActive = false
     end
@@ -623,13 +669,14 @@ local function updateReadableSlows(host, baseEnabled)
         return
     end
 
-    local best, complete = scanLatestReadableExactTierAura(
+    local best, complete, electionReadable = scanLatestReadableExactTierAura(
         host.unit, "Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY"
     )
     host._slowsReadable = complete
+    host._slowsElectionReadable = electionReadable
     host._slowsSpellID = best and best.spellID or nil
 
-    if not complete or not best then
+    if not complete or not electionReadable or not best then
         hideReadableExact(host.readableSlowsFrame)
         host._slowsActive = false
         return
@@ -650,6 +697,7 @@ local function clearReadableHostile(host)
     if not frame then return end
     hideReadableExact(frame)
     host._hostileReadable = false
+    host._hostileElectionReadable = false
     host._hostileVisibleComplete = false
     host._hostileCount = 0
     host._hostileSpellID = nil
@@ -661,16 +709,18 @@ local function updateReadableHostile(host, baseEnabled)
         return false
     end
 
-    local best, allReadable, count, visibleComplete = scanReadableHostileHelpful(host.unit)
-    host._hostileReadable = allReadable
+    local best, authoritative, count, visibleComplete, electionReadable =
+        scanReadableHostileHelpful(host.unit)
+    host._hostileReadable = authoritative
+    host._hostileElectionReadable = electionReadable
     host._hostileVisibleComplete = visibleComplete
     host._hostileCount = count
     host._hostileSpellID = best and best.spellID or nil
 
     local frame = host.readableHostileFrame
     if not frame or not best then
-        if frame then frame:Hide() end
-        return allReadable
+        if frame then hideReadableExact(frame) end
+        return authoritative
     end
 
     local texture
@@ -686,7 +736,7 @@ local function updateReadableHostile(host, baseEnabled)
         -- presentation. Never let a previous winner's icon masquerade as the
         -- current aura.
         hideReadableExact(frame)
-        return allReadable
+        return authoritative
     end
     pcall(frame.icon.SetTexture, frame.icon, texture)
 
@@ -710,7 +760,7 @@ local function updateReadableHostile(host, baseEnabled)
     end
 
     frame:Show()
-    return allReadable
+    return authoritative
 end
 
 local function clearReadableBaseline(host)
@@ -1046,13 +1096,14 @@ function R.UpdateHost(host, forceContainerRefresh)
     local base = R.IsUnitEnabled(host.unit) and not R.testMode and present
     host._unitExists = present and true or false
     host._unitExistsReadable = existsReadable
-    local hostileUnit = R.IsHostileUnit(host.unit)
+    local hostileUnit, hostileRelationReadable = R.HostileUnitState(host.unit)
     local isPlayer, playerReadable = R.PlayerUnitState(host.unit)
     local hostilePlayer = hostileUnit and playerReadable and isPlayer or false
     local assistable, assistReadable = R.SafeBool(
         UnitCanAssist, "player", host.unit, true, true
     )
-    host._hostileUnit = hostileUnit
+    host._hostileUnit = hostileRelationReadable and hostileUnit or nil
+    host._hostileRelationReadable = hostileRelationReadable
     host._hostilePlayer = hostilePlayer
     if playerReadable then host._isPlayer = isPlayer else host._isPlayer = nil end
     host._playerReadable = playerReadable
