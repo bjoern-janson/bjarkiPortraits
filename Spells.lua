@@ -385,7 +385,7 @@ PT.categories = {
         [1671] = true,
         [1672] = true,
     },
-    buffs_shield = {
+    buffs_power_word_shield = {
         [17] = true, -- Power Word: Shield
         [592] = true, -- Power Word: Shield
         [600] = true, -- Power Word: Shield
@@ -397,6 +397,7 @@ PT.categories = {
         [10900] = true, -- Power Word: Shield
         [10901] = true, -- Power Word: Shield
     },
+    buffs_shield = {},
     buffs_defensive = {
         [1299026] = true, -- Shatter Curse
         [23493] = true,
