@@ -6,6 +6,8 @@ local STRATA_BELOW = {
     DIALOG = "HIGH", FULLSCREEN = "DIALOG", FULLSCREEN_DIALOG = "FULLSCREEN", TOOLTIP = "FULLSCREEN_DIALOG",
 }
 
+local AURA_SCAN_LIMIT = 80
+
 local SMALL_GEOMETRY = {
     targettarget = { iconX = 2, iconY = 0, timerX = 0, timerY = -1 },
     focustarget = { iconX = 1, iconY = 0, timerX = 1, timerY = -1 },
@@ -166,7 +168,7 @@ local function scanLatestReadableBaselineAura(unit)
     local allTimingReadable = true
     local complete = false
 
-    for index = 1, 80 do
+    for index = 1, AURA_SCAN_LIMIT do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
             unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
         if not ok or not R.CanAccess(aura) then return nil, false, false end
@@ -238,7 +240,7 @@ end
 local function scanReadableExactAura(unit, filter, spellID)
     if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false end
 
-    for index = 1, 80 do
+    for index = 1, AURA_SCAN_LIMIT do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
         if not ok or not R.CanAccess(aura) then return nil, false end
         if aura == nil then return nil, true end
@@ -334,7 +336,7 @@ local function scanReadableUtilityWinner(unit)
     -- First enumerate the full readable Utility candidate set. The secure lane
     -- uses AuraInstanceIDOnly/Reverse, so readable arbitration must use the same
     -- ordering before it is allowed to suppress that secure owner.
-    for index = 1, 80 do
+    for index = 1, AURA_SCAN_LIMIT do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
             unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
         if not ok or not R.CanAccess(aura) then return nil, false, meta end
@@ -389,7 +391,7 @@ local function scanLatestReadableExactTierAura(unit, tierKey, filter)
 
     local candidates = {}
     local complete = false
-    for index = 1, 80 do
+    for index = 1, AURA_SCAN_LIMIT do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
         if not ok or not R.CanAccess(aura) then return nil, false, false end
         if aura == nil then
@@ -444,7 +446,7 @@ local function scanReadableHostileHelpful(unit)
     local allIdentitiesReadable = true
     local complete = false
 
-    for index = 1, 80 do
+    for index = 1, AURA_SCAN_LIMIT do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
             unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
         if not ok then
