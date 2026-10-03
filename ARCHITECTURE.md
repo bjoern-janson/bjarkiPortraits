@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes the current implementation of **bjarkiPortraits 0.1.62-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
+This document describes the current implementation of **bjarkiPortraits 0.1.63-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into seven Lua modules:
 

@@ -102,6 +102,7 @@ R.TIERS = {
     exact("ResSickness", "HARMFUL", 241, false, C.debuffs_res_sickness, true),
     exact("HonorlessTarget", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 242, true, C.buffs_honorless_target, true),
     exact("Shield", "HELPFUL", 250, true, C.buffs_shield),
+    exact("HealingOverTime", "HELPFUL", 255, true, C.buffs_hots),
     exact("FoodDrink", "HELPFUL", 260, true, C.buffs_fooddrink),
     -- Innervate and Druid Enrage intentionally share one actual priority
     -- surface so equal-priority recency is arbitrated inside one lane.
@@ -116,6 +117,7 @@ R.TIERS = {
     semantic("ExternalDef", "HELPFUL|EXTERNAL_DEFENSIVE", 288),
     semantic("BigDef", "HELPFUL|BIG_DEFENSIVE", 289),
     exact("Defensive", "HELPFUL", 290, true, C.buffs_defensive),
+    exact("ClassAura", "HELPFUL", 295, true, C.buffs_class_other),
     exact("Roots", "HARMFUL", 300, false, C.roots),
     semantic("CrowdControl", "HARMFUL|CROWD_CONTROL", 309),
     -- Stuns are conceptually CC, but runtime exact lanes must be disjoint:
