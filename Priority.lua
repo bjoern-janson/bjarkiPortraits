@@ -101,6 +101,7 @@ R.TIERS = {
     exact("Forbearance", "HARMFUL", 240, false, C.debuffs_priority, true),
     exact("ResSickness", "HARMFUL", 241, false, C.debuffs_res_sickness, true),
     exact("HonorlessTarget", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 242, true, C.buffs_honorless_target, true),
+    exact("PowerWordShield", "HELPFUL", 256, true, C.buffs_power_word_shield),
     exact("Healing", "HELPFUL", 255, true, union("buffs_shield", "buffs_hots")),
     exact("FoodDrink", "HELPFUL", 260, true, C.buffs_fooddrink),
     -- Innervate, Druid Enrage, Warrior Bloodrage, and resource-recovery states intentionally share one
