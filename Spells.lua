@@ -648,6 +648,9 @@ PT.categories = {
     buffs_druid_enrage = {
         [5229] = true, -- Enrage (Druid)
     },
+    buffs_bloodrage = {
+        [29131] = true, -- Bloodrage (Warrior aura; 10 sec rage generation)
+    },
     buffs_thorns = {
         [467] = true, -- Thorns Rank 1 (Druid)
         [782] = true, -- Thorns Rank 2 (Druid)
