@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes the current implementation of **bjarkiPortraits 0.1.61-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
+This document describes the current implementation of **bjarkiPortraits 0.1.62-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into seven Lua modules:
 
@@ -235,3 +235,8 @@ The current implementation is easiest to keep stable when:
 - off-state checks remain present at every host/pet creation boundary;
 - secret/inaccessible values are checked before comparison or arithmetic;
 - docs and other non-runtime files remain outside the `.toc` load list.
+
+
+## 14. Cleanup notes
+
+The current build keeps the existing spell taxonomy, priority elections, access checks, lifecycle guards, and timer policy. A small cleanup pass removes unused wrappers and duplicate readable-frame setup, and avoids reading container enabled state during ordinary refreshes when that value is not used. These changes do not alter the configured spell ownership or lane order.

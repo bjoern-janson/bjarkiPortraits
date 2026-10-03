@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.61-local"
+R.VERSION = "0.1.62-local"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
@@ -201,11 +201,6 @@ function R.PlayerUnitState(unit)
     return nil, false
 end
 
-function R.IsPlayerUnit(unit)
-    local player, readable = R.PlayerUnitState(unit)
-    return readable and player or false
-end
-
 function R.IsHostileUnit(unit)
     if not unit or (UnitExists and not UnitExists(unit)) then return false end
 
@@ -214,10 +209,6 @@ function R.IsHostileUnit(unit)
 
     local attack, attackReadable = R.SafeBool(UnitCanAttack, "player", unit)
     return attackReadable and attack or false
-end
-
-function R.IsHostilePlayer(unit)
-    return R.IsPlayerUnit(unit) and R.IsHostileUnit(unit)
 end
 
 function R.ReadAuraField(aura, key)

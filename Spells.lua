@@ -485,7 +485,7 @@ PT.categories = {
         [1213268] = true, -- Hunter's Mark Rank 4 (Forever alternate aura)
     },
     -- Player rank families verified against Forever build 1.60.1.70170.
-    -- Applied attack-power auras, not name-matched NPC variants; see SPELL_EVIDENCE.md.
+    -- Applied attack-power auras, not name-matched NPC variants.
     debuffs_demoralizing = {
         [1160] = true,  -- Demoralizing Shout Rank 1
         [6190] = true,  -- Demoralizing Shout Rank 2
@@ -660,7 +660,7 @@ PT.categories = {
         [25780] = true, -- Righteous Fury (Paladin)
     },
     buffs_paladin_auras = {
-        -- Passive Paladin aura states are the absolute-bottom tracked buffs.
+        -- Passive Paladin aura states share the PaladinAura priority lane.
         [19746] = true, -- Concentration Aura
 
         [465] = true, -- Devotion Aura Rank 1

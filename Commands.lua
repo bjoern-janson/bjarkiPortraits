@@ -9,7 +9,7 @@ end
 
 SLASH_BJARKIPORTRAITS1 = "/bp"
 SlashCmdList.BJARKIPORTRAITS = function(message)
-    local command, arg = (message or ""):lower():match("^(%S*)%s*(.-)$")
+    local command = (message or ""):lower():match("^(%S*)%s*(.-)$")
     if command == "" or command == "help" then
         R.Print("/bp test | on | off | player | target | focus | tot | fot | swipe | decimals | pets | debug | reset")
     elseif command == "test" then

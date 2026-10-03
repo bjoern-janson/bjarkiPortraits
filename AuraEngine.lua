@@ -11,11 +11,9 @@ local SMALL_GEOMETRY = {
     focustarget = { iconX = 1, iconY = 0, timerX = 1, timerY = -1 },
 }
 
--- Small Blizzard derived frames do not expose a reliable PortraitMask on every
--- Forever build.  The icon therefore owns a local circular mask when Blizzard
--- does not provide one.  This masks only addon artwork; native frame regions are
--- never mutated.
-local function applyIconMask(host, owner, icon)
+-- Use Blizzard's portrait mask when exposed. Small derived frames without one
+-- rely on the native artwork above the shared lower layer for circular framing.
+local function applyIconMask(host, icon)
     -- Reuse Blizzard's real portrait mask when exposed.  For ToT/FoT, the
     -- native frame artwork above the shared lower layer provides the visible
     -- circular framing; do not synthesize a second mask or cloned ring.
@@ -61,7 +59,7 @@ local function initializeButton(host, button, tier)
     local icon = button:CreateTexture(nil, "BACKGROUND")
     icon:SetAllPoints(button)
     icon:SetTexCoord(0, 1, 0, 1)
-    applyIconMask(host, button, icon)
+    applyIconMask(host, icon)
     button:SetIcon(icon)
 
     local cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
@@ -151,8 +149,6 @@ local function readAuraStartTime(unit, aura, auraInstanceID)
     return nil, false, nil
 end
 
-local getReadablePlayerAuraBySpellID
-
 local function scanLatestReadableBaselineAura(unit)
     local tier = findTierByKey("BaselineClass")
     if not tier or not tier.spellIDs then return nil, false end
@@ -241,7 +237,7 @@ local function scanReadableExactAura(unit, filter, spellID)
     return nil, false
 end
 
-getReadablePlayerAuraBySpellID = function(spellID)
+local function getReadablePlayerAuraBySpellID(spellID)
     if not C_UnitAuras or not C_UnitAuras.GetPlayerAuraBySpellID then
         return nil, false, false
     end
@@ -346,7 +342,7 @@ local function scanReadableUtilityWinner(unit)
     -- Forever has exposed Welcoming Campfire through a direct player lookup on
     -- builds where the indexed stream was inconsistent. A positive direct
     -- witness joins the SAME Utility election instead of short-circuiting it.
-    if unit == "player" and getReadablePlayerAuraBySpellID then
+    if unit == "player" then
         for _, spellID in ipairs(WELCOMING_CAMPFIRE_DIRECT_IDS) do
             local aura, readable, directAvailable = getReadablePlayerAuraBySpellID(spellID)
             meta.welcomingDirect = meta.welcomingDirect or directAvailable
@@ -468,26 +464,6 @@ local function scanReadableHostileHelpful(unit)
     return best, allReadable and complete and count > 0, count, complete
 end
 
-local function createReadableHostileFrame(host)
-    local frame = CreateFrame("Frame", nil, host.layer)
-    placeAtPortrait(frame, host)
-    frame:SetFrameStrata(host.strata)
-    frame:SetFrameLevel((host.smallBaseLevel or 0) + 152)
-
-    local icon = frame:CreateTexture(nil, "BACKGROUND")
-    icon:SetAllPoints(frame)
-    icon:SetTexCoord(0, 1, 0, 1)
-    applyIconMask(host, frame, icon)
-    frame.icon = icon
-
-    local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
-    configureCooldown(cooldown, host.unit)
-    frame.cooldown = cooldown
-    host.cooldowns[#host.cooldowns + 1] = cooldown
-    frame:Hide()
-    return frame
-end
-
 local function createReadableExactFrame(host, level)
     local frame = CreateFrame("Frame", nil, host.layer)
     placeAtPortrait(frame, host)
@@ -497,7 +473,7 @@ local function createReadableExactFrame(host, level)
     local icon = frame:CreateTexture(nil, "BACKGROUND")
     icon:SetAllPoints(frame)
     icon:SetTexCoord(0, 1, 0, 1)
-    applyIconMask(host, frame, icon)
+    applyIconMask(host, icon)
     frame.icon = icon
 
     local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
@@ -664,22 +640,15 @@ end
 local function clearReadableHostile(host)
     local frame = host and host.readableHostileFrame
     if not frame then return end
-    if frame.cooldown then
-        if frame.cooldown.Clear then
-            pcall(frame.cooldown.Clear, frame.cooldown)
-        elseif frame.cooldown.SetCooldown then
-            pcall(frame.cooldown.SetCooldown, frame.cooldown, 0, 0)
-        end
-    end
-    frame:Hide()
+    hideReadableExact(frame)
     host._hostileReadable = false
     host._hostileVisibleComplete = false
     host._hostileCount = 0
     host._hostileSpellID = nil
 end
 
-local function updateReadableHostile(host, baseEnabled, hostilePlayer)
-    if not host or not baseEnabled or not hostilePlayer or R.testMode then
+local function updateReadableHostile(host, baseEnabled)
+    if not host or not baseEnabled or R.testMode then
         clearReadableHostile(host)
         return false
     end
@@ -832,7 +801,7 @@ local function createTestFrame(host)
     local icon = frame:CreateTexture(nil, "OVERLAY")
     icon:SetAllPoints(frame)
     icon:SetTexCoord(0, 1, 0, 1)
-    applyIconMask(host, frame, icon)
+    applyIconMask(host, icon)
     frame.icon = icon
     local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
     configureCooldown(cooldown, host.unit)
@@ -916,7 +885,6 @@ function R.CreateHost(unit)
     local point, relativeTo, relativePoint, x, y = firstPoint(portrait)
     if not point then return nil end
 
-    local isSmall = R.SMALL_UNITS[unit] and true or false
     local layer, strata, anchor, ownsLayer, reparented
     local smallBaseLevel = 0
 
@@ -983,7 +951,7 @@ function R.CreateHost(unit)
     end
 
     host.testFrame = createTestFrame(host)
-    host.readableHostileFrame = createReadableHostileFrame(host)
+    host.readableHostileFrame = createReadableExactFrame(host, 151)
     local baselineTier = findTierByKey("BaselineClass")
     host.readableBaselineFrame = createReadableExactFrame(
         host, baselineTier and baselineTier.level or 90
@@ -1047,7 +1015,7 @@ local function setContainer(container, shown, forceRefresh)
     if not container then return end
 
     local wasEnabled
-    if container.IsEnabled then
+    if forceRefresh and shown and container.IsEnabled then
         local ok, value = pcall(container.IsEnabled, container)
         if ok and type(value) == "boolean" then wasEnabled = value end
     end
@@ -1088,7 +1056,7 @@ function R.UpdateHost(host, forceContainerRefresh)
         -- Readable exact hostile helpful auras are useful for both players and
         -- NPCs. Only hostile players receive the broad secure fallback below;
         -- unreadable hostile NPC helpful state is intentionally left alone.
-        hostileReadable = updateReadableHostile(host, base, true)
+        hostileReadable = updateReadableHostile(host, base)
     else
         clearReadableHostile(host)
     end
