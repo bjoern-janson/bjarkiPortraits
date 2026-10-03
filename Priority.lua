@@ -101,10 +101,9 @@ R.TIERS = {
     exact("Forbearance", "HARMFUL", 240, false, C.debuffs_priority, true),
     exact("ResSickness", "HARMFUL", 241, false, C.debuffs_res_sickness, true),
     exact("HonorlessTarget", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 242, true, C.buffs_honorless_target, true),
-    exact("Shield", "HELPFUL", 250, true, C.buffs_shield),
-    exact("HealingOverTime", "HELPFUL", 255, true, C.buffs_hots),
+    exact("Healing", "HELPFUL", 255, true, union("buffs_shield", "buffs_hots")),
     exact("FoodDrink", "HELPFUL", 260, true, C.buffs_fooddrink),
-    -- Innervate, Druid Enrage, and Warrior Bloodrage intentionally share one
+    -- Innervate, Druid Enrage, Warrior Bloodrage, and resource-recovery states intentionally share one
     -- actual priority surface so equal-priority recency is arbitrated inside
     -- one lane.
     exact("Innervate", "HELPFUL", 261, true,
@@ -120,6 +119,7 @@ R.TIERS = {
     exact("Defensive", "HELPFUL", 290, true, C.buffs_defensive),
     exact("ClassAura", "HELPFUL", 295, true, C.buffs_class_other),
     exact("Roots", "HARMFUL", 300, false, C.roots),
+    exact("RootImmunity", "HELPFUL", 305, true, C.immunities_root),
     semantic("CrowdControl", "HARMFUL|CROWD_CONTROL", 309),
     -- Stuns are conceptually CC, but runtime exact lanes must be disjoint:
     -- the dedicated 320 Stun lane owns every stun ID.
