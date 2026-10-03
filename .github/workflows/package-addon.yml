@@ -1,0 +1,21 @@
+name: Package addon
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage addon
+        run: |
+          mkdir -p dist/bjarkiPortraits
+          cp Spells.lua Core.lua Priority.lua AuraEngine.lua PetPortraits.lua Commands.lua Main.lua bjarkiPortraits.toc bjarkiPortraits_Camelot.toc dist/bjarkiPortraits/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bjarkiPortraits
+          path: dist
+          if-no-files-found: error
