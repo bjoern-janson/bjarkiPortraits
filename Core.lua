@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.64-local"
+R.VERSION = "0.1.65-local"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
@@ -68,6 +68,14 @@ function R.SafeString(fn, ...)
     local ok, value = pcall(fn, ...)
     if not ok or R.IsSecret(value) or type(value) ~= "string" then return nil, false end
     return value, true
+end
+
+-- Existence is evidence, not a prerequisite we are allowed to truth-test
+-- directly. Forever can protect otherwise ordinary unit API results, so callers
+-- must be able to distinguish ABSENT from UNKNOWN.
+function R.UnitExistsState(unit)
+    if not unit then return false, true end
+    return R.SafeBool(UnitExists, unit)
 end
 
 function R.IsUnitEnabled(unit)
@@ -156,7 +164,8 @@ function R.SetIsNeverSecret(spellIDs)
 end
 
 function R.ExactFilterAllowed(unit, helpful, spellIDs, allowNeverSecret)
-    if not unit or (UnitExists and not UnitExists(unit)) then return false end
+    local exists, existsReadable = R.UnitExistsState(unit)
+    if not existsReadable or not exists then return false end
 
     if allowNeverSecret and R.SetIsNeverSecret(spellIDs) then return true end
 
@@ -201,14 +210,25 @@ function R.PlayerUnitState(unit)
     return nil, false
 end
 
-function R.IsHostileUnit(unit)
-    if not unit or (UnitExists and not UnitExists(unit)) then return false end
+function R.HostileUnitState(unit)
+    local exists, existsReadable = R.UnitExistsState(unit)
+    if not existsReadable or not exists then return nil, false end
 
     local assist, assistReadable = R.SafeBool(UnitCanAssist, "player", unit, true, true)
-    if assistReadable then return not assist end
+    if assistReadable then return not assist, true end
 
     local attack, attackReadable = R.SafeBool(UnitCanAttack, "player", unit)
-    return attackReadable and attack or false
+    if attackReadable then return attack, true end
+
+    return nil, false
+end
+
+-- Compatibility helper for call sites that only need a positive witness.
+-- UNKNOWN deliberately collapses to false here; use HostileUnitState when the
+-- distinction itself matters.
+function R.IsHostileUnit(unit)
+    local hostile, readable = R.HostileUnitState(unit)
+    return readable and hostile or false
 end
 
 function R.ReadAuraField(aura, key)
