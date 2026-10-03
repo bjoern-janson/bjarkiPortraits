@@ -2,11 +2,13 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.66-local"
+R.VERSION = "0.1.67-local"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
 R.hosts = {}
+R.AURA_RECENCY = {}
+R._auraRecencySequence = 0
 R.testMode = false
 R.buildQueued = false
 R.forceRebuildQueued = false
@@ -284,5 +286,85 @@ function R.ApplyCountdownFormat(cooldown)
             cooldown,
             R.db and R.db.showDecimals and 10 or 0
         )
+    end
+end
+
+function R.GetAuraRecency(unit, auraInstanceID)
+    local unitState = R.AURA_RECENCY[unit]
+    local record = unitState and unitState[auraInstanceID]
+    return record and record.sequence or nil
+end
+
+function R.RecordAuraUpdate(unit, updateInfo)
+    if type(unit) ~= "string" or type(updateInfo) ~= "table" or not R.CanAccess(updateInfo) then return end
+    if updateInfo.isFullUpdate then
+        R.AURA_RECENCY[unit] = {}
+        return
+    end
+
+    local unitState = R.AURA_RECENCY[unit]
+    if not unitState then
+        unitState = {}
+        R.AURA_RECENCY[unit] = unitState
+    end
+
+    local healingTier = R.TIER_BY_KEY and R.TIER_BY_KEY.Healing
+
+    local function inspectAura(aura, isAdded)
+        if not R.CanAccess(aura) then return end
+        local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
+        local spellID, spellReadable = R.ReadAuraField(aura, "spellId")
+        if not instanceReadable or type(auraInstanceID) ~= "number"
+            or not spellReadable or type(spellID) ~= "number"
+        then
+            return
+        end
+        if not healingTier or not healingTier.spellIDs or not healingTier.spellIDs[spellID] then return end
+
+        local duration, durationReadable = R.ReadAuraField(aura, "duration")
+        local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
+        local startTime
+        if durationReadable and expirationReadable
+            and type(duration) == "number" and type(expirationTime) == "number"
+            and duration > 0
+        then
+            startTime = expirationTime - duration
+        end
+
+        local prior = unitState[auraInstanceID]
+        if isAdded then
+            R._auraRecencySequence = R._auraRecencySequence + 1
+            unitState[auraInstanceID] = {
+                sequence = R._auraRecencySequence,
+                startTime = startTime,
+            }
+        elseif startTime and prior and prior.startTime
+            and startTime > prior.startTime + 0.01
+        then
+            R._auraRecencySequence = R._auraRecencySequence + 1
+            prior.sequence = R._auraRecencySequence
+            prior.startTime = startTime
+        elseif startTime and not prior then
+            R._auraRecencySequence = R._auraRecencySequence + 1
+            unitState[auraInstanceID] = {
+                sequence = R._auraRecencySequence,
+                startTime = startTime,
+            }
+        end
+    end
+
+    for _, aura in ipairs(updateInfo.addedAuras or {}) do
+        inspectAura(aura, true)
+    end
+
+    for _, auraInstanceID in ipairs(updateInfo.updatedAuraInstanceIDs or {}) do
+        if C_UnitAuras and C_UnitAuras.GetAuraDataByAuraInstanceID then
+            local ok, aura = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, auraInstanceID)
+            if ok then inspectAura(aura, false) end
+        end
+    end
+
+    for _, auraInstanceID in ipairs(updateInfo.removedAuraInstanceIDs or {}) do
+        unitState[auraInstanceID] = nil
     end
 end
