@@ -1,0 +1,26 @@
+name: Validate bjarkiPortraits 0.1.64
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [0.1.64-local]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua 5.1
+        run: sudo apt-get update -qq && sudo apt-get install -y lua5.1
+      - name: Syntax
+        run: |
+          for f in Spells.lua Core.lua Priority.lua AuraEngine.lua PetPortraits.lua Commands.lua Main.lua; do
+            luac5.1 -p "$f"
+          done
+      - name: Guardrails
+        run: |
+          grep -q 'R.TIER_BY_KEY = {}' Priority.lua
+          grep -q 'R.HELPFUL_TIER_BY_SPELL = {}' Priority.lua
+          grep -q 'R.TIER_AUDIT = {' Priority.lua
+          grep -q 'command == "audit"' Commands.lua
+          ! grep -q '"OnUpdate"' AuraEngine.lua
