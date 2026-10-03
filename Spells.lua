@@ -21,7 +21,10 @@ PT.categories = {
         [1020] = true,
         [11958] = true,
         [20230] = true,
-        [20589] = true, -- Escape Artist (Gnome; 3 sec movement-impairing immunity)
+    },
+    immunities_root = {
+        [1044] = true, -- Blessing of Freedom
+        [20589] = true, -- Escape Artist
     },
     cc = {
         [20549] = true,
@@ -203,6 +206,8 @@ PT.categories = {
         [1220748] = true,
         [1220749] = true,
         [1220751] = true,
+                [19577] = true, -- Intimidation
+                [1277455] = true, -- Confounding Flash
     },
     debuffs_dots = {
         -- Mage residual/periodic damage
@@ -306,6 +311,7 @@ PT.categories = {
         [18101] = true, -- Chilled (Forever/NPC variant)
         [20005] = true, -- Chilled (Forever/NPC variant)
         [1296223] = true, -- Chilled (Forever/NPC variant)
+                [120] = true, -- Cone of Cold
     },
     roots = {
         [6533] = true,
@@ -413,7 +419,6 @@ PT.categories = {
         [19443] = true,
         [16188] = true,
         [436391] = true,
-        [1044] = true,
         [6940] = true,
         [20729] = true,
         [407613] = true,
@@ -448,6 +453,22 @@ PT.categories = {
         [1277638] = true, -- Contingency Plan Rank 3 (ward)
         [1277639] = true, -- Contingency Plan Rank 4 (ward)
         [1277640] = true, -- Contingency Plan Rank 5 (ward)
+                [2565] = true, -- Shield Block
+                [2651] = true, -- Elune's Grace
+                [2893] = true, -- Abolish Poison
+                [2947] = true, -- Fire Shield
+                [8316] = true, -- Fire Shield
+                [14751] = true, -- Inner Focus
+                [16177] = true, -- Ancestral Fortitude
+                [17116] = true, -- Nature's Swiftness
+                [19753] = true, -- Divine Intervention
+                [20216] = true, -- Divine Favor
+                [26064] = true, -- Shell Shield
+                [27828] = true, -- Focused Casting
+                [1310897] = true, -- Voice of Truth
+                [1311015] = true, -- Templar's Bulwark
+                [1311033] = true, -- Iron Creed
+                [1310612] = true, -- Trickster's Dance
     },
     buffs_utility = {
         [1953] = true, -- Blink (Mage)
@@ -470,6 +491,13 @@ PT.categories = {
         [16812] = true, -- Nature's Grasp Rank 4
         [16813] = true, -- Nature's Grasp Rank 5
         [17329] = true, -- Nature's Grasp Rank 6
+                [130] = true, -- Slow Fall
+                [131] = true, -- Water Breathing
+                [1539] = true, -- Feed Pet Effect
+                [1725] = true, -- Distract
+                [4511] = true, -- Phase Shift
+                [18288] = true, -- Amplify Curse
+                [18708] = true, -- Fel Domination
     },
     buffs_offensive = {
         [20554] = true, -- Berserking (Troll racial, Forever)
@@ -519,6 +547,27 @@ PT.categories = {
         [1719] = true,
         [12328] = true,
         [18499] = true,
+        
+        [1323969] = true, -- Gore Drinker
+                [1949] = true, -- Hellfire
+                [5171] = true, -- Slice and Dice
+                [6150] = true, -- Quick Shots
+                [12043] = true, -- Presence of Mind
+                [12292] = true, -- Sweeping Strikes
+                [12536] = true, -- Clearcasting
+                [13896] = true, -- Feedback
+                [14177] = true, -- Cold Blood
+                [16246] = true, -- Clearcasting
+                [16886] = true, -- Nature's Grace
+                [19271] = true, -- Feedback
+                [20050] = true, -- Vengeance
+                [24604] = true, -- Furious Howl
+                [24605] = true, -- Furious Howl
+                [400589] = true, -- Missile Barrage
+                [1284536] = true, -- Holy Purpose
+                [1299448] = true, -- Quick Strikes
+                [1310726] = true, -- Expose Prey
+                [1310994] = true, -- Swift Judgement
     },
     debuffs_hunters_mark = {
         [1130] = true, -- Hunter's Mark Rank 1
@@ -595,6 +644,7 @@ PT.categories = {
         [1311676] = true, -- Curse of the Elements},
     debuffs_priority = {
         [25771] = true, -- Forbearance (Paladin)
+                [15571] = true, -- Dazed
     },
     debuffs_res_sickness = {
         [15007] = true, -- Resurrection Sickness
@@ -624,6 +674,13 @@ PT.categories = {
         [20306] = true, -- Seal of the Crusader Rank 4 (Paladin)
         [20307] = true, -- Seal of the Crusader Rank 5 (Paladin)
         [20308] = true, -- Seal of the Crusader Rank 6 (Paladin)
+                [20163] = true, -- Seal of Fury
+                [20164] = true, -- Seal of Justice
+                [20165] = true, -- Seal of Light
+                [20375] = true, -- Seal of Command
+                [20915] = true, -- Seal of Command
+                [1311649] = true, -- Seal of Fury
+                [1311656] = true, -- Seal of Fury
     },
     buffs_fooddrink = {
         -- Active recovery/channel states share one portrait priority lane.
@@ -631,23 +688,6 @@ PT.categories = {
         [20578] = true, -- Cannibalize channel aura (Undead)
         [12051] = true, -- Evocation (Mage)
         -- First Aid / bandage channels
-        [746] = true, -- First Aid Rank 1 (Linen Bandage)
-        [1159] = true, -- First Aid Rank 2 (Heavy Linen Bandage)
-        [3267] = true, -- First Aid Rank 3 (Wool Bandage)
-        [3268] = true, -- First Aid Rank 4 (Heavy Wool Bandage)
-        [7926] = true, -- First Aid Rank 5 (Silk Bandage)
-        [7927] = true, -- First Aid Rank 6 (Heavy Silk Bandage)
-        [10838] = true, -- First Aid Rank 7 (Mageweave Bandage)
-        [10839] = true, -- First Aid Rank 8 (Heavy Mageweave Bandage)
-        [18608] = true, -- First Aid Rank 9 (Runecloth Bandage)
-        [18610] = true, -- First Aid Rank 10 (Heavy Runecloth Bandage)
-        [23567] = true, -- First Aid (Warsong Gulch Runecloth Bandage)
-        [23568] = true, -- First Aid (Warsong Gulch Mageweave Bandage)
-        [23569] = true, -- First Aid (Warsong Gulch Silk Bandage)
-        [23696] = true, -- First Aid (Alterac Heavy Runecloth Bandage)
-        [24412] = true, -- First Aid (Arathi Basin Silk Bandage)
-        [24413] = true, -- First Aid (Arathi Basin Mageweave Bandage)
-        [24414] = true, -- First Aid (Arathi Basin Runecloth Bandage)
         -- Food (Vanilla/Forever eating auras)
         [433] = true, -- Food
         [434] = true, -- Food
@@ -747,10 +787,34 @@ PT.categories = {
         [8940] = true, -- Regrowth
         [16488] = true, -- Blood Craze
         [17850] = true, -- Consume Shadows
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
     },
 
     buffs_innervate = {
         [29166] = true, -- Innervate (Druid)
+                [15271] = true, -- Spirit Tap
+                [16191] = true, -- Mana Tide
+                [17355] = true, -- Mana Tide
+                [17360] = true, -- Mana Tide
+                [1242688] = true, -- Resourcefulness
+                [1277324] = true, -- Dark Sacrifice
+                [1277325] = true, -- Dark Sacrifice
     },
     buffs_druid_enrage = {
         [5229] = true, -- Enrage (Druid)
@@ -816,6 +880,26 @@ PT.categories = {
         [6372] = true,
         [10460] = true,
         [10461] = true,
+                [5677] = true, -- Mana Spring
+                [8076] = true, -- Strength of Earth
+                [8162] = true, -- Strength of Earth
+                [8163] = true, -- Strength of Earth
+                [8182] = true, -- Frost Resistance
+                [8185] = true, -- Fire Resistance
+                [10441] = true, -- Strength of Earth
+                [10476] = true, -- Frost Resistance
+                [10477] = true, -- Frost Resistance
+                [10491] = true, -- Mana Spring
+                [10493] = true, -- Mana Spring
+                [10494] = true, -- Mana Spring
+                [10534] = true, -- Fire Resistance
+                [10535] = true, -- Fire Resistance
+                [10596] = true, -- Nature Resistance
+                [10598] = true, -- Nature Resistance
+                [10599] = true, -- Nature Resistance
+                [24853] = true, -- Mana Spring
+                [25362] = true, -- Strength of Earth
+                [1299346] = true, -- Trueshot Aura
     },
     buffs_blood_pact = {
         [6307] = true, -- Blood Pact Rank 1 (Warlock Imp)
@@ -945,122 +1029,45 @@ PT.categories = {
         [20913] = true,
         [20914] = true,
         [25899] = true, -- Greater Blessing of Sanctuary
+                [604] = true, -- Dampen Magic
+                [8450] = true, -- Dampen Magic
+                [8455] = true, -- Amplify Magic
+                [976] = true, -- Shadow Protection
+                [1008] = true, -- Amplify Magic
+                [7302] = true, -- Ice Armor
+                [13161] = true, -- Aspect of the Beast
+                [14752] = true, -- Divine Spirit
     },
-    buffs_class_other = {
-        [1323969] = true, -- Gore Drinker
-        [120] = true, -- Cone of Cold
-        [126] = true, -- Eye of Kilrogg
-        [130] = true, -- Slow Fall
-        [131] = true, -- Water Breathing
-        [132] = true, -- Detect Invisibility
-        [586] = true, -- Fade
-        [604] = true, -- Dampen Magic
-        [976] = true, -- Shadow Protection
-        [1008] = true, -- Amplify Magic
-        [1462] = true, -- Beast Lore
-        [1494] = true, -- Track Beasts
-        [1539] = true, -- Feed Pet Effect
-        [1725] = true, -- Distract
-        [1949] = true, -- Hellfire
-        [2096] = true, -- Mind Vision
-        [2565] = true, -- Shield Block
-        [2651] = true, -- Elune's Grace
-        [2893] = true, -- Abolish Poison
-        [2947] = true, -- Fire Shield
-        [4511] = true, -- Phase Shift
-        [5171] = true, -- Slice and Dice
-        [5384] = true, -- Feign Death
-        [5500] = true, -- Sense Demons
-        [5502] = true, -- Sense Undead
-        [5677] = true, -- Mana Spring
-        [6150] = true, -- Quick Shots
-        [6196] = true, -- Far Sight
-        [6197] = true, -- Eagle Eye
-        [7302] = true, -- Ice Armor
-        [7371] = true, -- Charge
-        [8076] = true, -- Strength of Earth
-        [8162] = true, -- Strength of Earth
-        [8163] = true, -- Strength of Earth
-        [8182] = true, -- Frost Resistance
-        [8185] = true, -- Fire Resistance
-        [8316] = true, -- Fire Shield
-        [8450] = true, -- Dampen Magic
-        [8455] = true, -- Amplify Magic
-        [9578] = true, -- Fade
-        [9579] = true, -- Fade
-        [10441] = true, -- Strength of Earth
-        [10476] = true, -- Frost Resistance
-        [10477] = true, -- Frost Resistance
-        [10491] = true, -- Mana Spring
-        [10493] = true, -- Mana Spring
-        [10494] = true, -- Mana Spring
-        [10534] = true, -- Fire Resistance
-        [10535] = true, -- Fire Resistance
-        [10596] = true, -- Nature Resistance
-        [10598] = true, -- Nature Resistance
-        [10599] = true, -- Nature Resistance
-        [11327] = true, -- Vanish
-        [12043] = true, -- Presence of Mind
-        [12292] = true, -- Sweeping Strikes
-        [12536] = true, -- Clearcasting
-        [13161] = true, -- Aspect of the Beast
-        [13896] = true, -- Feedback
-        [14177] = true, -- Cold Blood
-        [14751] = true, -- Inner Focus
-        [14752] = true, -- Divine Spirit
-        [15271] = true, -- Spirit Tap
-        [15571] = true, -- Dazed
-        [16177] = true, -- Ancestral Fortitude
-        [16191] = true, -- Mana Tide
-        [16246] = true, -- Clearcasting
-        [16886] = true, -- Nature's Grace
-        [17116] = true, -- Nature's Swiftness
-        [17355] = true, -- Mana Tide
-        [17360] = true, -- Mana Tide
-        [18288] = true, -- Amplify Curse
-        [18708] = true, -- Fel Domination
-        [19271] = true, -- Feedback
-        [19577] = true, -- Intimidation
-        [19753] = true, -- Divine Intervention
-        [19880] = true, -- Track Elementals
-        [19883] = true, -- Track Humanoids
-        [19884] = true, -- Track Undead
-        [19885] = true, -- Track Hidden
-        [20050] = true, -- Vengeance
-        [20163] = true, -- Seal of Fury
-        [20164] = true, -- Seal of Justice
-        [20165] = true, -- Seal of Light
-        [20216] = true, -- Divine Favor
-        [20375] = true, -- Seal of Command
-        [20915] = true, -- Seal of Command
-        [23099] = true, -- Dash
-        [23145] = true, -- Dive
-        [24450] = true, -- Prowl
-        [24604] = true, -- Furious Howl
-        [24605] = true, -- Furious Howl
-        [24853] = true, -- Mana Spring
-        [25362] = true, -- Strength of Earth
-        [26064] = true, -- Shell Shield
-        [26177] = true, -- Charge
-        [26178] = true, -- Charge
-        [27828] = true, -- Focused Casting
-        [400589] = true, -- Missile Barrage
-        [1242688] = true, -- Resourcefulness
-        [1277324] = true, -- Dark Sacrifice
-        [1277325] = true, -- Dark Sacrifice
-        [1277455] = true, -- Confounding Flash
-        [1284536] = true, -- Holy Purpose
-        [1299346] = true, -- Trueshot Aura
-        [1299448] = true, -- Quick Strikes
-        [1310612] = true, -- Trickster's Dance
-        [1310726] = true, -- Expose Prey
-        [1310897] = true, -- Voice of Truth
-        [1310994] = true, -- Swift Judgement
-        [1311015] = true, -- Templar's Bulwark
-        [1311033] = true, -- Iron Creed
-        [1311649] = true, -- Seal of Fury
-        [1311656] = true, -- Seal of Fury
-        [1317257] = true, -- Strider Kick
+    buffs_tracking = {
+        -- Pure information/scouting auras are the absolute bottom helpful tier.
+                [126] = true, -- Eye of Kilrogg
+                [132] = true, -- Detect Invisibility
+                [1462] = true, -- Beast Lore
+                [1494] = true, -- Track Beasts
+                [2096] = true, -- Mind Vision
+                [5500] = true, -- Sense Demons
+                [5502] = true, -- Sense Undead
+                [6196] = true, -- Far Sight
+                [6197] = true, -- Eagle Eye
+                [19880] = true, -- Track Elementals
+                [19883] = true, -- Track Humanoids
+                [19884] = true, -- Track Undead
+                [19885] = true, -- Track Hidden
+    },
+    buffs_mobility = {
+        -- Movement/stealth state shares the existing Mobility priority lane.
+                [5384] = true, -- Feign Death
+                [586] = true, -- Fade
+                [9578] = true, -- Fade
+                [9579] = true, -- Fade
+                [11327] = true, -- Vanish
+                [23099] = true, -- Dash
+                [23145] = true, -- Dive
+                [24450] = true, -- Prowl
+                [7371] = true, -- Charge
+                [26177] = true, -- Charge
+                [26178] = true, -- Charge
+                [1317257] = true, -- Strider Kick
     },
 
     buffs_camp_benefits = {
