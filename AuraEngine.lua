@@ -159,8 +159,8 @@ end
 
 local function scanLatestReadableBaselineAura(unit)
     local tier = findTierByKey("BaselineClass")
-    if not tier or not tier.spellIDs then return nil, false end
-    if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false end
+    if not tier or not tier.spellIDs then return nil, false, false end
+    if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false, false end
 
     local candidates = {}
     local allTimingReadable = true
@@ -169,7 +169,7 @@ local function scanLatestReadableBaselineAura(unit)
     for index = 1, 80 do
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
             unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
-        if not ok or not R.CanAccess(aura) then return nil, false end
+        if not ok or not R.CanAccess(aura) then return nil, false, false end
         if aura == nil then
             complete = true
             break
@@ -179,7 +179,7 @@ local function scanLatestReadableBaselineAura(unit)
         if not spellReadable or type(spellID) ~= "number" then
             -- We cannot prove that an unreadable aura is outside BaselineClass.
             -- Relinquish the readable override and let secure rendering stand.
-            return nil, false
+            return nil, false, false
         end
 
         if tier.spellIDs[spellID] then
@@ -203,28 +203,36 @@ local function scanLatestReadableBaselineAura(unit)
         end
     end
 
-    if not complete then return nil, false end
-    if #candidates == 0 then return nil, true end
+    if not complete then return nil, false, false end
+    if #candidates == 0 then return nil, true, true end
+    if not allTimingReadable then return nil, true, false end
+    if #candidates == 1 then
+        candidates[1].timingReadable = true
+        return candidates[1], true, true
+    end
 
     local best = candidates[1]
     for i = 2, #candidates do
         local candidate = candidates[i]
-        if allTimingReadable then
-            local newer = candidate.appliedAt > best.appliedAt
-            if candidate.appliedAt == best.appliedAt
-                and type(candidate.auraInstanceID) == "number"
-                and type(best.auraInstanceID) == "number"
+        if candidate.appliedAt > best.appliedAt then
+            best = candidate
+        elseif candidate.appliedAt == best.appliedAt then
+            if type(candidate.auraInstanceID) ~= "number"
+                or type(best.auraInstanceID) ~= "number"
             then
-                newer = candidate.auraInstanceID > best.auraInstanceID
+                -- Equal application-time evidence without a readable native
+                -- ordering witness is a real tie, not permission to keep the
+                -- first enumerated candidate.
+                return nil, true, false
             end
-            if newer then best = candidate end
+            if candidate.auraInstanceID > best.auraInstanceID then
+                best = candidate
+            end
         end
     end
 
-    if not allTimingReadable then return nil, true end
-
     best.timingReadable = true
-    return best, true
+    return best, true, true
 end
 
 local function scanReadableExactAura(unit, filter, spellID)
@@ -768,6 +776,7 @@ local function clearReadableBaseline(host)
     if frame then hideReadableExact(frame) end
     if host then
         host._baselineReadable = false
+        host._baselineElectionReadable = false
         host._baselineSpellID = nil
         host._baselineTimingReadable = false
         host._baselineTimingSource = nil
@@ -789,14 +798,15 @@ local function updateReadableBaseline(host, baseEnabled)
         return
     end
 
-    local best, complete = scanLatestReadableBaselineAura(host.unit)
+    local best, complete, electionReadable = scanLatestReadableBaselineAura(host.unit)
     host._baselineReadable = complete
+    host._baselineElectionReadable = electionReadable
     host._baselineSpellID = best and best.spellID or nil
     host._baselineTimingReadable = best and best.timingReadable or false
     host._baselineTimingSource = best and best.timingSource or nil
     host._baselineAppliedAt = best and best.appliedAt or nil
 
-    if not complete or not best then
+    if not complete or not electionReadable or not best then
         hideReadableExact(host.readableBaselineFrame)
         return
     end
