@@ -722,7 +722,8 @@ PT.categories = {
         [29007] = true, -- Drink
         [29039] = true, -- Drink
         [22734] = true, -- Drink
-    },    buffs_hots = {
+    },
+    buffs_hots = {
         [17767] = true, -- Consume Shadows
         [136] = true, -- Mend Pet
         [139] = true, -- Renew
@@ -944,7 +945,8 @@ PT.categories = {
         [20913] = true,
         [20914] = true,
         [25899] = true, -- Greater Blessing of Sanctuary
-    },    buffs_class_other = {
+    },
+    buffs_class_other = {
         [1323969] = true, -- Gore Drinker
         [120] = true, -- Cone of Cold
         [126] = true, -- Eye of Kilrogg
