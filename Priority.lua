@@ -103,10 +103,11 @@ R.TIERS = {
     exact("HonorlessTarget", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 242, true, C.buffs_honorless_target, true),
     exact("Shield", "HELPFUL", 250, true, C.buffs_shield),
     exact("FoodDrink", "HELPFUL", 260, true, C.buffs_fooddrink),
-    -- Innervate and Druid Enrage intentionally share one actual priority
-    -- surface so equal-priority recency is arbitrated inside one lane.
+    -- Innervate, Druid Enrage, and Warrior Bloodrage intentionally share one
+    -- actual priority surface so equal-priority recency is arbitrated inside
+    -- one lane.
     exact("Innervate", "HELPFUL", 261, true,
-        union("buffs_innervate", "buffs_druid_enrage")),
+        union("buffs_innervate", "buffs_druid_enrage", "buffs_bloodrage")),
     -- One actual Utility lane. Welcoming Campfire shares this secure slot so
     -- equal-priority effects cannot stack independent cooldown widgets.
     exact("Utility", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 270, true,
