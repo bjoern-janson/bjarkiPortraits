@@ -374,10 +374,32 @@ local function scanReadableUtilityWinner(unit)
     meta.welcomingReadable = meta.welcomingReadable or complete
     if #candidates == 0 then return nil, true, meta end
 
+    local recencyComplete = true
+    local anyRecency = false
+    for _, candidate in ipairs(candidates) do
+        candidate.recency = R.GetAuraRecency(unit, candidate.auraInstanceID)
+        if candidate.recency then
+            anyRecency = true
+        else
+            recencyComplete = false
+        end
+    end
+
     local best = candidates[1]
-    for i = 2, #candidates do
-        if candidates[i].auraInstanceID > best.auraInstanceID then
-            best = candidates[i]
+    if anyRecency and recencyComplete then
+        for i = 2, #candidates do
+            if candidates[i].recency > best.recency
+                or (candidates[i].recency == best.recency
+                    and candidates[i].auraInstanceID > best.auraInstanceID)
+            then
+                best = candidates[i]
+            end
+        end
+    else
+        for i = 2, #candidates do
+            if candidates[i].auraInstanceID > best.auraInstanceID then
+                best = candidates[i]
+            end
         end
     end
 
