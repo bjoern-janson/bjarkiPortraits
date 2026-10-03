@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes the current implementation of **bjarkiPortraits 0.1.62-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
+This document describes the current implementation of **bjarkiPortraits 0.1.63-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into seven Lua modules:
 
@@ -240,3 +240,11 @@ The current implementation is easiest to keep stable when:
 ## 14. Cleanup notes
 
 The current build keeps the existing spell taxonomy, priority elections, access checks, lifecycle guards, and timer policy. A small cleanup pass removes unused wrappers and duplicate readable-frame setup, and avoids reading container enabled state during ordinary refreshes when that value is not used. These changes do not alter the configured spell ownership or lane order.
+
+
+## 15. Bloodrage
+
+Version 0.1.63 adds the Forever Warrior Bloodrage aura (spell ID 29131) to the
+same priority-261 secure lane as Innervate and Druid Enrage. All three effects
+therefore use one shared within-lane recency election rather than independent
+equal-priority frames.
