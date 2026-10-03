@@ -117,7 +117,6 @@ R.TIERS = {
     semantic("ExternalDef", "HELPFUL|EXTERNAL_DEFENSIVE", 288),
     semantic("BigDef", "HELPFUL|BIG_DEFENSIVE", 289),
     exact("Defensive", "HELPFUL", 290, true, C.buffs_defensive),
-    exact("ClassAura", "HELPFUL", 295, true, C.buffs_class_other),
     exact("Roots", "HARMFUL", 300, false, C.roots),
     exact("RootImmunity", "HELPFUL", 305, true, C.immunities_root),
     semantic("CrowdControl", "HARMFUL|CROWD_CONTROL", 309),
