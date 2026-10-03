@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes the current implementation of **bjarkiPortraits 0.1.65-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
+This document describes the current implementation of **bjarkiPortraits 0.1.66-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into seven Lua modules:
 
@@ -289,3 +289,26 @@ presentation without changing the configured priority ladder.
 The operative rule is: **absence, identity, ordering, and relation are distinct
 facts**. An inaccessible fact must not be converted into a convenient default
 merely to keep presentation deterministic.
+
+
+## 18. Level-30 beta aura coverage
+
+Version 0.1.66 migrates the level-30 beta aura coverage into the current
+runtime while preserving the newer evidence-boundary and Bloodrage work.
+
+The migration adds 218 new exact spell IDs and two exact lanes:
+
+- HealingOverTime: 255, helpful
+- ClassAura: 295, helpful
+
+The source coverage artifact contained 219 new IDs. Spell ID 29131 (Bloodrage)
+was already owned by the current buffs_bloodrage category and shared
+Innervate's priority-261 lane, so that ownership is preserved rather than
+moving Bloodrage into ClassAura.
+
+The migrated coverage is derived from static client/database evidence. It does
+not establish live Forever aura visibility for every ID. Static membership is
+treated as coverage data, not as a live-visibility guarantee.
+
+The migration leaves the existing semantic lanes, readable fallbacks, secret
+value guards, and priority-election mechanics unchanged.
