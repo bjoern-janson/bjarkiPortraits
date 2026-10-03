@@ -130,7 +130,8 @@ PT.categories = {
         [1098] = true, -- Subjugate Demon
         [2878] = true, -- Turn Undead
         [1265054] = true, -- Mine!
-        [1265056] = true, -- Mine!},
+        [1265056] = true, -- Mine!
+    },
     stuns = {
         [20549] = true, -- War Stomp
         [13327] = true, -- Reckless Charge
@@ -167,7 +168,8 @@ PT.categories = {
         [7922] = true, -- Charge Stun
         [5530] = true, -- Mace Spec Stun
     
-        [24394] = true, -- Intimidation},
+        [24394] = true, -- Intimidation
+    },
     debuffs_taunts = {
         -- Warrior
         [355] = true,     -- Taunt
@@ -269,7 +271,8 @@ PT.categories = {
         [24118] = true, -- Lacerate
         [24583] = true, -- Scorpid Poison
         [24640] = true, -- Scorpid Poison
-        [1265066] = true, -- Savage Rend},
+        [1265066] = true, -- Savage Rend
+    },
     slows = {
         [116] = true, -- Frostbolt Rank 1
         [205] = true, -- Frostbolt Rank 2
@@ -362,7 +365,8 @@ PT.categories = {
         [1242634] = true, -- Counterattack
         [1265843] = true, -- Web
         [1265878] = true, -- Web
-        [1277332] = true, -- Chastise},
+        [1277332] = true, -- Chastise
+    },
     interrupts = {
         [15752] = true,
         [19244] = true,
@@ -643,7 +647,8 @@ PT.categories = {
         [1264758] = true, -- Dismember
         [1264927] = true, -- Dismember
         [1265899] = true, -- Dust Cloud
-        [1311676] = true, -- Curse of the Elements},
+        [1311676] = true, -- Curse of the Elements
+    },
     debuffs_priority = {
         [25771] = true, -- Forbearance (Paladin)
                 [15571] = true, -- Dazed
