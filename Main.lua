@@ -61,10 +61,9 @@ local function installUnitStateEvents(unitA, unitB)
     register("UNIT_FACTION")
     register("UNIT_FLAGS")
     register("UNIT_CONNECTION")
-    frame:SetScript("OnEvent", function(_, event, unit, updateInfo)
+    frame:SetScript("OnEvent", function(_, event, unit)
         if not unit then return end
         if event == "UNIT_AURA" then
-            R.RecordAuraUpdate(unit, updateInfo)
             R.Refresh(unit)
         else
             R.Refresh(unit, true)

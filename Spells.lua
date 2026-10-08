@@ -400,7 +400,38 @@ PT.categories = {
         [10900] = true, -- Power Word: Shield
         [10901] = true, -- Power Word: Shield
     },
-    buffs_shield = {},
+    buffs_shield = {
+        [6229] = true, -- Shadow Ward
+        [11739] = true, -- Shadow Ward
+        [11740] = true, -- Shadow Ward
+        [28610] = true, -- Shadow Ward
+        [7812] = true, -- Sacrifice
+        [19438] = true, -- Sacrifice
+        [19440] = true, -- Sacrifice
+        [19441] = true, -- Sacrifice
+        [19442] = true, -- Sacrifice
+        [19443] = true, -- Sacrifice
+        [11426] = true, -- Ice Barrier
+        [13031] = true, -- Ice Barrier
+        [13032] = true, -- Ice Barrier
+        [13033] = true, -- Ice Barrier
+        [543] = true, -- Fire Ward
+        [8457] = true, -- Fire Ward
+        [8458] = true, -- Fire Ward
+        [10223] = true, -- Fire Ward
+        [10225] = true, -- Fire Ward
+        [6143] = true, -- Frost Ward
+        [8461] = true, -- Frost Ward
+        [8462] = true, -- Frost Ward
+        [10177] = true, -- Frost Ward
+        [28609] = true, -- Frost Ward
+        [1463] = true, -- Mana Shield
+        [8494] = true, -- Mana Shield
+        [8495] = true, -- Mana Shield
+        [10191] = true, -- Mana Shield
+        [10192] = true, -- Mana Shield
+        [10193] = true, -- Mana Shield
+    },
     buffs_defensive = {
         [1299026] = true, -- Shatter Curse
         [23493] = true,
@@ -411,16 +442,6 @@ PT.categories = {
         [15363] = true,
         [402004] = true,
         [425294] = true,
-        [6229] = true,
-        [11739] = true,
-        [11740] = true,
-        [28610] = true,
-        [7812] = true,
-        [19438] = true,
-        [19440] = true,
-        [19441] = true,
-        [19442] = true,
-        [19443] = true,
         [16188] = true,
         [436391] = true,
         [6940] = true,
@@ -429,26 +450,6 @@ PT.categories = {
         [412019] = true,
         [19263] = true,
         [22812] = true,
-        [11426] = true,
-        [13031] = true,
-        [13032] = true,
-        [13033] = true,
-        [543] = true,
-        [8457] = true,
-        [8458] = true,
-        [10223] = true,
-        [10225] = true,
-        [6143] = true,
-        [8461] = true,
-        [8462] = true,
-        [10177] = true,
-        [28609] = true,
-        [1463] = true,
-        [8494] = true,
-        [8495] = true,
-        [10191] = true,
-        [10192] = true,
-        [10193] = true,
         [5277] = true,
         [14278] = true,
         [871] = true,
@@ -496,7 +497,6 @@ PT.categories = {
         [16813] = true, -- Nature's Grasp Rank 5
         [17329] = true, -- Nature's Grasp Rank 6
                 [130] = true, -- Slow Fall
-                [131] = true, -- Water Breathing
                 [1539] = true, -- Feed Pet Effect
                 [1725] = true, -- Distract
                 [4511] = true, -- Phase Shift
@@ -699,7 +699,6 @@ PT.categories = {
         [20577] = true, -- Cannibalize activation (Undead)
         [20578] = true, -- Cannibalize channel aura (Undead)
         [12051] = true, -- Evocation (Mage)
-        -- First Aid / bandage channels
         -- Food (Vanilla/Forever eating auras)
         [433] = true, -- Food
         [434] = true, -- Food
@@ -799,23 +798,24 @@ PT.categories = {
         [8940] = true, -- Regrowth
         [16488] = true, -- Blood Craze
         [17850] = true, -- Consume Shadows
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        -- First Aid / bandage channels share the Healing lane.
+        [746] = true, -- Linen Bandage
+        [1159] = true, -- Heavy Linen Bandage
+        [3267] = true, -- Wool Bandage
+        [3268] = true, -- Heavy Wool Bandage
+        [7926] = true, -- Silk Bandage
+        [7927] = true, -- Heavy Silk Bandage
+        [10838] = true, -- Mageweave Bandage
+        [10839] = true, -- Heavy Mageweave Bandage
+        [18608] = true, -- Runecloth Bandage
+        [18610] = true, -- Heavy Runecloth Bandage
+        [23567] = true, -- Warsong Gulch Runecloth Bandage
+        [23568] = true, -- Warsong Gulch Mageweave Bandage
+        [23569] = true, -- Warsong Gulch Silk Bandage
+        [23696] = true, -- Alterac Heavy Runecloth Bandage
+        [24412] = true, -- Arathi Basin Silk Bandage
+        [24413] = true, -- Arathi Basin Mageweave Bandage
+        [24414] = true, -- Arathi Basin Runecloth Bandage
     },
 
     buffs_innervate = {
@@ -1139,6 +1139,7 @@ PT.categories = {
         [1289723] = true, -- Welcoming Campfire (Forever live variant)
     },
     buffs_travel_utility = {
+        [131] = true, -- Water Breathing
         [5697] = true, -- Unending Breath (Warlock)
         [546] = true,  -- Water Walking (Shaman)
         [1066] = true, -- Aquatic Form (Druid)

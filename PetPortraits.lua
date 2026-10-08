@@ -42,17 +42,17 @@ end
 local function creatureFamily(unit)
     if not UnitCreatureFamily then return nil, nil end
     local ok, name, id = pcall(UnitCreatureFamily, unit)
-    if not ok or R.IsSecret(name) or R.IsSecret(id) then return nil, nil end
-    name = type(name) == "string" and name or nil
-    id = type(id) == "number" and id or nil
+    if not ok then return nil, nil end
+    name = R.CanAccess(name) and type(name) == "string" and name or nil
+    id = R.CanAccess(id) and type(id) == "number" and id or nil
 
     -- WoW: Forever's Classic API may expose only the localized family name.
     -- Resolve it against the client's own family table instead of comparing
     -- translated names with English literals or guessing from a pet ability.
     if not id and name then
         local cached = FAMILY_ID_BY_NAME[name]
-        if cached ~= nil then
-            id = cached ~= false and cached or nil
+        if cached then
+            id = cached
         elseif C_CreatureInfo and C_CreatureInfo.GetCreatureFamilyInfo then
             for familyID in pairs(KNOWN_FAMILY_IDS) do
                 local infoOK, info = pcall(C_CreatureInfo.GetCreatureFamilyInfo, familyID)
@@ -65,10 +65,9 @@ local function creatureFamily(unit)
                 end
                 if id then break end
             end
-            FAMILY_ID_BY_NAME[name] = id or false
-        else
-            FAMILY_ID_BY_NAME[name] = false
         end
+        -- Cache positive client family matches only. Missing/inaccessible API
+        -- data is temporary evidence and must remain eligible for a later read.
     end
 
     return name, id

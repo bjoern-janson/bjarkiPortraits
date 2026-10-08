@@ -2,13 +2,11 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.80-local"
+R.VERSION = "0.1.81-local"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
 R.hosts = {}
-R.AURA_RECENCY = {}
-R._auraRecencySequence = 0
 R.testMode = false
 R.buildQueued = false
 R.forceRebuildQueued = false
@@ -190,6 +188,23 @@ function R.ExactFilterAllowed(unit, helpful, spellIDs, allowNeverSecret)
     return not assist
 end
 
+-- Scheduling a native exact container is weaker than proving that its entire
+-- candidate set is readable. Blizzard checks identity permission per aura and
+-- rejects forbidden candidates when an includeSpellIDs map is present.
+function R.NativeExactContainerAllowed(unit, tier)
+    if not tier then return false end
+    if R.ExactFilterAllowed(unit, tier.helpful, tier.spellIDs, tier.allowNeverSecret) then
+        return true
+    end
+    if not tier.allowNeverSecret then return false end
+    local exists, readable = R.UnitExistsState(unit)
+    if not readable or not exists then return false end
+    for spellID in pairs(tier.spellIDs or {}) do
+        if R.AuraIsNeverSecret(spellID) then return true end
+    end
+    return false
+end
+
 function R.PlayerUnitState(unit)
     if not unit then return nil, false end
 
@@ -286,109 +301,5 @@ function R.ApplyCountdownFormat(cooldown)
             cooldown,
             R.db and R.db.showDecimals and 10 or 0
         )
-    end
-end
-
-function R.GetAuraRecency(unit, auraInstanceID)
-    local unitState = R.AURA_RECENCY[unit]
-    local record = unitState and unitState[auraInstanceID]
-    return record and record.sequence or nil
-end
-
-function R.RecordAuraUpdate(unit, updateInfo)
-    if type(unit) ~= "string" or type(updateInfo) ~= "table" or not R.CanAccess(updateInfo) then return end
-
-    -- UNIT_AURA updateInfo fields can be secret on this client. Read them only
-    -- through the same guarded accessor used for aura data.
-    local isFullUpdate, fullUpdateReadable = R.ReadAuraField(updateInfo, "isFullUpdate")
-    if not fullUpdateReadable or type(isFullUpdate) ~= "boolean" then
-        R.AURA_RECENCY[unit] = {}
-        return
-    end
-    if isFullUpdate then
-        R.AURA_RECENCY[unit] = {}
-        return
-    end
-
-    local addedAuras, addedReadable = R.ReadAuraField(updateInfo, "addedAuras")
-    local updatedAuraInstanceIDs, updatedReadable = R.ReadAuraField(updateInfo, "updatedAuraInstanceIDs")
-    local removedAuraInstanceIDs, removedReadable = R.ReadAuraField(updateInfo, "removedAuraInstanceIDs")
-    if not addedReadable or not updatedReadable or not removedReadable
-        or (addedAuras ~= nil and type(addedAuras) ~= "table")
-        or (updatedAuraInstanceIDs ~= nil and type(updatedAuraInstanceIDs) ~= "table")
-        or (removedAuraInstanceIDs ~= nil and type(removedAuraInstanceIDs) ~= "table")
-    then
-        R.AURA_RECENCY[unit] = {}
-        return
-    end
-
-    local unitState = R.AURA_RECENCY[unit]
-    if not unitState then
-        unitState = {}
-        R.AURA_RECENCY[unit] = unitState
-    end
-
-    local healingTier = R.TIER_BY_KEY and R.TIER_BY_KEY.Healing
-
-    local function inspectAura(aura, isAdded)
-        if not R.CanAccess(aura) then return end
-        local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
-        local spellID, spellReadable = R.ReadAuraField(aura, "spellId")
-        if not instanceReadable or type(auraInstanceID) ~= "number"
-            or not spellReadable or type(spellID) ~= "number"
-        then
-            return
-        end
-        if not healingTier or not healingTier.spellIDs or not healingTier.spellIDs[spellID] then return end
-
-        local duration, durationReadable = R.ReadAuraField(aura, "duration")
-        local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
-        local startTime
-        if durationReadable and expirationReadable
-            and type(duration) == "number" and type(expirationTime) == "number"
-            and duration > 0
-        then
-            startTime = expirationTime - duration
-        end
-
-        local prior = unitState[auraInstanceID]
-        if isAdded then
-            R._auraRecencySequence = R._auraRecencySequence + 1
-            unitState[auraInstanceID] = {
-                sequence = R._auraRecencySequence,
-                startTime = startTime,
-            }
-        elseif startTime and prior and prior.startTime
-            and startTime > prior.startTime + 0.01
-        then
-            R._auraRecencySequence = R._auraRecencySequence + 1
-            prior.sequence = R._auraRecencySequence
-            prior.startTime = startTime
-        elseif startTime and not prior then
-            R._auraRecencySequence = R._auraRecencySequence + 1
-            unitState[auraInstanceID] = {
-                sequence = R._auraRecencySequence,
-                startTime = startTime,
-            }
-        end
-    end
-
-    for _, aura in ipairs(addedAuras or {}) do
-        inspectAura(aura, true)
-    end
-
-    for _, auraInstanceID in ipairs(updatedAuraInstanceIDs or {}) do
-        if R.CanAccess(auraInstanceID) and type(auraInstanceID) == "number"
-            and C_UnitAuras and C_UnitAuras.GetAuraDataByAuraInstanceID
-        then
-            local ok, aura = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, auraInstanceID)
-            if ok then inspectAura(aura, false) end
-        end
-    end
-
-    for _, auraInstanceID in ipairs(removedAuraInstanceIDs or {}) do
-        if R.CanAccess(auraInstanceID) and type(auraInstanceID) == "number" then
-            unitState[auraInstanceID] = nil
-        end
     end
 end

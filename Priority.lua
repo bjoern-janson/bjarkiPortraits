@@ -29,12 +29,14 @@ local function semantic(key, filter, level, candidateFilters)
 end
 
 -- One container represents one actual priority lane. Categories that genuinely
--- share a lane are unioned before the secure engine sees them, so recency within
--- that lane is decided by AuraInstanceID rather than by sibling-frame accident.
+-- share a lane are unioned before the secure engine sees them. Native ordering
+-- uses AuraInstanceID; BaselineClass and Healing can replace their native owner
+-- only with a complete readable application-time election.
 R.TIERS = {
     exact("Plainsrunning", "HELPFUL", 10, true, union("buffs_plainsrunning", "buffs_elemental_blessing"), true),
-    exact("BoostedRest", "HARMFUL", 1, false, C.debuffs_boosted_rest, true),
-    exact("CampfireNearby", "HELPFUL", 0, true, C.buffs_campfire_nearby),
+    exact("BoostedRest", "HARMFUL", 2, false, C.debuffs_boosted_rest, true),
+    exact("CampfireNearby", "HELPFUL", 1, true, C.buffs_campfire_nearby),
+    exact("Tracking", "HELPFUL", 0, true, C.buffs_tracking),
     exact("TravelUtility", "HELPFUL", 50, true, C.buffs_travel_utility),
     exact("RighteousFury", "HELPFUL", 59, true, C.buffs_righteous_fury),
     exact("PaladinAura", "HELPFUL", 60, true, union("buffs_paladin_auras", "buffs_warlock_armor")),
@@ -60,10 +62,10 @@ R.TIERS = {
     -- Forever. This broad secure lane is only a visibility fallback when hostile
     -- aura identities are not readable to Lua. Keep it at the bottom so its
     -- arbitrary winner cannot mask any classified category above it.
-    semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 1),
+    semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 2),
 
     exact("Mobility", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 160, true,
-        union("buffs_ghostwolf", "buffs_ghostwolf_variants", "buffs_cheetah"), true),
+        union("buffs_ghostwolf", "buffs_ghostwolf_variants", "buffs_cheetah", "buffs_mobility"), true),
     exact("LoneWolf", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 170, true, C.buffs_lone_wolf, true),
     exact("HuntersMark", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 180, false, C.debuffs_hunters_mark),
 
@@ -71,7 +73,7 @@ R.TIERS = {
     -- exact harmful spell-ID filtering can be unavailable. This broad secure
     -- lane means only "some harmful state is present", so it is deliberately
     -- the lowest-priority aura surface. Any known tracked state must outrank it.
-    semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 2),
+    semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 3),
 
     exact("Demoralizing", "HARMFUL", 185, false, C.debuffs_demoralizing),
     exact("DoTs", "HARMFUL", 190, false, C.debuffs_dots),
