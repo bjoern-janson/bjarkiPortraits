@@ -1062,7 +1062,7 @@ function R.CreateHost(unit)
     if not R.SMALL_UNITS[unit] then
         local boostedRestTier = findTierByKey("BoostedRest")
         host.readableBoostedRestFrame = createReadableExactFrame(
-            host, boostedRestTier and boostedRestTier.level or 20
+            host, boostedRestTier and boostedRestTier.level or 3
         )
 
         local slowsTier = findTierByKey("Slows")

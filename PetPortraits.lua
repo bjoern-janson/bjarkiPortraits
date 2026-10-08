@@ -28,6 +28,18 @@ for familyID in pairs(HUNTER_IDS) do KNOWN_FAMILY_IDS[familyID] = true end
 for familyID in pairs(WARLOCK_IDS) do KNOWN_FAMILY_IDS[familyID] = true end
 local FAMILY_ID_BY_NAME = {}
 
+local TOTEM_CREATURE_TYPE_ID = 11
+local GENERIC_TOTEM_TEXTURE = "Interface\\Icons\\Spell_Totem_WardOfDraining"
+-- These public summon spell IDs supply localized names and static artwork only.
+-- They do not identify a totem's current auras or participate in aura priority.
+local unresolvedTotemSummons = {
+    5730, 8071, 2484, 8075, 8143, -- Stoneclaw, Stoneskin, Earthbind, Strength, Tremor
+    3599, 1535, 8227, 8190, 8181, -- Searing, Fire Nova, Flametongue, Magma, Frost Resistance
+    5394, 5675, 8170, 8166, 8184, 16190, -- Healing/Mana, cleansing, Fire Resistance, Mana Tide
+    8512, 8835, 8177, 10595, 15107, 25908, 6495, -- Windfury, Grace, Grounding, resistance, Sentry
+}
+local TOTEM_SUMMON_BY_NAME = {}
+
 local function classToken(unit)
     if UnitClassBase then
         local token, readable = R.SafeString(UnitClassBase, unit)
@@ -73,6 +85,28 @@ local function creatureFamily(unit)
     return name, id
 end
 
+local function isTotem(unit)
+    if not UnitCreatureType then return false end
+    local ok, name, id = pcall(UnitCreatureType, unit)
+    if not ok then return false end
+    if R.CanAccess(id) and type(id) == "number" then
+        return id == TOTEM_CREATURE_TYPE_ID
+    end
+    if not R.CanAccess(name) or type(name) ~= "string" then return false end
+    if name == "Totem" then return true end
+
+    -- Some Classic API variants return only a localized creature-type name.
+    -- Match the client's type table; unit names/models/families are not proof.
+    if C_CreatureInfo and C_CreatureInfo.GetCreatureTypeInfo then
+        local infoOK, info = pcall(C_CreatureInfo.GetCreatureTypeInfo, TOTEM_CREATURE_TYPE_ID)
+        if infoOK and R.CanAccess(info) and info ~= nil then
+            local totemName = info.name
+            return R.CanAccess(totemName) and type(totemName) == "string" and totemName == name
+        end
+    end
+    return false
+end
+
 local function hasPetGUID(unit)
     if not UnitGUID then return false end
     local guid, readable = R.SafeString(UnitGUID, unit)
@@ -88,6 +122,33 @@ local function spellTexture(spellID)
         local ok, texture = pcall(GetSpellTexture, spellID)
         if ok and R.CanAccess(texture) then return texture end
     end
+end
+
+local function totemTexture(unit)
+    local name, readable = R.SafeString(UnitName, unit)
+    if not readable or not R.CanAccess(name) then return GENERIC_TOTEM_TEXTURE end
+    local summon = TOTEM_SUMMON_BY_NAME[name]
+    if not summon then
+        local getName = C_Spell and C_Spell.GetSpellName or GetSpellInfo
+        for index = #unresolvedTotemSummons, 1, -1 do
+            local spellID = unresolvedTotemSummons[index]
+            local spellName, nameReadable = R.SafeString(getName, spellID)
+            if nameReadable and R.CanAccess(spellName) then
+                TOTEM_SUMMON_BY_NAME[spellName] = spellID
+                table.remove(unresolvedTotemSummons, index)
+                if spellName == name then summon = spellID; break end
+            end
+        end
+        -- Resolved public names leave the pending list; unknown/custom totems
+        -- retry only missing spell data. Never retain a per-unit identity.
+    end
+    local texture = spellTexture(summon)
+    if (type(texture) == "number" and texture > 0)
+        or (type(texture) == "string" and texture ~= "")
+    then
+        return texture
+    end
+    return GENERIC_TOTEM_TEXTURE
 end
 
 local function familyTexture(familyID)
@@ -113,6 +174,9 @@ local function petActionTexture()
 end
 
 local function classify(unit)
+    if isTotem(unit) then
+        return "TOTEM", false, nil, nil, "native totem creature type"
+    end
     local samePet, sameReadable = R.SafeBool(UnitIsUnit, unit, "pet")
     if sameReadable and samePet then
         local name, id = creatureFamily(unit)
@@ -159,6 +223,7 @@ end
 
 local function foundationTexture(unit)
     local owner, own, name, id = classify(unit)
+    if owner == "TOTEM" then return totemTexture(unit) end
     if owner == "UNKNOWN_PET" then
         -- A generic Growl icon falsely identifies every unknown pet as a Hunter
         -- pet. Leave the portrait art alone until the family is actually known.

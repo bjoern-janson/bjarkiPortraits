@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.82-local**. It documents the
+This document describes **bjarkiPortraits 0.1.83-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -14,7 +14,7 @@ The addon has seven Lua modules, loaded in this order:
 | Core.lua | Settings, unit/portrait lookup, access and relation checks, timer formatting |
 | Priority.lua | Exact and semantic lanes, immutable indexes, membership audit |
 | AuraEngine.lua | Native containers, readable elections, portrait presentation, host lifecycle |
-| PetPortraits.lua | Pet-family foundation artwork |
+| PetPortraits.lua | Pet-family and totem foundation artwork |
 | Commands.lua | Commands and diagnostics |
 | Main.lua | Event registration and refresh routing |
 
@@ -34,34 +34,42 @@ The low band is:
 | Lane | Priority |
 | --- | ---: |
 | Tracking | 0 |
-| Campfire Nearby | 1 |
-| Boosted Rest | 2 |
-| Hostile Helpful semantic fallback | 2 |
-| Small Friendly Harmful semantic fallback | 3 |
+| Cosmetic transformations | 1 |
+| Campfire Nearby | 2 |
+| Boosted Rest | 3 |
+| Hostile Helpful semantic fallback | 3 |
+| Small Friendly Harmful semantic fallback | 4 |
 | Plainsrunning / Elemental Blessing | 10 |
 
-Tracking is strictly below Campfire Nearby. The existing Boosted Rest / Hostile
-Helpful tie remains. Mobility 160 includes the established Ghost Wolf/Cheetah
-families and the movement/stealth category.
+Tracking includes Find Herbs and Find Minerals. Cosmetic transformations are
+one tier above it; Savory Deviate Delight and Savory Whimsyfin Delight share
+that lane. The existing bottom-band order and Boosted Rest / Hostile Helpful
+tie remain. Mobility 160 includes the established Ghost Wolf/Cheetah families
+and the movement/stealth category.
 
 Selected category relationships are:
 
 | Lane | Contents or relationship | Priority |
 | --- | --- | ---: |
 | Travel Utility | Water Breathing, Unending Breath, Water Walking, Aquatic Form | 50 |
+| Passive Debuff / Righteous Fury | Deserter and item Martyrdom are harmful; Righteous Fury remains helpful | 59 |
+| Paladin Aura | Paladin auras, Warlock armor, persistent support totem effects, Rat Familiar and Benevolence | 60 |
+| Blood Pact | Blood Pact and the four applied Furious Howl ranks | 70 |
 | Baseline Class | Baseline class buffs and Camp Benefits | 90 |
+| Consecration | The applied Forever damage-amplification aura, immediately below DoTs | 189 |
 | DoTs | Explicit damage-over-time effects | 190 |
-| Low Debuff | Low debuffs and taunts | 200 |
-| Slows | Slows and exact Chilled IDs | 220 |
+| Low Debuff | Low debuffs, taunts and Cursed Blood | 200 |
+| Slows | Slows, exact Chilled IDs and Frost Trap Aura | 220 |
 | Recently Bandaged | Separate harmful state | 229 |
 | Healing | Ordinary absorbs, HoTs, First Aid channels, Mend Pet | 255 |
 | Power Word: Shield | Its ten existing applied-aura IDs, separate from Healing | 256 |
 | Honorless Target | Above Healing | 257 |
-| Food/Drink | Food, Drink, Cannibalize and Evocation | 260 |
-| Innervate | Innervate, Druid Enrage, Bloodrage and resource recovery | 261 |
+| Food/Drink | Food, Drink, Cannibalize, Evocation and Restoration | 260 |
+| Innervate | Innervate, Druid Enrage, Bloodrage, resource recovery and visible The Quick and the Dead variants | 261 |
 | Utility | Utility buffs and Welcoming Campfire | 270 |
+| Offensive | Offensive cooldowns, Swift Wind and Battleground Berserking | 280 |
 | Roots | Root effects | 300 |
-| Root Immunity | Above Roots | 305 |
+| Root Immunity | Root immunity, Voice of Truth's casting immunity and Grounding spell redirection share this priority | 305 |
 | Control / Stun | Separate disjoint exact lanes | 310 / 320 |
 | Immunity | Helpful and harmful dispositions remain separate | 330 |
 | Divine Protection | Separate helpful lane | 331 |
@@ -74,6 +82,17 @@ custom/trinket records retain their existing classification.
 
 The numeric priority controls presentation order. It does not express spell
 strength or establish what a live client will expose.
+
+Deserter shares the low passive harmful lane so its long queue penalty does
+not displace combat effects. Martyrdom here is the harmful item aura 1292749,
+which deals damage on death; it is separate from Priest talents and Waiting to
+Resurrect. Grounding's shared priority does not classify it as root immunity.
+
+Version 0.1.83 adds 30 applied-aura IDs and relocates five existing IDs. The
+exact catalog contains 1,109 distinct IDs in 46 disjoint exact lanes; there
+are 10 additional semantic lanes. Only three new lanes are required: Cosmetic,
+Passive Debuff and Consecration. The existing selection and timing engines
+remain in use.
 
 ## Native containers and permission
 
@@ -224,7 +243,7 @@ registered only for target/focus to refresh their derived tokens. Unit-aura
 events refresh presentation; relation and token changes can additionally
 force native container refresh.
 
-## Pet foundations
+## Pet and totem foundations
 
 PetPortraits.lua has no aura-container access. A positive local-pet match,
 other-player-pet result or readable Pet GUID supplies pet evidence. A recognized
@@ -243,6 +262,20 @@ retried on a later existing update event.
 Observed foundations stay on the portrait host layer. Local PetFrame art stays
 on BACKGROUND sublevel 1 below native BORDER chrome. Masks, pet events and
 fallback textures retain their existing behavior.
+
+A totem foundation requires a readable native creature-type ID 11 or the
+corresponding native localized type name. Only after that type evidence does
+an exact readable unit name select a known totem's localized summon-spell art.
+An unrecognized totem retains generic totem artwork; an unreadable type does
+not authorize a totem foundation. Unit names, models and creature families
+alone do not establish totem identity.
+
+The localized name map caches public spell data only. Resolved summon IDs
+leave a small pending list; only unavailable spell data is retried. No unit
+identity or current aura is cached. The existing unit refreshes re-evaluate
+the current actor, and higher-priority aura widgets remain above the
+foundation. Flametongue's four applied support aura IDs are independently
+included in the low support tier; summon artwork never establishes an aura.
 
 ## Commands and diagnostics
 

@@ -1,6 +1,6 @@
 # Known issues and validation
 
-Status recorded 2026-10-08 for **bjarkiPortraits 0.1.82-local**.
+Status recorded 2026-10-08 for **bjarkiPortraits 0.1.83-local**.
 
 This build repairs confirmed source-level routing, readable election,
 presentation ownership and lifecycle defects. Isolated behavioral checks do
@@ -56,12 +56,27 @@ ignored. A broad defensive/signature fallback can therefore differ from the
 exact category taxonomy. Unknown application timing also leaves native
 instance ordering in control instead of promising refresh recency.
 
-## White totem portrait
+## Totem foundations and aura exposure
 
 An enemy Healing Stream Totem was reported with a white portrait and no visible
-aura. This build does not establish the cause or verify that symptom fixed.
-The native portrait/unit presentation and aura-exposure paths need observation
-in the client.
+aura. A later Flametongue Totem screenshot showed a native model and an aura
+below the frame. Version 0.1.83 adds native-type-qualified totem foundations,
+specific art for recognized localized totem names, and generic art for other
+positively identified totems. Higher-priority auras retain ownership above it.
+Flametongue's applied support auras are also included in the low support tier.
+
+The screenshot alone does not identify the displayed aura. Live native type
+availability, localized unit names and actual aura exposure remain separate
+validation requirements; a foundation icon does not prove an aura is active.
+
+## Waiting to Resurrect disposition
+
+A 2026-10-08 screenshot places an icon titled Waiting to Resurrect beside the
+harmful item Martyrdom aura, in the native harmful row. It does not expose the
+spell ID or current aura filter. The existing helpful Waiting to Resurrect
+lane (2584, 21989, 1234325), above Ghost, is retained pending an exact in-client
+identity/disposition observation. Do not infer a connection to Martyrdom from
+adjacent icons or replace a precise category with a name-based fallback.
 
 ## ToT/FoT border bleed
 
@@ -83,7 +98,9 @@ Battleground execution still needs live validation.
 Live acceptance should include refresh-without-new-instance behavior, unknown
 timing and identity, token changes, combat toggles, active test settings, pet
 foundations and ToT/FoT clipping. No live WoW run has confirmed all reported
-symptoms fixed in 0.1.82-local.
+symptoms fixed in 0.1.83-local. The added spell IDs and priority changes are
+source-confirmed; they still depend on the client exposing the corresponding
+aura to an authorized selection path.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the current implementation.
 Class-colored unit-frame reports remain in the

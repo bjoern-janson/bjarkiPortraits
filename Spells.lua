@@ -10,7 +10,6 @@ PT.categories = {
     immunities = {
         [3169] = true,
         [16621] = true,
-        [8178] = true,
         [425876] = true,
         [1022] = true,
         [5599] = true,
@@ -23,6 +22,12 @@ PT.categories = {
     immunities_root = {
         [1044] = true, -- Blessing of Freedom
         [20589] = true, -- Escape Artist
+    },
+    immunities_interrupt = {
+        [1310897] = true, -- Voice of Truth (Silence and Interrupt immunity)
+    },
+    buffs_grounding = {
+        [8178] = true, -- Grounding Totem Effect (spell redirection)
     },
     cc = {
         [20549] = true,
@@ -209,6 +214,9 @@ PT.categories = {
                 [19577] = true, -- Intimidation
                 [1277455] = true, -- Confounding Flash
     },
+    debuffs_consecration = {
+        [1280353] = true, -- Consecration (Forever applied damage-amplification aura)
+    },
     debuffs_dots = {
         -- Mage residual/periodic damage
         [133] = true, [143] = true, [145] = true, [3140] = true,
@@ -288,6 +296,7 @@ PT.categories = {
         [420526] = true, -- Frostbolt (NPC/Forever variant)
         [1303226] = true, -- Frostbolt (NPC/Forever variant)
         [3600] = true, -- Earthbind (Earthbind Totem slow aura)
+        [13810] = true, -- Frost Trap Aura (applied 60% slow, not the trap summon)
     
         [1265038] = true, -- Tendon Rip
         [1715] = true, -- Hamstring
@@ -434,7 +443,6 @@ PT.categories = {
     },
     buffs_defensive = {
         [1299026] = true, -- Shatter Curse
-        [23493] = true,
         [23506] = true,
         [29506] = true,
         [14892] = true,
@@ -470,7 +478,6 @@ PT.categories = {
                 [20216] = true, -- Divine Favor
                 [26064] = true, -- Shell Shield
                 [27828] = true, -- Focused Casting
-                [1310897] = true, -- Voice of Truth
                 [1311015] = true, -- Templar's Bulwark
                 [1311033] = true, -- Iron Creed
                 [1310612] = true, -- Trickster's Dance
@@ -504,6 +511,8 @@ PT.categories = {
                 [18708] = true, -- Fel Domination
     },
     buffs_offensive = {
+        [8385] = true, -- Swift Wind (movement and attack speed)
+        [24378] = true, -- Berserking (battleground damage buff)
         [20554] = true, -- Berserking (Troll racial, Forever)
         [20600] = true,
         [20572] = true, -- Blood Fury (Orc racial)
@@ -563,8 +572,6 @@ PT.categories = {
                 [16886] = true, -- Nature's Grace
                 [19271] = true, -- Feedback
                 [20050] = true, -- Vengeance
-                [24604] = true, -- Furious Howl
-                [24605] = true, -- Furious Howl
                 [400589] = true, -- Missile Barrage
                 [1284536] = true, -- Holy Purpose
                 [1299448] = true, -- Quick Strikes
@@ -593,6 +600,7 @@ PT.categories = {
         [9898] = true,  -- Demoralizing Roar Rank 5
     },
     debuffs_other = {
+        [8267] = true, -- Cursed Blood (open-world Intellect curse)
         [770] = true, -- Faerie Fire Rank 1
         [778] = true, -- Faerie Fire Rank 2
         [9749] = true, -- Faerie Fire Rank 3
@@ -645,6 +653,10 @@ PT.categories = {
         [1265899] = true, -- Dust Cloud
         [1311676] = true, -- Curse of the Elements
     },
+    debuffs_passive = {
+        [26013] = true, -- Deserter (battleground queue lockout)
+        [1292749] = true, -- Martyrdom (permanent harmful item aura; not the Priest talent)
+    },
     debuffs_priority = {
         [25771] = true, -- Forbearance (Paladin)
                 [15571] = true, -- Dazed
@@ -695,6 +707,8 @@ PT.categories = {
                 [1311656] = true, -- Seal of Fury
     },
     buffs_fooddrink = {
+        [23493] = true, -- Restoration (battleground health and mana recovery)
+        [24379] = true, -- Restoration (battleground health, mana and pet-happiness recovery)
         -- Active recovery/channel states share one portrait priority lane.
         [20577] = true, -- Cannibalize activation (Undead)
         [20578] = true, -- Cannibalize channel aura (Undead)
@@ -820,6 +834,15 @@ PT.categories = {
 
     buffs_innervate = {
         [29166] = true, -- Innervate (Druid)
+        -- The Quick and the Dead: visible resource-cost buffs after resurrection.
+        [1262243] = true, -- Mage
+        [1262307] = true, -- Druid
+        [1262309] = true, -- Hunter
+        [1262310] = true, -- Paladin
+        [1262312] = true, -- Priest
+        [1262315] = true, -- Shaman
+        [1262316] = true, -- Warlock
+        [1262317] = true, -- Warrior
                 [15271] = true, -- Spirit Tap
                 [16191] = true, -- Mana Tide
                 [17355] = true, -- Mana Tide
@@ -878,6 +901,12 @@ PT.categories = {
         [20218] = true, -- Sanctity Aura
 
         -- Shaman: persistent party-support totem auras share this priority band.
+        -- Flametongue: applied party auras, not summons or weapon enchants.
+        [8230] = true,
+        [8250] = true,
+        [10521] = true,
+        [15036] = true,
+
         -- Stoneskin
         [8072] = true,
         [8156] = true,
@@ -913,12 +942,22 @@ PT.categories = {
                 [25362] = true, -- Strength of Earth
                 [1299346] = true, -- Trueshot Aura
     },
+    buffs_minor_world = {
+        [1296202] = true, -- Rat Familiar (+2 Intellect)
+        [1292142] = true, -- Benevolence (minor party health regeneration)
+    },
     buffs_blood_pact = {
         [6307] = true, -- Blood Pact Rank 1 (Warlock Imp)
         [7804] = true, -- Blood Pact Rank 2 (Warlock Imp)
         [7805] = true, -- Blood Pact Rank 3 (Warlock Imp)
         [11766] = true, -- Blood Pact Rank 4 (Warlock Imp)
         [11767] = true, -- Blood Pact Rank 5 (Warlock Imp)
+    },
+    buffs_furious_howl = {
+        [24604] = true, -- Furious Howl Rank 1 (Hunter Wolf)
+        [24605] = true, -- Furious Howl Rank 2 (Hunter Wolf)
+        [24603] = true, -- Furious Howl Rank 3 (Hunter Wolf)
+        [24597] = true, -- Furious Howl Rank 4 (Hunter Wolf)
     },
     buffs_scrolls = {
         -- Vanilla stat/armor scroll buffs. Kept below maintained class buffs.
@@ -1054,6 +1093,10 @@ PT.categories = {
     },
     buffs_tracking = {
         -- Pure information/scouting auras are the absolute bottom helpful tier.
+        [2383] = true, -- Find Herbs Rank 1
+        [8387] = true, -- Find Herbs Rank 2
+        [2580] = true, -- Find Minerals Rank 1
+        [8388] = true, -- Find Minerals Rank 2
                 [126] = true, -- Eye of Kilrogg
                 [132] = true, -- Detect Invisibility
                 [1462] = true, -- Beast Lore
@@ -1067,6 +1110,10 @@ PT.categories = {
                 [19883] = true, -- Track Humanoids
                 [19884] = true, -- Track Undead
                 [19885] = true, -- Track Hidden
+    },
+    buffs_cosmetic = {
+        [8213] = true, -- Savory Deviate Delight (transformation aura)
+        [1252576] = true, -- Savory Whimsyfin Delight (transformation aura)
     },
     buffs_racial_defensive = {
         -- Defensive racials share a high-priority PvP category, separate from

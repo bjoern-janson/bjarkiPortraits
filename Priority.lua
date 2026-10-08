@@ -34,13 +34,17 @@ end
 -- only with a complete readable application-time election.
 R.TIERS = {
     exact("Plainsrunning", "HELPFUL", 10, true, union("buffs_plainsrunning", "buffs_elemental_blessing"), true),
-    exact("BoostedRest", "HARMFUL", 2, false, C.debuffs_boosted_rest, true),
-    exact("CampfireNearby", "HELPFUL", 1, true, C.buffs_campfire_nearby),
+    exact("BoostedRest", "HARMFUL", 3, false, C.debuffs_boosted_rest, true),
+    exact("CampfireNearby", "HELPFUL", 2, true, C.buffs_campfire_nearby),
+    exact("Cosmetic", "HELPFUL", 1, true, C.buffs_cosmetic),
     exact("Tracking", "HELPFUL", 0, true, C.buffs_tracking),
     exact("TravelUtility", "HELPFUL", 50, true, C.buffs_travel_utility),
+    -- Persistent item/queue status stays below passive class and totem buffs.
+    exact("PassiveDebuff", "HARMFUL", 59, false, C.debuffs_passive, true),
     exact("RighteousFury", "HELPFUL", 59, true, C.buffs_righteous_fury),
-    exact("PaladinAura", "HELPFUL", 60, true, union("buffs_paladin_auras", "buffs_warlock_armor")),
-    exact("BloodPact", "HELPFUL", 70, true, C.buffs_blood_pact),
+    exact("PaladinAura", "HELPFUL", 60, true,
+        union("buffs_paladin_auras", "buffs_warlock_armor", "buffs_minor_world")),
+    exact("BloodPact", "HELPFUL", 70, true, union("buffs_blood_pact", "buffs_furious_howl")),
     exact("Scrolls", "HELPFUL", 80, true, C.buffs_scrolls),
     exact("BaselineClass", "HELPFUL", 90, true,
         union("buffs_class_baseline", "buffs_camp_benefits")),
@@ -62,7 +66,7 @@ R.TIERS = {
     -- Forever. This broad secure lane is only a visibility fallback when hostile
     -- aura identities are not readable to Lua. Keep it at the bottom so its
     -- arbitrary winner cannot mask any classified category above it.
-    semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 2),
+    semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 3),
 
     exact("Mobility", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 160, true,
         union("buffs_ghostwolf", "buffs_ghostwolf_variants", "buffs_cheetah", "buffs_mobility"), true),
@@ -71,11 +75,12 @@ R.TIERS = {
 
     -- Small friendly derived frames (ToT/FoT) sit on the relation side where
     -- exact harmful spell-ID filtering can be unavailable. This broad secure
-    -- lane means only "some harmful state is present", so it is deliberately
-    -- the lowest-priority aura surface. Any known tracked state must outrank it.
-    semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 3),
+    -- lane means only "some harmful state is present". Keep it below tactical
+    -- categories and above the passive tracking/cosmetic/camping bottom band.
+    semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 4),
 
     exact("Demoralizing", "HARMFUL", 185, false, C.debuffs_demoralizing),
+    exact("Consecration", "HARMFUL", 189, false, C.debuffs_consecration, true),
     exact("DoTs", "HARMFUL", 190, false, C.debuffs_dots),
     -- Taunts and Faerie Fire share one election, including equal-tier recency.
     exact("LowDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 200, false,
@@ -131,7 +136,9 @@ R.TIERS = {
     -- for secure hostile filtering.
     exact("RacialDefensive", "HELPFUL", 291, true, C.buffs_racial_defensive, true),
     exact("Roots", "HARMFUL", 300, false, C.roots),
-    exact("RootImmunity", "HELPFUL", 305, true, C.immunities_root, true),
+    -- Movement/casting immunity and spell redirection share one protection lane.
+    exact("RootImmunity", "HELPFUL", 305, true,
+        union("immunities_root", "immunities_interrupt", "buffs_grounding"), true),
     semantic("CrowdControl", "HARMFUL|CROWD_CONTROL", 309),
     -- Stuns are conceptually CC, but runtime exact lanes must be disjoint:
     -- the dedicated 320 Stun lane owns every stun ID.
