@@ -11,23 +11,29 @@ PT.categories = {
         [3169] = true,
         [16621] = true,
         [425876] = true,
-        [1022] = true,
-        [5599] = true,
-        [10278] = true,
         [642] = true,
         [1020] = true,
         [11958] = true,
         [20230] = true,
     },
+    immunities_physical = {
+        [1022] = true, -- Blessing of Protection Rank 1
+        [5599] = true, -- Blessing of Protection Rank 2
+        [10278] = true, -- Blessing of Protection Rank 3
+    },
     immunities_root = {
         [1044] = true, -- Blessing of Freedom
         [20589] = true, -- Escape Artist
+        [6615] = true, -- Free Action (potion: root, snare and stun immunity)
     },
     immunities_interrupt = {
         [1310897] = true, -- Voice of Truth (Silence and Interrupt immunity)
     },
     buffs_grounding = {
         [8178] = true, -- Grounding Totem Effect (spell redirection)
+    },
+    buffs_self_stun = {
+        [1301167] = true, -- Transformative Cocoon (self-stun; currently a helpful aura)
     },
     cc = {
         [20549] = true,
@@ -408,6 +414,7 @@ PT.categories = {
         [10899] = true, -- Power Word: Shield
         [10900] = true, -- Power Word: Shield
         [10901] = true, -- Power Word: Shield
+        [1316048] = true, -- Transformative Cocoon (absorb aura)
     },
     buffs_shield = {
         [6229] = true, -- Shadow Ward
@@ -469,8 +476,6 @@ PT.categories = {
                 [2565] = true, -- Shield Block
                 [2651] = true, -- Elune's Grace
                 [2893] = true, -- Abolish Poison
-                [2947] = true, -- Fire Shield
-                [8316] = true, -- Fire Shield
                 [14751] = true, -- Inner Focus
                 [16177] = true, -- Ancestral Fortitude
                 [17116] = true, -- Nature's Swiftness
@@ -513,12 +518,14 @@ PT.categories = {
     buffs_offensive = {
         [8385] = true, -- Swift Wind (movement and attack speed)
         [24378] = true, -- Berserking (battleground damage buff)
+        -- Short movement cooldowns share the existing Sprint/Dash priority.
+        [1309728] = true, -- Speed (Satchel of Potions)
+        [1301168] = true, -- Transformative Cocoon (movement-speed aura)
         [20554] = true, -- Berserking (Troll racial, Forever)
         [20600] = true,
         [20572] = true, -- Blood Fury (Orc racial)
         [23451] = true,
         [23505] = true,
-        [6615] = true,
         [24364] = true,
         [11359] = true,
         [5024] = true,
@@ -549,6 +556,7 @@ PT.categories = {
         [1259823] = true, -- Eureka! (Gnome Priest)
         [1259799] = true, -- Elune's Light
         [16870] = true, -- Clearcasting (Druid)
+        [422621] = true, -- Preparation (battleground resource-cost aura)
         [12042] = true,
         [13750] = true,
         [13877] = true,
@@ -664,10 +672,16 @@ PT.categories = {
     debuffs_res_sickness = {
         [15007] = true, -- Resurrection Sickness
     },
+    debuffs_environmental_danger = {
+        [1323184] = true, -- Shark Attack (Darkspear Islands water hazard)
+    },
     buffs_waiting_to_resurrect = {
         [2584] = true,    -- Waiting to Resurrect
         [21989] = true,   -- Waiting to Resurrect
         [1234325] = true, -- Waiting to Resurrect (Forever)
+    },
+    buffs_ghost_speed = {
+        [1262229] = true, -- The Quick and the Dead (visible movement buff while dead)
     },
     buffs_divine_protection = {
         [498] = true, -- Divine Protection
@@ -864,6 +878,11 @@ PT.categories = {
         [8914] = true, -- Thorns Rank 4 (Druid)
         [9756] = true, -- Thorns Rank 5 (Druid)
         [9910] = true, -- Thorns Rank 6 (Druid)
+        [2947] = true, -- Fire Shield Rank 1 (Imp)
+        [8316] = true, -- Fire Shield Rank 2 (Imp)
+        [8317] = true, -- Fire Shield Rank 3 (Imp)
+        [11770] = true, -- Fire Shield Rank 4 (Imp)
+        [11771] = true, -- Fire Shield Rank 5 (Imp)
     },
     buffs_righteous_fury = {
         [25780] = true, -- Righteous Fury (Paladin)
@@ -1230,6 +1249,9 @@ PT.categories = {
         [7301] = true, -- Frost Armor Rank 3 (Mage)
         [12544] = true, -- Frost Armor (NPC/Forever visible variant)
         [15784] = true, -- Frost Armor (NPC/Forever ally-target variant)
+    },
+    buffs_battleground_flag = {
+        [1284560] = true, -- Darkspear Islands Flag (carried objective)
     },
     buffs_other = {
         [23605] = true,

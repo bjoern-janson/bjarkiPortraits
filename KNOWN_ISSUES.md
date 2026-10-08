@@ -1,6 +1,6 @@
 # Known issues and validation
 
-Status recorded 2026-10-08 for **bjarkiPortraits 0.1.83-local**.
+Status recorded 2026-10-08 for **bjarkiPortraits 0.1.84-local**.
 
 This build repairs confirmed source-level routing, readable election,
 presentation ownership and lifecycle defects. Isolated behavioral checks do
@@ -56,6 +56,41 @@ ignored. A broad defensive/signature fallback can therefore differ from the
 exact category taxonomy. Unknown application timing also leaves native
 instance ordering in control instead of promising refresh recency.
 
+## Friendly Forbearance and shared harmful lanes in 0.1.84
+
+A friendly Battleground screenshot shows Forbearance beneath the target frame
+without a portrait replacement. Source execution reproduces a gap when the
+harmful stream is fully readable but native exact filtering is relation-gated.
+The existing complete-readable harmful election now covers Forbearance/Dazed
+and Resurrection Sickness/Shark Attack on player/target/focus. It revokes the
+readable owner on an incomplete stream, unknown identity or failed rendering.
+Native per-aura permission and the derived-frame paths remain unchanged.
+
+Blessing of Protection now has a physical-immunity lane with the existing
+NeverSecret eligibility opt-in. Divine Protection was already above Forbearance
+through both its readable hostile path and permitted native lane. Its reported
+zero-second screenshot does not establish which aura the client still supplied
+at the update boundary. Live identity availability and expiry transitions
+remain to be checked.
+
+## Current Cocoon and ghost-speed records
+
+Transformative Cocoon has separate applied IDs for speed 1301168, absorption
+1316048 and self-stun 1301167. The current source marks the self-stun helpful;
+it has its own helpful lane at Stun priority. A maintenance change to harmful
+must be verified before changing its filter. The dead-only Quick and the Dead
+1262229 joins the above-Ghost lane independently of its living variants. Its
+current data tooltip differs from the older screenshot's movement percentage;
+selection uses the exact aura ID, not tooltip text or inferred death state.
+
+## Native frame-strata contract in build 70291
+
+The updated native frame API explicitly allows secret FrameStrata returns.
+Host construction now postpones all structural mutations when the parent's
+strata read fails or is inaccessible, retrying through existing refreshes when
+readable. The source-level guard and recovery are exercised offline; no live
+post-maintenance protected-execution result is implied.
+
 ## Totem foundations and aura exposure
 
 An enemy Healing Stream Totem was reported with a white portrait and no visible
@@ -98,7 +133,7 @@ Battleground execution still needs live validation.
 Live acceptance should include refresh-without-new-instance behavior, unknown
 timing and identity, token changes, combat toggles, active test settings, pet
 foundations and ToT/FoT clipping. No live WoW run has confirmed all reported
-symptoms fixed in 0.1.83-local. The added spell IDs and priority changes are
+symptoms fixed in 0.1.84-local. The added spell IDs and priority changes are
 source-confirmed; they still depend on the client exposing the corresponding
 aura to an authorized selection path.
 

@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.83-local**. It documents the
+This document describes **bjarkiPortraits 0.1.84-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -56,24 +56,30 @@ Selected category relationships are:
 | Paladin Aura | Paladin auras, Warlock armor, persistent support totem effects, Rat Familiar and Benevolence | 60 |
 | Blood Pact | Blood Pact and the four applied Furious Howl ranks | 70 |
 | Baseline Class | Baseline class buffs and Camp Benefits | 90 |
+| Thorns | Thorns and all five canonical Imp Fire Shield ranks | 120 |
+| Battleground Flag | Darkspear Islands Flag, above forms and Inner Fire at 150 | 151 |
 | Consecration | The applied Forever damage-amplification aura, immediately below DoTs | 189 |
 | DoTs | Explicit damage-over-time effects | 190 |
 | Low Debuff | Low debuffs, taunts and Cursed Blood | 200 |
 | Slows | Slows, exact Chilled IDs and Frost Trap Aura | 220 |
 | Recently Bandaged | Separate harmful state | 229 |
+| Forbearance | Forbearance and the existing Dazed member | 240 |
+| Resurrection Sickness | Resurrection Sickness and Shark Attack share one harmful election | 241 |
 | Healing | Ordinary absorbs, HoTs, First Aid channels, Mend Pet | 255 |
-| Power Word: Shield | Its ten existing applied-aura IDs, separate from Healing | 256 |
+| Power Word: Shield | Existing PW:S applied auras and Transformative Cocoon's absorb | 256 |
 | Honorless Target | Above Healing | 257 |
 | Food/Drink | Food, Drink, Cannibalize, Evocation and Restoration | 260 |
-| Innervate | Innervate, Druid Enrage, Bloodrage, resource recovery and visible The Quick and the Dead variants | 261 |
+| Innervate | Innervate, Druid Enrage, Bloodrage, resource recovery and living The Quick and the Dead variants | 261 |
 | Utility | Utility buffs and Welcoming Campfire | 270 |
-| Offensive | Offensive cooldowns, Swift Wind and Battleground Berserking | 280 |
+| Offensive | Offensive cooldowns, Clearcasting/Preparation, Sprint/Dash, Satchel Speed, Cocoon speed, Swift Wind and Battleground Berserking | 280 |
 | Roots | Root effects | 300 |
-| Root Immunity | Root immunity, Voice of Truth's casting immunity and Grounding spell redirection share this priority | 305 |
+| Root Immunity | Root immunity, Free Action, Voice of Truth's casting immunity and Grounding spell redirection share this priority | 305 |
 | Control / Stun | Separate disjoint exact lanes | 310 / 320 |
+| Physical Immunity | Three Blessing of Protection ranks | 315 |
+| Helpful Self-Stun | Cocoon's currently helpful self-stun, matching harmful Stun priority | 320 |
 | Immunity | Helpful and harmful dispositions remain separate | 330 |
 | Divine Protection | Separate helpful lane | 331 |
-| Waiting to Resurrect | Above the Ghost state presentation | 332 |
+| Waiting to Resurrect / Ghost Speed | Resurrection waiting and the separate dead-only Quick and the Dead aura, above Ghost | 332 |
 
 Healing contains the restored 17 historical First Aid channel IDs and the
 existing Shadow Ward, Sacrifice, Ice Barrier, Fire Ward, Frost Ward and Mana
@@ -88,11 +94,19 @@ not displace combat effects. Martyrdom here is the harmful item aura 1292749,
 which deals damage on death; it is separate from Priest talents and Waiting to
 Resurrect. Grounding's shared priority does not classify it as root immunity.
 
-Version 0.1.83 adds 30 applied-aura IDs and relocates five existing IDs. The
-exact catalog contains 1,109 distinct IDs in 46 disjoint exact lanes; there
-are 10 additional semantic lanes. Only three new lanes are required: Cosmetic,
-Passive Debuff and Consecration. The existing selection and timing engines
-remain in use.
+Version 0.1.84 retains all 1,109 IDs from 0.1.83, adds 11 applied-aura IDs and
+relocates six existing IDs: three Blessing of Protection ranks, Free Action,
+and two Fire Shield ranks. The exact catalog contains 1,120 distinct IDs in
+49 disjoint exact lanes, plus 10 semantic lanes. The three new lanes are
+Battleground Flag, Physical Immunity and Helpful Self-Stun; existing lane
+priorities are unchanged.
+
+Preparation and the two new temporary speed effects share the existing
+Clearcasting and Sprint/Dash priority at 280. They do not move the separate
+Mobility 160 families. Cocoon's self-stun is currently marked Aura Is Buff in
+the spell data; its absorb and speed have separate applied IDs. A later
+helpful/harmful disposition change requires a verified data update, not a
+second speculative lane for the same ID.
 
 ## Native containers and permission
 
@@ -129,6 +143,8 @@ to infer an aura's identity.
 
 These native rules follow the pinned Forever 1.60.1 / build 70245
 [candidate-filter implementation](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerUtil.lua).
+The candidate helper is unchanged in the later
+[build 70291 source](https://github.com/Gethe/wow-ui-source/commit/9465cb273b5513495d8ecc12fbb19930dd6b8957).
 
 ## Readable election and recency
 
@@ -160,6 +176,15 @@ HELPFUL|INCLUDE_NAME_PLATE_ONLY includes ordinary helpful auras plus
 nameplate-only auras, so ordinary Drink remains in the hostile scan.
 The native [aura filter and sort definitions](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_FrameXMLUtil/AuraUtil.lua)
 define this inclusion flag and instance ordering.
+
+On player/target/focus, the existing complete-readable harmful-tier helper
+now serves Slows, Forbearance/Dazed and Resurrection Sickness/Shark Attack.
+It is used only when the conservative exact native filter is unavailable.
+Each reader scans that lane's actual filter and membership, requires a complete
+election, and produces at most one readable owner. This replaces the old
+15007-only Resurrection Sickness reader. Partial or inaccessible streams cannot
+establish the winner of either expanded lane. Derived frames retain their
+existing native paths and low-priority harmful fallback.
 
 ## Presentation ownership and fallback
 
@@ -213,6 +238,11 @@ The native portrait and aura artwork share an addon-owned layer one strata
 below the native frame artwork. Reparenting retains the original portrait
 points and size. Native portrait masks are reused where available; no second
 ring or synthetic mask is added.
+
+Build 70291 explicitly permits secret native FrameStrata returns. Host creation
+checks the parent-strata read for call success, accessibility and string type
+before indexing the layer map or changing frame structure. Unavailable strata
+postpones construction until an existing refresh can retry.
 
 Existing ToT/FoT adjustments remain:
 

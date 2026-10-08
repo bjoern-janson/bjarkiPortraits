@@ -104,7 +104,6 @@ local function findHelpfulTierForSpell(spellID)
 end
 
 local BOOSTED_REST_SPELL_ID = 1229451
-local RES_SICKNESS_SPELL_ID = 15007
 local RECENTLY_BANDAGED_SPELL_ID = 11196
 local GHOST_SPELL_ID = 8326
 local WELCOMING_CAMPFIRE_SPELL_IDS = {
@@ -662,50 +661,50 @@ local function updateGhostState(host, baseEnabled)
     end
 end
 
-local function clearReadableSlows(host)
-    local frame = host and host.readableSlowsFrame
+local function clearReadableHarmfulTier(host, frameKey, prefix)
+    local frame = host and host[frameKey]
     if frame then hideReadableExact(frame) end
     if host then
-        host._slowsReadable = false
-        host._slowsElectionReadable = false
-        host._slowsSpellID = nil
-        host._slowsActive = false
+        host[prefix .. "Readable"] = false
+        host[prefix .. "ElectionReadable"] = false
+        host[prefix .. "SpellID"] = nil
+        host[prefix .. "Active"] = false
     end
 end
 
-local function updateReadableSlows(host, baseEnabled)
+local function updateReadableHarmfulTier(host, baseEnabled, tierKey, frameKey, prefix)
     if not host or not baseEnabled or R.testMode or R.SMALL_UNITS[host.unit] then
-        clearReadableSlows(host)
+        clearReadableHarmfulTier(host, frameKey, prefix)
         return
     end
 
-    local tier = findTierByKey("Slows")
+    local tier = findTierByKey(tierKey)
     if not tier then
-        clearReadableSlows(host)
+        clearReadableHarmfulTier(host, frameKey, prefix)
         return
     end
 
     -- If the secure exact harmful filter is legal for this relation, leave the
     -- secure AuraContainer fully authoritative.
     if R.ExactFilterAllowed(host.unit, false, tier.spellIDs, tier.allowNeverSecret) then
-        clearReadableSlows(host)
+        clearReadableHarmfulTier(host, frameKey, prefix)
         return
     end
 
     local best, complete, electionReadable = scanLatestReadableExactTierAura(
-        host.unit, "Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY"
+        host.unit, tierKey, tier.filter
     )
-    host._slowsReadable = complete
-    host._slowsElectionReadable = electionReadable
-    host._slowsSpellID = best and best.spellID or nil
+    host[prefix .. "Readable"] = complete
+    host[prefix .. "ElectionReadable"] = electionReadable
+    host[prefix .. "SpellID"] = best and best.spellID or nil
 
     if not complete or not electionReadable or not best then
-        hideReadableExact(host.readableSlowsFrame)
-        host._slowsActive = false
+        hideReadableExact(host[frameKey])
+        host[prefix .. "Active"] = false
         return
     end
 
-    host._slowsActive = showReadableTier(host, "readableSlowsFrame", best, true)
+    host[prefix .. "Active"] = showReadableTier(host, frameKey, best, true)
 end
 
 local function clearReadableHostile(host)
@@ -935,6 +934,7 @@ function R.DestroyHost(unit)
     if host.readableBaselineFrame then host.readableBaselineFrame:Hide() end
     if host.readableHealingFrame then hideReadableExact(host.readableHealingFrame) end
     if host.readableSlowsFrame then host.readableSlowsFrame:Hide() end
+    if host.readableForbearanceFrame then hideReadableExact(host.readableForbearanceFrame) end
     if host.readableResSicknessFrame then host.readableResSicknessFrame:Hide() end
     if host.readableRecentlyBandagedFrame then host.readableRecentlyBandagedFrame:Hide() end
     if host.readableGhostFrame then host.readableGhostFrame:Hide() end
@@ -982,7 +982,14 @@ function R.CreateHost(unit)
     -- and the secure aura occupy the same addon-owned layer one strata below
     -- the native frame artwork.  The native ring/chrome therefore frames both
     -- naturally.  Small-frame offsets tune only aura placement, not ownership.
-    local parentStrata = originalParent.GetFrameStrata and originalParent:GetFrameStrata() or "MEDIUM"
+    local parentStrata = "MEDIUM"
+    if originalParent.GetFrameStrata then
+        local ok, value = pcall(originalParent.GetFrameStrata, originalParent)
+        -- Native frame strata can be secret. Wait for a readable value before
+        -- constructing or moving anything; an existing refresh can retry.
+        if not ok or not R.CanAccess(value) or type(value) ~= "string" then return nil end
+        parentStrata = value
+    end
     strata = STRATA_BELOW[parentStrata] or "BACKGROUND"
 
     layer = CreateFrame("Frame", nil, originalParent)
@@ -1067,6 +1074,11 @@ function R.CreateHost(unit)
 
         local slowsTier = findTierByKey("Slows")
         host.readableSlowsFrame = createReadableExactFrame(host, slowsTier and slowsTier.level or 220)
+
+        local forbearanceTier = findTierByKey("Forbearance")
+        host.readableForbearanceFrame = createReadableExactFrame(
+            host, forbearanceTier and forbearanceTier.level or 240
+        )
 
         local resTier = findTierByKey("ResSickness")
         host.readableResSicknessFrame = createReadableExactFrame(host, resTier and resTier.level or 241)
@@ -1171,9 +1183,12 @@ function R.UpdateHost(host, forceContainerRefresh)
         host, base, hostileUnit, divineProtectionSecureAllowed
     )
 
-    -- Friendly/self exact harmful spell-ID filters can be relation-restricted.
-    -- Directly readable Slows therefore get a narrow exact fallback.
-    updateReadableSlows(host, base)
+    -- These friendly/self harmful lanes can be relation-restricted. Use only
+    -- complete, directly readable same-tier elections; partial/secret lists
+    -- cannot replace a permitted native owner or invent an aura's identity.
+    updateReadableHarmfulTier(host, base, "Slows", "readableSlowsFrame", "_slows")
+    updateReadableHarmfulTier(host, base, "Forbearance", "readableForbearanceFrame", "_forbearance")
+    updateReadableHarmfulTier(host, base, "ResSickness", "readableResSicknessFrame", "_resSickness")
 
     -- Boosted Rest is a harmful camping cooldown that can be directly readable
     -- on friendly/self units even when exact harmful-ID AuraContainer filtering
@@ -1199,31 +1214,6 @@ function R.UpdateHost(host, forceContainerRefresh)
         end
     elseif host.readableBoostedRestFrame then
         hideReadableExact(host.readableBoostedRestFrame)
-    end
-
-    -- Resurrection Sickness is a harmful aura commonly observed on self/friendly
-    -- units, where exact harmful-ID AuraContainer filters may be relation-gated.
-    -- If the secure exact lane is legal, it remains authoritative. Otherwise we
-    -- render only a directly readable exact 15007 witness and make no inference
-    -- when the aura stream or spell identity is inaccessible.
-    local resTier = findTierByKey("ResSickness")
-    local resSecureAllowed = resTier and R.ExactFilterAllowed(
-        host.unit, false, resTier.spellIDs, resTier.allowNeverSecret
-    ) or false
-    host._resSicknessReadable = false
-    host._resSicknessActive = false
-    if not R.SMALL_UNITS[host.unit] and base and resTier and not resSecureAllowed then
-        local aura, readable = scanReadableExactAura(host.unit, "HARMFUL", RES_SICKNESS_SPELL_ID)
-        host._resSicknessReadable = readable
-        if aura then
-            host._resSicknessActive = showReadableAura(
-                host.readableResSicknessFrame, aura, RES_SICKNESS_SPELL_ID, host.unit
-            )
-        else
-            hideReadableExact(host.readableResSicknessFrame)
-        end
-    elseif host.readableResSicknessFrame then
-        hideReadableExact(host.readableResSicknessFrame)
     end
 
     -- Waiting to Resurrect is a helpful aura on ghosted units. Keep its secure

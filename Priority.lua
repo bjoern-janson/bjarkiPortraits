@@ -52,6 +52,8 @@ R.TIERS = {
     exact("Thorns", "HELPFUL", 120, true, C.buffs_thorns),
     exact("ElementalShield", "HELPFUL", 130, true, C.buffs_lightning_shield),
     exact("SelfState", "HELPFUL", 150, true, union("buffs_other", "buffs_frost_armor")),
+    -- Carried objectives outrank forms and Inner Fire, below active Utility.
+    exact("BattlegroundFlag", "HELPFUL", 151, true, C.buffs_battleground_flag, true),
     -- Combat-safe hostile-NPC fallback for Frost Armor when spell identity is
     -- sealed. 12544 is a 30-minute Magic buff and is spellstealable from NPCs.
     -- This lane is enabled only for hostile NPCs when the readable exact path
@@ -106,7 +108,8 @@ R.TIERS = {
     }),
     semantic("PriorityDebuff", "HARMFUL", 238, { isPriorityAura = true }),
     exact("Forbearance", "HARMFUL", 240, false, C.debuffs_priority, true),
-    exact("ResSickness", "HARMFUL", 241, false, C.debuffs_res_sickness, true),
+    exact("ResSickness", "HARMFUL", 241, false,
+        union("debuffs_res_sickness", "debuffs_environmental_danger"), true),
     exact("Healing", "HELPFUL", 255, true, union("buffs_shield", "buffs_hots")),
     exact("PowerWordShield", "HELPFUL", 256, true, C.buffs_power_word_shield),
     -- PvP Honorless status outranks routine healing-over-time auras such as Renew.
@@ -140,18 +143,23 @@ R.TIERS = {
     exact("RootImmunity", "HELPFUL", 305, true,
         union("immunities_root", "immunities_interrupt", "buffs_grounding"), true),
     semantic("CrowdControl", "HARMFUL|CROWD_CONTROL", 309),
-    -- Stuns are conceptually CC, but runtime exact lanes must be disjoint:
-    -- the dedicated 320 Stun lane owns every stun ID.
+    -- Harmful stuns are conceptually CC, but exact lanes must be disjoint:
+    -- the dedicated 320 Stun lane owns every harmful stun ID.
     exact("Control", "HARMFUL", 310, false, unionExcept("stuns", "interrupts", "cc")),
+    exact("PhysicalImmunity", "HELPFUL", 315, true, C.immunities_physical, true),
     exact("Stun", "HARMFUL", 320, false, C.stuns),
+    -- Cocoon's self-stun is currently HELPFUL in the client spell data.
+    exact("HelpfulSelfStun", "HELPFUL", 320, true, C.buffs_self_stun, true),
     exact("ImmunityHarmful", "HARMFUL", 330, false, C.immunities_harmful),
     exact("Immunity", "HELPFUL", 330, true, C.immunities),
     -- Keep Divine Protection independently eligible for safe hostile exact
     -- identity, above Forbearance and the ordinary Immunity lane.
     exact("DivineProtection", "HELPFUL", 331, true, C.buffs_divine_protection, true),
     -- Secure buttons use tier + 1; Ghost's state witness uses Immunity + 2.
-    -- Level 332 therefore makes Waiting to Resurrect visibly outrank Ghost.
-    exact("WaitingToResurrect", "HELPFUL", 332, true, C.buffs_waiting_to_resurrect, true),
+    -- Level 332 makes resurrection waiting and the dead-only speed aura
+    -- visibly outrank Ghost without inferring either aura from death state.
+    exact("WaitingToResurrect", "HELPFUL", 332, true,
+        union("buffs_waiting_to_resurrect", "buffs_ghost_speed"), true),
 }
 
 -- Immutable lookup indexes derived once from the frozen tier table. These do
