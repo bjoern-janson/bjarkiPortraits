@@ -510,6 +510,46 @@ local function clearReadableCooldown(cooldown)
     return false
 end
 
+local function setReadableAuraCooldown(cooldown, unit, aura)
+    if not cooldown then return false end
+
+    -- Transport the current winner's native duration without reading its
+    -- timing components or retaining it across aura/unit assignments.
+    if C_UnitAuras and C_UnitAuras.GetAuraDuration and cooldown.SetCooldownFromDurationObject then
+        local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
+        if instanceReadable and type(auraInstanceID) == "number" then
+            local ok, durationObject = pcall(C_UnitAuras.GetAuraDuration, unit, auraInstanceID)
+            if ok and R.CanAccess(durationObject) and durationObject ~= nil
+                -- Each presentation assigns the current winner. A zero object
+                -- must clear a previous timed aura, including same-ID refreshes.
+                and pcall(cooldown.SetCooldownFromDurationObject, cooldown, durationObject, true)
+            then
+                return true
+            end
+        end
+    end
+
+    local duration, durationReadable = R.ReadAuraField(aura, "duration")
+    if not durationReadable or type(duration) ~= "number" then return false end
+    if duration == 0 then return clearReadableCooldown(cooldown) end
+
+    local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
+    local timeMod, timeModReadable = R.ReadAuraField(aura, "timeMod")
+    if duration > 0 and expirationReadable and type(expirationTime) == "number" and timeModReadable then
+        -- Missing timeMod uses the native default. A supplied unreadable or
+        -- invalid modifier cannot authorize an inaccurate owned countdown.
+        if timeMod == nil then timeMod = 1 end
+        if type(timeMod) == "number" and timeMod > 0 and timeMod < math.huge then
+            return cooldown.SetCooldown and pcall(
+                cooldown.SetCooldown, cooldown, expirationTime - duration, duration, timeMod
+            ) or false
+        end
+    end
+    -- Unknown timing is not a permanent-aura witness. Relinquish presentation
+    -- so a successful clear alone cannot suppress the native tier.
+    return false
+end
+
 local function hideReadableExact(frame)
     if not frame then return end
     clearReadableCooldown(frame.cooldown)
@@ -548,30 +588,14 @@ local function setReadableSpellIcon(frame, spellID)
     return true
 end
 
-local function showReadableAura(frame, aura, spellID)
+local function showReadableAura(frame, aura, spellID, unit)
     if not R.CanAccess(aura) or aura == nil then
         hideReadableExact(frame)
         return false
     end
     if not setReadableSpellIcon(frame, spellID) then return false end
 
-    local duration, durationReadable = R.ReadAuraField(aura, "duration")
-    local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
-    local cooldown = frame.cooldown
-    local timerUpdated = false
-    if cooldown then
-        if durationReadable and expirationReadable
-            and type(duration) == "number" and type(expirationTime) == "number"
-            and duration > 0
-        then
-            timerUpdated = cooldown.SetCooldown and pcall(
-                cooldown.SetCooldown, cooldown, expirationTime - duration, duration
-            ) or false
-        else
-            timerUpdated = clearReadableCooldown(cooldown)
-        end
-    end
-    if not timerUpdated then
+    if not setReadableAuraCooldown(frame.cooldown, unit, aura) then
         hideReadableExact(frame)
         return false
     end
@@ -606,7 +630,7 @@ local function showReadableTier(host, frameKey, candidate, complete)
         hideReadableExact(frame)
         return false
     end
-    if not showReadableAura(frame, candidate.aura, candidate.spellID) then return false end
+    if not showReadableAura(frame, candidate.aura, candidate.spellID, host.unit) then return false end
     host._readableTierOwners[candidate.tier.key] = {
         frame = frame, frameKey = frameKey, cooldown = frame.cooldown,
         complete = complete and true or false,
@@ -1168,7 +1192,7 @@ function R.UpdateHost(host, forceContainerRefresh)
         host._boostedRestReadable = readable
         if aura then
             host._boostedRestActive = showReadableAura(
-                host.readableBoostedRestFrame, aura, BOOSTED_REST_SPELL_ID
+                host.readableBoostedRestFrame, aura, BOOSTED_REST_SPELL_ID, host.unit
             )
         else
             hideReadableExact(host.readableBoostedRestFrame)
@@ -1193,7 +1217,7 @@ function R.UpdateHost(host, forceContainerRefresh)
         host._resSicknessReadable = readable
         if aura then
             host._resSicknessActive = showReadableAura(
-                host.readableResSicknessFrame, aura, RES_SICKNESS_SPELL_ID
+                host.readableResSicknessFrame, aura, RES_SICKNESS_SPELL_ID, host.unit
             )
         else
             hideReadableExact(host.readableResSicknessFrame)
@@ -1252,7 +1276,7 @@ function R.UpdateHost(host, forceContainerRefresh)
         host._recentlyBandagedReadable = readable
         if aura then
             host._recentlyBandagedActive = showReadableAura(
-                host.readableRecentlyBandagedFrame, aura, RECENTLY_BANDAGED_SPELL_ID
+                host.readableRecentlyBandagedFrame, aura, RECENTLY_BANDAGED_SPELL_ID, host.unit
             )
         else
             hideReadableExact(host.readableRecentlyBandagedFrame)

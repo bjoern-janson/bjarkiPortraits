@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.81-local**. It documents the
+This document describes **bjarkiPortraits 0.1.82-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -151,6 +151,25 @@ shows. Hiding clears the old texture and cooldown; a failed cooldown clear also
 attempts the supported zero-duration reset while relinquishing ownership.
 The [texture API contract](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleTextureBaseAPIDocumentation.lua)
 defines SetTexture's separate boolean success result.
+
+For an elected aura, the presenter requests GetAuraDuration with the current
+unit and a readable aura instance ID, then passes an accessible duration-object
+handle directly to SetCooldownFromDurationObject. Protected timing contents
+are left to the native widget. Each assignment uses clearIfZero so a zero
+duration clears the previous timer, including a same-instance refresh. The
+presentation lookup adds no election evidence and retains no duration object
+across updates.
+
+If that route is unavailable or fails, readable numeric timing remains a
+fallback. It passes expirationTime minus duration, duration and a readable
+positive finite timeMod to SetCooldown; an absent modifier uses the native
+default of 1. A readable zero duration permits clearing. Unknown timing or a
+supplied inaccessible/invalid modifier cannot authorize a timerless or
+incorrect countdown, so the readable presentation relinquishes ownership.
+The pinned [cooldown API](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_APIDocumentationGenerated/FrameAPICooldownDocumentation.lua)
+and [native aura renderer](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua)
+define these presentation methods; getter access and live execution remain
+client-dependent.
 
 A complete readable election that actually renders suppresses exactly its
 native tier. Revocation immediately restores native scheduling eligibility.

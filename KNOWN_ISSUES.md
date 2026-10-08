@@ -1,10 +1,28 @@
 # Known issues and validation
 
-Status recorded 2026-10-08 for **bjarkiPortraits 0.1.81-local**.
+Status recorded 2026-10-08 for **bjarkiPortraits 0.1.82-local**.
 
 This build repairs confirmed source-level routing, readable election,
 presentation ownership and lifecycle defects. Isolated behavioral checks do
 not establish that the following Battleground reports are resolved.
+
+## Protected countdown presentation in 0.1.82
+
+The readable presenter previously cleared protected numeric timing while still
+claiming its tier, even when a usable native duration object was available.
+This build transports the current elected aura's duration object to the native
+cooldown widget. Same-instance refreshes and unit changes fetch current data;
+a zero object clears the previous timer.
+
+When object rendering is unavailable, numeric fallback preserves a readable
+timeMod. Unknown timing or an inaccessible/invalid supplied modifier revokes
+the readable presentation instead of suppressing the native tier with an
+unsupported timer. Priority, application-time election, geometry and countdown
+formatting retain their existing behavior.
+
+These transitions are covered by actual-source tests with mocked native
+boundaries. Restricted getter access, protected execution and visible native
+countdown behavior still need in-client validation.
 
 ## Battleground pet portraits
 
@@ -65,7 +83,7 @@ Battleground execution still needs live validation.
 Live acceptance should include refresh-without-new-instance behavior, unknown
 timing and identity, token changes, combat toggles, active test settings, pet
 foundations and ToT/FoT clipping. No live WoW run has confirmed all reported
-symptoms fixed in 0.1.81-local.
+symptoms fixed in 0.1.82-local.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the current implementation.
 Class-colored unit-frame reports remain in the
