@@ -57,10 +57,10 @@ R.TIERS = {
     }),
 
     -- Opposite-faction exact helpful identity filters are relation-restricted in
-    -- Forever. This deliberately broad secure lane is enabled only when hostile
-    -- aura identities are not readable to addon Lua. When identities are
-    -- readable, AuraEngine renders only explicitly tracked helpful spells.
-    semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 150),
+    -- Forever. This broad secure lane is only a visibility fallback when hostile
+    -- aura identities are not readable to Lua. Keep it at the bottom so its
+    -- arbitrary winner cannot mask any classified category above it.
+    semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 1),
 
     exact("Mobility", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 160, true,
         union("buffs_ghostwolf", "buffs_ghostwolf_variants", "buffs_cheetah"), true),
@@ -100,9 +100,12 @@ R.TIERS = {
     semantic("PriorityDebuff", "HARMFUL", 238, { isPriorityAura = true }),
     exact("Forbearance", "HARMFUL", 240, false, C.debuffs_priority, true),
     exact("ResSickness", "HARMFUL", 241, false, C.debuffs_res_sickness, true),
-    exact("HonorlessTarget", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 242, true, C.buffs_honorless_target, true),
-    exact("PowerWordShield", "HELPFUL", 256, true, C.buffs_power_word_shield),
     exact("Healing", "HELPFUL", 255, true, union("buffs_shield", "buffs_hots")),
+    exact("PowerWordShield", "HELPFUL", 256, true, C.buffs_power_word_shield),
+    -- PvP Honorless status outranks routine healing-over-time auras such as Renew.
+    exact("HonorlessTarget", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 257, true, C.buffs_honorless_target, true),
+    -- Recovery/consumable channel category remains above routine harmful DoTs;
+    -- hostile readable election uses this same category level in battlegrounds.
     exact("FoodDrink", "HELPFUL", 260, true, C.buffs_fooddrink),
     -- Innervate, Druid Enrage, Warrior Bloodrage, and resource-recovery states intentionally share one
     -- actual priority surface so equal-priority recency is arbitrated inside
@@ -113,13 +116,20 @@ R.TIERS = {
     -- equal-priority effects cannot stack independent cooldown widgets.
     exact("Utility", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 270, true,
         union("buffs_utility", "buffs_welcoming_campfire")),
-    semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 279),
+    -- IMPORTANT is a broad client flag, not a PvP priority class. It is the
+    -- fallback for otherwise unclassified important buffs; explicit categories
+    -- and dedicated Big/External defensive lanes outrank it.
+    semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 85),
     exact("Offensive", "HELPFUL", 280, true, C.buffs_offensive),
     semantic("ExternalDef", "HELPFUL|EXTERNAL_DEFENSIVE", 288),
     semantic("BigDef", "HELPFUL|BIG_DEFENSIVE", 289),
     exact("Defensive", "HELPFUL", 290, true, C.buffs_defensive),
+    -- Defensive racials are one PvP category: let Stoneform and Will of the
+    -- Forsaken outrank offensive cooldowns, including when their IDs are safe
+    -- for secure hostile filtering.
+    exact("RacialDefensive", "HELPFUL", 291, true, C.buffs_racial_defensive, true),
     exact("Roots", "HARMFUL", 300, false, C.roots),
-    exact("RootImmunity", "HELPFUL", 305, true, C.immunities_root),
+    exact("RootImmunity", "HELPFUL", 305, true, C.immunities_root, true),
     semantic("CrowdControl", "HARMFUL|CROWD_CONTROL", 309),
     -- Stuns are conceptually CC, but runtime exact lanes must be disjoint:
     -- the dedicated 320 Stun lane owns every stun ID.
@@ -127,6 +137,12 @@ R.TIERS = {
     exact("Stun", "HARMFUL", 320, false, C.stuns),
     exact("ImmunityHarmful", "HARMFUL", 330, false, C.immunities_harmful),
     exact("Immunity", "HELPFUL", 330, true, C.immunities),
+    -- Keep Divine Protection independently eligible for safe hostile exact
+    -- identity, above Forbearance and the ordinary Immunity lane.
+    exact("DivineProtection", "HELPFUL", 331, true, C.buffs_divine_protection, true),
+    -- Secure buttons use tier + 1; Ghost's state witness uses Immunity + 2.
+    -- Level 332 therefore makes Waiting to Resurrect visibly outrank Ghost.
+    exact("WaitingToResurrect", "HELPFUL", 332, true, C.buffs_waiting_to_resurrect, true),
 }
 
 -- Immutable lookup indexes derived once from the frozen tier table. These do

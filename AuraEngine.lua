@@ -255,6 +255,25 @@ local function scanReadableExactAura(unit, filter, spellID)
     return nil, false
 end
 
+local function scanReadableExactAuraSet(unit, filter, spellIDs)
+    if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex or type(spellIDs) ~= "table" then
+        return nil, nil, false
+    end
+
+    for index = 1, AURA_SCAN_LIMIT do
+        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
+        if not ok or not R.CanAccess(aura) then return nil, nil, false end
+        if aura == nil then return nil, nil, true end
+
+        local spellID, readable = R.ReadAuraField(aura, "spellId")
+        if not readable or type(spellID) ~= "number" then return nil, nil, false end
+        if spellIDs[spellID] then return aura, spellID, true end
+    end
+
+    -- The bounded scan did not reach a nil terminator, so absence is unproven.
+    return nil, nil, false
+end
+
 local function getReadablePlayerAuraBySpellID(spellID)
     if not C_UnitAuras or not C_UnitAuras.GetPlayerAuraBySpellID then
         return nil, false, false
@@ -469,39 +488,43 @@ local function scanReadableHostileHelpful(unit)
     local complete = false
 
     for index = 1, AURA_SCAN_LIMIT do
+        -- Read the full helpful list here, not only INCLUDE_NAME_PLATE_ONLY.
+        -- The latter can omit recovery effects such as FoodDrink, which means
+        -- their existing category priority never enters hostile election.
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
-            unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
+            unit, index, "HELPFUL")
         if not ok then
             allIdentitiesReadable = false
             break
         end
 
-        -- Never compare/index an inaccessible aura object. If Forever seals the
-        -- object itself, the secure HostileHelpful lane remains authoritative.
+        -- Never compare/index an inaccessible aura object. Skip that slot and
+        -- keep looking for readable category witnesses; unreadability still
+        -- prevents this pass from suppressing the secure fallback lane.
         if not R.CanAccess(aura) then
             allIdentitiesReadable = false
-            break
-        end
-        if aura == nil then
-            complete = true
-            break
-        end
-        count = count + 1
-
-        local spellID, idReadable = R.ReadAuraField(aura, "spellId")
-        if not idReadable or type(spellID) ~= "number" then
-            allIdentitiesReadable = false
         else
-            local tier = findHelpfulTierForSpell(spellID)
-            if tier then
-                local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
-                candidates[#candidates + 1] = {
-                    aura = aura,
-                    spellID = spellID,
-                    tier = tier,
-                    auraInstanceID = instanceReadable and type(auraInstanceID) == "number"
-                        and auraInstanceID or nil,
-                }
+            if aura == nil then
+                complete = true
+                break
+            end
+            count = count + 1
+
+            local spellID, idReadable = R.ReadAuraField(aura, "spellId")
+            if not idReadable or type(spellID) ~= "number" then
+                allIdentitiesReadable = false
+            else
+                local tier = findHelpfulTierForSpell(spellID)
+                if tier then
+                    local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
+                    candidates[#candidates + 1] = {
+                        aura = aura,
+                        spellID = spellID,
+                        tier = tier,
+                        auraInstanceID = instanceReadable and type(auraInstanceID) == "number"
+                            and auraInstanceID or nil,
+                    }
+                end
             end
         end
     end
@@ -545,7 +568,11 @@ local function scanReadableHostileHelpful(unit)
     -- It can, however, authorize this readable projection when at least one aura
     -- was exposed, every identity was readable, and any same-tier winner is
     -- actually ordered by readable evidence.
-    local authoritative = allIdentitiesReadable and complete and count > 0 and electionReadable
+    -- This reader may only replace secure fallback lanes when it found a
+    -- tracked aura, the full readable helpful list terminated, every aura ID
+    -- was readable, and the highest category winner was elected safely.
+    local authoritative = best ~= nil and allIdentitiesReadable and complete
+        and count > 0 and electionReadable
     return best, authoritative, count, complete, electionReadable
 end
 
@@ -730,9 +757,10 @@ local function clearReadableHostile(host)
     hideReadableExact(frame)
     host._hostileReadable = false
     host._hostileElectionReadable = false
-    host._hostileVisibleComplete = false
+    host._hostileAuraListComplete = false
     host._hostileCount = 0
     host._hostileSpellID = nil
+    host._hostileTierKey = nil
 end
 
 local function updateReadableHostile(host, baseEnabled)
@@ -741,13 +769,14 @@ local function updateReadableHostile(host, baseEnabled)
         return false
     end
 
-    local best, authoritative, count, visibleComplete, electionReadable =
+    local best, authoritative, count, auraListComplete, electionReadable =
         scanReadableHostileHelpful(host.unit)
     host._hostileReadable = authoritative
     host._hostileElectionReadable = electionReadable
-    host._hostileVisibleComplete = visibleComplete
+    host._hostileAuraListComplete = auraListComplete
     host._hostileCount = count
     host._hostileSpellID = best and best.spellID or nil
+    host._hostileTierKey = best and best.tier and best.tier.key or nil
 
     local frame = host.readableHostileFrame
     if not frame or not best then
@@ -793,6 +822,49 @@ local function updateReadableHostile(host, baseEnabled)
 
     frame:Show()
     return authoritative
+end
+
+local function updateReadableDivineProtection(host, baseEnabled, hostileUnit, secureAllowed)
+    local tier = findTierByKey("DivineProtection")
+    host._divineProtectionSecureAllowed = secureAllowed and true or false
+    host._divineProtectionReadable = false
+    host._divineProtectionActive = false
+    host._divineProtectionSpellID = nil
+
+    local frame = host.readableDivineProtectionFrame
+    if not frame or not baseEnabled or R.testMode or not hostileUnit or secureAllowed or not tier then
+        if frame then hideReadableExact(frame) end
+        return
+    end
+
+    -- Some clients omit hostile buffs from the nameplate-visible subset while
+    -- still exposing their ordinary helpful-aura stream. Accept only the exact
+    -- tracked Divine Protection IDs from a positively hostile unit.
+    local aura, spellID, readable = scanReadableExactAuraSet(
+        host.unit, "HELPFUL", tier.spellIDs
+    )
+    host._divineProtectionReadable = readable
+    host._divineProtectionSpellID = spellID
+    if not aura then
+        hideReadableExact(frame)
+        return
+    end
+
+    -- updateReadableHostile already draws the same exact witness when it is in
+    -- the nameplate-visible subset. Avoid stacking a duplicate icon over it.
+    local hostileFrame = host.readableHostileFrame
+    local hostileFrameShown = false
+    if hostileFrame and hostileFrame.IsShown then
+        local shownOK, shown = pcall(hostileFrame.IsShown, hostileFrame)
+        hostileFrameShown = shownOK and shown == true
+    end
+    if hostileFrameShown and host._hostileSpellID == spellID then
+        hideReadableExact(frame)
+        host._divineProtectionActive = true
+        return
+    end
+
+    host._divineProtectionActive = showReadableAura(frame, aura, spellID)
 end
 
 local function clearReadableBaseline(host)
@@ -1083,6 +1155,11 @@ function R.CreateHost(unit)
         local resTier = findTierByKey("ResSickness")
         host.readableResSicknessFrame = createReadableExactFrame(host, resTier and resTier.level or 241)
 
+        local waitingTier = findTierByKey("WaitingToResurrect")
+        host.readableWaitingToResurrectFrame = createReadableExactFrame(
+            host, waitingTier and waitingTier.level or 332
+        )
+
         local recentlyBandagedTier = findTierByKey("RecentlyBandaged")
         host.readableRecentlyBandagedFrame = createReadableExactFrame(
             host, recentlyBandagedTier and recentlyBandagedTier.level or 229
@@ -1093,9 +1170,22 @@ function R.CreateHost(unit)
             host, immunityTier and immunityTier.level or 330
         )
         if host.readableGhostFrame and host.readableGhostFrame.SetFrameLevel then
-            -- State-derived Ghost should own the top-priority visual when active.
+            -- Ghost stays above ordinary aura lanes; WaitingToResurrect is the
+            -- explicit helpful-aura exception with a strictly higher level.
             host.readableGhostFrame:SetFrameLevel(
                 (host.smallBaseLevel or 0) + (immunityTier and immunityTier.level or 330) + 2
+            )
+        end
+
+        local divineProtectionTier = findTierByKey("DivineProtection")
+        host.readableDivineProtectionFrame = createReadableExactFrame(
+            host, divineProtectionTier and divineProtectionTier.level or 331
+        )
+        if host.readableDivineProtectionFrame
+            and host.readableDivineProtectionFrame.SetFrameLevel
+        then
+            host.readableDivineProtectionFrame:SetFrameLevel(
+                (host.smallBaseLevel or 0) + (divineProtectionTier and divineProtectionTier.level or 331) + 2
             )
         end
     end
@@ -1147,12 +1237,20 @@ function R.UpdateHost(host, forceContainerRefresh)
     local hostileReadable = false
     if hostileUnit then
         -- Readable exact hostile helpful auras are useful for both players and
-        -- NPCs. Only hostile players receive the broad secure fallback below;
-        -- unreadable hostile NPC helpful state is intentionally left alone.
+        -- NPCs. The broad secure fallback below also covers hostile NPCs such
+        -- as totems when this client hides their aura identities from Lua.
         hostileReadable = updateReadableHostile(host, base)
     else
         clearReadableHostile(host)
     end
+
+    local divineProtectionTier = findTierByKey("DivineProtection")
+    local divineProtectionSecureAllowed = divineProtectionTier and R.ExactFilterAllowed(
+        host.unit, true, divineProtectionTier.spellIDs, divineProtectionTier.allowNeverSecret
+    ) or false
+    updateReadableDivineProtection(
+        host, base, hostileUnit, divineProtectionSecureAllowed
+    )
 
     -- Friendly/self exact harmful spell-ID filters can be relation-restricted.
     -- Directly readable Slows therefore get a narrow exact fallback.
@@ -1207,6 +1305,34 @@ function R.UpdateHost(host, forceContainerRefresh)
         end
     elseif host.readableResSicknessFrame then
         hideReadableExact(host.readableResSicknessFrame)
+    end
+
+    -- Waiting to Resurrect is a helpful aura on ghosted units. Keep its secure
+    -- exact lane authoritative when legal; otherwise show only a directly
+    -- readable exact-ID witness above the state-derived Ghost frame.
+    local waitingTier = findTierByKey("WaitingToResurrect")
+    local waitingSecureAllowed = waitingTier and R.ExactFilterAllowed(
+        host.unit, true, waitingTier.spellIDs, waitingTier.allowNeverSecret
+    ) or false
+    host._waitingToResurrectSecureAllowed = waitingSecureAllowed
+    host._waitingToResurrectReadable = false
+    host._waitingToResurrectActive = false
+    host._waitingToResurrectSpellID = nil
+    if not R.SMALL_UNITS[host.unit] and base and waitingTier and not waitingSecureAllowed then
+        local aura, spellID, readable = scanReadableExactAuraSet(
+            host.unit, "HELPFUL", waitingTier.spellIDs
+        )
+        host._waitingToResurrectReadable = readable
+        if aura then
+            host._waitingToResurrectSpellID = spellID
+            host._waitingToResurrectActive = showReadableAura(
+                host.readableWaitingToResurrectFrame, aura, spellID
+            )
+        else
+            hideReadableExact(host.readableWaitingToResurrectFrame)
+        end
+    elseif host.readableWaitingToResurrectFrame then
+        hideReadableExact(host.readableWaitingToResurrectFrame)
     end
 
     -- Recently Bandaged is a self/friendly harmful state and therefore needs
@@ -1275,8 +1401,8 @@ function R.UpdateHost(host, forceContainerRefresh)
         elseif tier.key == "HostileHelpful" then
             -- Exact readable identities win when available. If Forever seals
             -- them, fall back to Blizzard's broad secure HELPFUL stream, but
-            -- only for positively established hostile players.
-            enabled = enabled and hostilePlayer and not hostileReadable
+            -- for any positively established hostile unit, including totems.
+            enabled = enabled and hostileUnit and not hostileReadable
         elseif tier.key == "SmallFriendlyHarmful" then
             -- Small derived frames need a generic harmful-state surface when
             -- exact harmful identity filtering is not authorized. The secure
@@ -1315,13 +1441,6 @@ function R.UpdateHost(host, forceContainerRefresh)
                     host.unit, tier.helpful, tier.spellIDs, tier.allowNeverSecret
                 )
             end
-        elseif hostileUnit and hostileReadable
-            and (tier.key == "Important" or tier.key == "ExternalDef" or tier.key == "BigDef")
-        then
-            -- When every hostile helpful identity is readable, the exact scanner
-            -- already enforces our tracked whitelist. Suppress broad semantic
-            -- lanes so untracked maintenance buffs cannot replace it.
-            enabled = false
         end
 
         setContainer(host.containers[index], enabled, forceContainerRefresh)

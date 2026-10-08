@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.67-local"
+R.VERSION = "0.1.80-local"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
@@ -297,7 +297,27 @@ end
 
 function R.RecordAuraUpdate(unit, updateInfo)
     if type(unit) ~= "string" or type(updateInfo) ~= "table" or not R.CanAccess(updateInfo) then return end
-    if updateInfo.isFullUpdate then
+
+    -- UNIT_AURA updateInfo fields can be secret on this client. Read them only
+    -- through the same guarded accessor used for aura data.
+    local isFullUpdate, fullUpdateReadable = R.ReadAuraField(updateInfo, "isFullUpdate")
+    if not fullUpdateReadable or type(isFullUpdate) ~= "boolean" then
+        R.AURA_RECENCY[unit] = {}
+        return
+    end
+    if isFullUpdate then
+        R.AURA_RECENCY[unit] = {}
+        return
+    end
+
+    local addedAuras, addedReadable = R.ReadAuraField(updateInfo, "addedAuras")
+    local updatedAuraInstanceIDs, updatedReadable = R.ReadAuraField(updateInfo, "updatedAuraInstanceIDs")
+    local removedAuraInstanceIDs, removedReadable = R.ReadAuraField(updateInfo, "removedAuraInstanceIDs")
+    if not addedReadable or not updatedReadable or not removedReadable
+        or (addedAuras ~= nil and type(addedAuras) ~= "table")
+        or (updatedAuraInstanceIDs ~= nil and type(updatedAuraInstanceIDs) ~= "table")
+        or (removedAuraInstanceIDs ~= nil and type(removedAuraInstanceIDs) ~= "table")
+    then
         R.AURA_RECENCY[unit] = {}
         return
     end
@@ -353,18 +373,22 @@ function R.RecordAuraUpdate(unit, updateInfo)
         end
     end
 
-    for _, aura in ipairs(updateInfo.addedAuras or {}) do
+    for _, aura in ipairs(addedAuras or {}) do
         inspectAura(aura, true)
     end
 
-    for _, auraInstanceID in ipairs(updateInfo.updatedAuraInstanceIDs or {}) do
-        if C_UnitAuras and C_UnitAuras.GetAuraDataByAuraInstanceID then
+    for _, auraInstanceID in ipairs(updatedAuraInstanceIDs or {}) do
+        if R.CanAccess(auraInstanceID) and type(auraInstanceID) == "number"
+            and C_UnitAuras and C_UnitAuras.GetAuraDataByAuraInstanceID
+        then
             local ok, aura = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, auraInstanceID)
             if ok then inspectAura(aura, false) end
         end
     end
 
-    for _, auraInstanceID in ipairs(updateInfo.removedAuraInstanceIDs or {}) do
-        unitState[auraInstanceID] = nil
+    for _, auraInstanceID in ipairs(removedAuraInstanceIDs or {}) do
+        if R.CanAccess(auraInstanceID) and type(auraInstanceID) == "number" then
+            unitState[auraInstanceID] = nil
+        end
     end
 end

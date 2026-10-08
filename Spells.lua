@@ -15,8 +15,6 @@ PT.categories = {
         [1022] = true,
         [5599] = true,
         [10278] = true,
-        [498] = true,
-        [5573] = true,
         [642] = true,
         [1020] = true,
         [11958] = true,
@@ -508,8 +506,6 @@ PT.categories = {
     buffs_offensive = {
         [20554] = true, -- Berserking (Troll racial, Forever)
         [20600] = true,
-        [7744] = true,
-        [20594] = true,
         [20572] = true, -- Blood Fury (Orc racial)
         [23451] = true,
         [23505] = true,
@@ -655,6 +651,15 @@ PT.categories = {
     },
     debuffs_res_sickness = {
         [15007] = true, -- Resurrection Sickness
+    },
+    buffs_waiting_to_resurrect = {
+        [2584] = true,    -- Waiting to Resurrect
+        [21989] = true,   -- Waiting to Resurrect
+        [1234325] = true, -- Waiting to Resurrect (Forever)
+    },
+    buffs_divine_protection = {
+        [498] = true, -- Divine Protection
+        [5573] = true, -- Divine Protection Rank 2 (Forever)
     },
     buffs_honorless_target = {
         [2479] = true, -- Honorless Target
@@ -956,6 +961,8 @@ PT.categories = {
     buffs_class_baseline = {
         -- Regular class buffs: meaningful combat state, but deliberately below
         -- forms/stealth and active combat effects.
+        [17007] = true, -- Leader of the Pack (talent aura)
+        [24932] = true, -- Leader of the Pack (party buff)
 
         -- Warrior: Battle Shout
         [6673] = true,
@@ -1060,6 +1067,12 @@ PT.categories = {
                 [19883] = true, -- Track Humanoids
                 [19884] = true, -- Track Undead
                 [19885] = true, -- Track Hidden
+    },
+    buffs_racial_defensive = {
+        -- Defensive racials share a high-priority PvP category, separate from
+        -- offensive cooldowns and ordinary passive class buffs.
+        [7744] = true, -- Will of the Forsaken
+        [20594] = true, -- Stoneform
     },
     buffs_mobility = {
         -- Movement/stealth state shares the existing Mobility priority lane.

@@ -62,6 +62,10 @@ Current nearby harmful priorities include:
 - Stuns: 320
 - Immunities: 330
 
+The helpful `Divine Protection` aura uses its own tier 331, above Forbearance and the shared Immunity lane.
+The helpful `Waiting to Resurrect` aura uses tier 332, above the state-derived Ghost frame.
+Honorless Target uses helpful tier 257, above the Healing/HoT tier 255.
+
 The numeric level is used as a portrait display priority, not as a general statement about spell strength.
 
 ## 3. Secure aura containers
