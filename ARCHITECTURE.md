@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes the current implementation of **bjarkiPortraits 0.1.66-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
+This document describes the current implementation of **bjarkiPortraits 0.1.80-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into seven Lua modules:
 
@@ -316,3 +316,36 @@ treated as coverage data, not as a live-visibility guarantee.
 
 The migration leaves the existing semantic lanes, readable fallbacks, secret
 value guards, and priority-election mechanics unchanged.
+
+
+## 19. Reported Battleground gaps
+
+These are user-reported outcomes from recent Battleground sessions, recorded
+2026-10-08. They are open validation items for 0.1.80-local: this source update
+has not been exercised in a live client, so it does not establish that they are
+fixed or identify a single root cause.
+
+- Friendly and enemy Hunter/Warlock pet portraits fail or show incorrect
+  artwork in Battlegrounds. Hunter pet artwork had worked outside a
+  Battleground in an earlier report. Warlock pets have also been reported with
+  an unexpected Growl icon.
+- Opposing-faction aura display in Battlegrounds has category-level
+  prioritization/eligibility failures. The reported expectations include
+  Drink above DoTs and Honorless Target above healing-over-time effects; other
+  examples are low-priority water utility or Leader of the Pack surfacing too
+  high, and Blessing of Freedom, Stoneform, or Divine Protection not
+  surfacing. Treat these as evidence about category election/eligibility, not
+  as a list of isolated spell-ID patches. Water Breathing belongs near the
+  bottom with other water utility.
+- An enemy Healing Stream Totem was reported with a white portrait and no
+  visible aura, where red hostile coloring and its aura were expected.
+- ToT/FoT aura artwork was reported protruding past the small-frame border.
+- Version 0.1.71 produced a secret-value error when testing
+  `updateInfo.isFullUpdate` on Battleground entry. The current source adds
+  guarded access around aura-update metadata, but this remains a live-client
+  verification item.
+
+When investigating these reports, preserve the separation between readable
+identity/relation evidence, exact-filter authorization, native secure-lane
+candidate election, and visible presentation. Do not infer that one layer is
+working because another layer displays an icon.
