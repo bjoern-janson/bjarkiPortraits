@@ -225,6 +225,7 @@ PT.categories = {
         [1280353] = true, -- Consecration (Forever applied damage-amplification aura)
     },
     debuffs_dots = {
+        [3815] = true, -- Poison Cloud (Ironspine, periodic Poison)
         -- Mage residual/periodic damage
         [133] = true, [143] = true, [145] = true, [3140] = true,
         [8400] = true, [8401] = true, [8402] = true,

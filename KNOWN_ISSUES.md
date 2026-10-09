@@ -1,11 +1,25 @@
 # Known issues and validation
 
-Status recorded 2026-10-09 for **bjarkiPortraits 0.1.94-local**.
+Status recorded 2026-10-09 for **bjarkiPortraits 0.1.95-local**.
 
-This build completes the known Battleground Speed family, lowers Improved
-Stormstrike to the Seal priority, and makes diagnostic API errors informative.
-The new live captures establish specific aura-read and totem-identity limits.
-They do not establish resolution of the remaining Battleground symptoms.
+This build adds Ironspine's Poison Cloud to the existing DoT tier. The previous
+Speed, Stormstrike and diagnostic changes remain included. The recorded
+Battleground aura-read and totem-identity limits remain unresolved.
+
+## Poison Cloud in 0.1.95
+
+Applied Poison Cloud 3815 joins DoTs 190 and its existing generic-fallback
+exclusion. Ironspine's current abilities table lists this spell. It is a
+harmful Poison aura with five-second periodic damage and a 45-second duration,
+consistent with the screenshot's name, type, tick interval and 39 seconds
+remaining. The live screenshot does not expose a spell ID, and its 99-damage
+value differs from current public tooltip values; no exact numeric match or
+reason for that discrepancy is claimed. Item, summon and shorter-duration
+same-name effects are not added.
+
+The catalog contains 1,158 distinct IDs with no overlapping exact owners.
+All 1,157 pre-existing IDs retain their owners and priorities. Aura selection,
+permissions, portrait geometry and countdown calibration are unchanged.
 
 ## Speed, Stormstrike and live diagnostics in 0.1.94
 

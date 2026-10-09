@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.94-local**. It documents the
+This document describes **bjarkiPortraits 0.1.95-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -60,7 +60,7 @@ Selected category relationships are:
 | Self State | Forms, Inner Fire and Soul Link | 150 |
 | Battleground Flag | Darkspear Islands Flag, above forms and Inner Fire at 150 | 151 |
 | Consecration | The applied Forever damage-amplification aura, immediately below DoTs | 189 |
-| DoTs | Explicit damage-over-time effects | 190 |
+| DoTs | Explicit damage-over-time effects, including Ironspine's Poison Cloud | 190 |
 | Low Debuff | Low debuffs, taunts and Cursed Blood | 200 |
 | Seal | Paladin seals and Improved Stormstrike share one helpful election | 210 |
 | Slows | Slows, exact Chilled IDs, Frost Trap Aura and Highland Venom | 220 |
@@ -117,7 +117,7 @@ Shark's previous native eligibility, including small friendly hosts. A complete
 readable harmful election still owns its tier; partial streams do not elect a
 replacement. The public/private source-coverage limitation below still applies.
 
-The catalog contains 1,157 distinct IDs in 51 disjoint exact lanes, plus 10
+The catalog contains 1,158 distinct IDs in 51 disjoint exact lanes, plus 10
 semantic lanes. The three additions in 0.1.93 are
 [Highland Venom 1316489](https://www.wowhead.com/forever/spell=1316489/highland-venom),
 [Blessing of Blackfathom 8733](https://www.wowhead.com/forever/spell=8733/blessing-of-blackfathom)
@@ -140,6 +140,15 @@ moves from Innervate 261 to Seal 210. Its own source category is unioned with
 the seals before native construction, retaining one shared instance-order
 election. This is the only existing priority change in 0.1.94; the other 1,154
 existing IDs retain their owners and levels. No native lane or widget is added.
+
+Version 0.1.95 adds [Poison Cloud 3815](https://www.wowhead.com/forever/spell=3815/poison-cloud)
+to DoTs 190. The current Ironspine abilities table lists this applied harmful
+Poison aura; it ticks every five seconds for 45 seconds. The screenshot's
+99-damage value differs from current public tooltip values, so that amount is
+not used to establish the ID. The NPC association, aura type, tick interval
+and duration support this single addition. All 1,157 existing IDs retain
+their owners and priorities. The existing DoT exclusion also gains this ID;
+no lane, widget or permission policy is added.
 
 Version 0.1.91 corrected 13 active non-root memberships using current Forever
 1.60.1 records. Crippling Poison 3409/11201, Frost Shock 12548 and Curse of
