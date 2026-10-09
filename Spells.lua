@@ -287,6 +287,7 @@ PT.categories = {
         [1265066] = true, -- Savage Rend
     },
     slows = {
+        [1316489] = true, -- Highland Venom (dungeon Disease, movement slow)
         [116] = true, -- Frostbolt Rank 1
         [205] = true, -- Frostbolt Rank 2
         [837] = true, -- Frostbolt Rank 3
@@ -517,7 +518,8 @@ PT.categories = {
         [20600] = true,
         [20572] = true, -- Blood Fury (Orc racial)
         [23451] = true,
-        [23505] = true,
+        [23505] = true, -- Berserking (battleground)
+        [1286304] = true, -- Berserking (Forever battleground applied aura)
         [24364] = true,
         [11359] = true,
         [5024] = true,
@@ -1052,6 +1054,7 @@ PT.categories = {
     buffs_class_baseline = {
         -- Regular class buffs: meaningful combat state, but deliberately below
         -- forms/stealth and active combat effects.
+        [8733] = true, -- Blessing of Blackfathom (dungeon blessing)
         [17007] = true, -- Leader of the Pack (talent aura)
         [24932] = true, -- Leader of the Pack (party buff)
         [1243120] = true, -- Demonic Knowledge (Warlock pet-owner aura)

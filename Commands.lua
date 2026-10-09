@@ -8,12 +8,77 @@ local function setToggle(key, value)
     R.UpdatePetPortraits()
 end
 
+local function inspectAuras(option)
+    local unit = ({ player="player", target="target", focus="focus",
+        tot="targettarget", targettarget="targettarget",
+        fot="focustarget", focustarget="focustarget" })[option == "" and "target" or option]
+    if not unit then R.Print("usage: /bp inspect [player|target|focus|tot|fot]"); return end
+    local host = R.hosts[unit]
+    R.Print("inspect " .. unit .. " version=" .. R.VERSION .. " host=" .. tostring(host ~= nil)
+        .. " exactHelpful=" .. tostring(R.ExactFilterAllowed(unit, true, nil, false))
+        .. " exactHarmful=" .. tostring(R.ExactFilterAllowed(unit, false, nil, false))
+        .. " readableWinner=" .. tostring(host and host._hostileTierKey or "none")
+        .. " active=" .. tostring(host and host._hostileActive == true or false))
+
+    -- Report only public numeric IDs. Inspecting must not refresh presentation,
+    -- construct hosts, or infer identities from native protected widgets.
+    local getter = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
+    for _, filter in ipairs({ "HELPFUL", "HARMFUL" }) do
+        local readable, restricted, ids = 0, 0, {}
+        local status = "unavailable"
+        if type(getter) == "function" then
+            status = "limit"
+            for index = 1, 80 do
+                local ok, aura = pcall(getter, unit, index, filter .. "|INCLUDE_NAME_PLATE_ONLY")
+                if not ok then status = "error"; break end
+                if not R.CanAccess(aura) then
+                    restricted = restricted + 1
+                elseif aura == nil then
+                    status = "complete"; break
+                else
+                    local id, accessible = R.ReadAuraField(aura, "spellId")
+                    if accessible and type(id) == "number" and id > 0 and id % 1 == 0 then
+                        readable = readable + 1
+                        if #ids < 12 then
+                            local priority = "unlisted"
+                            for _, tier in ipairs(R.TIERS) do
+                                if tier.exact and tier.helpful == (filter == "HELPFUL") and tier.spellIDs[id] then
+                                    priority = tostring(tier.level); break
+                                end
+                            end
+                            ids[#ids + 1] = tostring(id) .. "@" .. priority
+                        end
+                    else
+                        restricted = restricted + 1
+                    end
+                end
+            end
+        end
+        R.Print(filter:lower() .. " readable=" .. readable .. " restricted=" .. restricted
+            .. " listed=" .. #ids .. "/" .. readable .. " scan=" .. status
+            .. " ids=" .. (#ids > 0 and table.concat(ids, ",") or "none"))
+    end
+
+    local policies = {}
+    for _, id in ipairs({ 6615, 2645, 1286304, 1229451 }) do
+        local state = "unknown"
+        if C_Secrets and type(C_Secrets.GetSpellAuraSecrecy) == "function" and Enum and Enum.SecrecyLevel then
+            local ok, value = pcall(C_Secrets.GetSpellAuraSecrecy, id)
+            if ok and R.CanAccess(value) and type(value) == "number" then
+                state = value == Enum.SecrecyLevel.NeverSecret and "yes" or "no"
+            end
+        end
+        policies[#policies + 1] = id .. "=" .. state
+    end
+    R.Print("neverSecret " .. table.concat(policies, " "))
+end
+
 SLASH_BJARKIPORTRAITS1 = "/bp"
 SLASH_BJARKIPORTRAITS2 = "/bjarkiportraits"
 SlashCmdList.BJARKIPORTRAITS = function(message)
-    local command, option = (message or ""):lower():match("^%s*(%S*)%s*(%S*)")
+    local command, option, detail = (message or ""):lower():match("^%s*(%S*)%s*(%S*)%s*(%S*)")
     if command == "" or command == "help" then
-        R.Print("/bp or /bjarkiportraits test | on | off | player | target | focus | tot | fot | swipe | decimals | pets [status|on|off|debug] | debug | audit | reset")
+        R.Print("/bp or /bjarkiportraits test | on | off | player | target | focus | tot | fot | swipe | decimals | pets [status|on|off|debug [unit]] | inspect [unit] | debug | audit | reset")
     elseif command == "test" then
         R.testMode = not R.testMode
         R.RefreshAll()
@@ -42,12 +107,25 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
         R.Print("decimals " .. tostring(R.db.showDecimals))
     elseif command == "pets" then
         if option == "debug" then
+            local debugUnit = ({ pet="pet", target="target", focus="focus",
+                tot="targettarget", targettarget="targettarget",
+                fot="focustarget", focustarget="focustarget" })[detail]
+            if detail ~= "" and not debugUnit then
+                R.Print("usage: /bp pets debug [pet|target|focus|tot|fot]")
+                return
+            end
             -- Observe the failure before a manual refresh can hide it.
             R.Print("pets debug version=" .. tostring(R.VERSION)
                 .. " enabled=" .. tostring(R.db and R.db.enabled == true)
                 .. " setting=" .. tostring(R.db and R.db.petPortraits == true))
-            for _, unit in ipairs({ "pet", "target", "focus", "targettarget", "focustarget" }) do
-                R.Print(R.GetPetPortraitDebug(unit))
+            if debugUnit then
+                local summary, access = R.GetPetPortraitDebug(debugUnit, true)
+                R.Print(summary)
+                R.Print(access)
+            else
+                for _, unit in ipairs({ "pet", "target", "focus", "targettarget", "focustarget" }) do
+                    R.Print(R.GetPetPortraitDebug(unit))
+                end
             end
         elseif option == "status" then
             R.Print("pet portraits " .. tostring(R.db.petPortraits))
@@ -60,6 +138,8 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
             R.UpdatePetPortraits()
             R.Print("pet portraits " .. tostring(R.db.petPortraits))
         end
+    elseif command == "inspect" then
+        inspectAuras(option)
     elseif command == "debug" then
         for _, unit in ipairs(R.TRACKED_UNITS) do
             local host = R.hosts[unit]

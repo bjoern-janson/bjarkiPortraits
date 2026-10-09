@@ -5,6 +5,7 @@ local R = assert(BP.Runtime, "Core.lua must load first")
 -- sits between the native portrait and secure aura buttons on target/focus and
 -- the two derived target frames.
 local observed = setmetatable({}, { __mode = "k" })
+local presentationState = setmetatable({}, { __mode = "k" })
 local localPet
 
 local HUNTER_IDS = {
@@ -293,6 +294,29 @@ local function createHostTexture(host)
     return texture
 end
 
+local function applyFoundationTexture(texture, icon)
+    local state = "no-icon"
+    if icon then
+        local ok, applied = pcall(texture.SetTexture, texture, icon)
+        if not ok then
+            state = "texture-error"
+        elseif not R.CanAccess(applied) or type(applied) ~= "boolean" then
+            state = "texture-unknown"
+        elseif not applied then
+            state = "texture-rejected"
+        elseif pcall(texture.Show, texture) then
+            presentationState[texture] = "shown"
+            return
+        else
+            state = "show-error"
+        end
+    end
+    -- A rejected texture may leave the previous unit's artwork in this widget.
+    -- Retain only an operation outcome for diagnostics, never a unit identity.
+    presentationState[texture] = state
+    texture:Hide()
+end
+
 local OBSERVED_UNITS = { "target", "focus", "targettarget", "focustarget" }
 
 function R.UpdateObservedPetPortrait(unit)
@@ -303,11 +327,8 @@ function R.UpdateObservedPetPortrait(unit)
     local icon = R.db and R.db.enabled and R.db.petPortraits and foundationTexture(unit) or nil
     if icon then
         if not texture then texture = createHostTexture(host); observed[host] = texture end
-        texture:SetTexture(icon)
-        texture:Show()
-    elseif texture then
-        texture:Hide()
     end
+    if texture then applyFoundationTexture(texture, icon) end
 end
 
 function R.UpdateObservedPetPortraits()
@@ -316,7 +337,7 @@ function R.UpdateObservedPetPortraits()
     end
 end
 
-function R.GetPetPortraitDebug(unit)
+function R.GetPetPortraitDebug(unit, compact)
     local function accessState(ok, value)
         if not ok then return "error" end
         if R.IsSecret(value) then return "secret" end
@@ -363,22 +384,73 @@ function R.GetPetPortraitDebug(unit)
     controlledReadable = controlledReadable and R.CanAccess(controlled)
     playerReadable = playerReadable and R.CanAccess(player)
     minionReadable = minionReadable and R.CanAccess(minion)
-    local unitName, nameReadable = R.SafeString(UnitName, unit)
-    if not nameReadable or not R.CanAccess(unitName) then unitName = nil end
-    local typeName, typeID = creatureType(unit)
+    local nameOK, rawName = pcall(UnitName, unit)
+    local nameAccess = accessState(nameOK, rawName)
+    local unitName = nameAccess == "string" and rawName or nil
+    local typeOK, rawTypeName, rawTypeID = pcall(UnitCreatureType, unit)
+    local typeNameAccess = accessState(typeOK, rawTypeName)
+    local typeIDAccess = accessState(typeOK, rawTypeID)
+    local typeName = typeNameAccess == "string" and rawTypeName or nil
+    local typeID = typeIDAccess == "number" and rawTypeID or nil
     local icon, art = foundationTexture(unit)
     local overlayShown = false
+    local texture = unit == "pet" and localPet or (host and observed[host])
     if unit == "pet" then
         if localPet and localPet.IsShown then
             local ok, shown = pcall(localPet.IsShown, localPet)
             overlayShown = ok and R.CanAccess(shown) and shown == true
         end
     else
-        local texture = host and observed[host]
         if texture and texture.IsShown then
             local ok, shown = pcall(texture.IsShown, texture)
             overlayShown = ok and R.CanAccess(shown) and shown == true
         end
+    end
+    if compact then
+        local function flag(value, readable)
+            return readable and tostring(value) or "unknown"
+        end
+        local last = texture and presentationState[texture] or "none"
+        local blocker = "none"
+        if not R.db or not R.db.enabled then blocker = "addon-off"
+        elseif not R.db.petPortraits then blocker = "setting-off"
+        elseif (unit == "pet" and not localPet) or (unit ~= "pet" and not host) then
+            blocker = "host-unavailable"
+        elseif not icon then
+            if owner == "UNKNOWN_PET" then blocker = "pet-family-unavailable"
+            elseif owner == "HUNTER" or owner == "WARLOCK" then blocker = "pet-texture-unavailable"
+            elseif not minionReadable then blocker = "minion-unknown"
+            elseif not minion then blocker = "not-minion"
+            elseif not playerReadable then blocker = "player-unknown"
+            elseif player then blocker = "player"
+            elseif not otherReadable then blocker = "other-pet-unknown"
+            elseif otherPet then blocker = "other-pet"
+            elseif not sameReadable then blocker = "own-pet-unknown"
+            elseif samePet then blocker = "own-pet"
+            else
+                local totem, typeReadable = isTotem(unit)
+                if typeReadable and not totem then blocker = "non-totem-type"
+                elseif HUNTER_IDS[id] or HUNTER_NAMES[name] or WARLOCK_IDS[id] or WARLOCK_NAMES[name] then
+                    blocker = "pet-family-conflict"
+                elseif not unitName then blocker = "name-unavailable"
+                else blocker = "summon-name-or-texture-unavailable" end
+            end
+        elseif not overlayShown then
+            blocker = last ~= "none" and last ~= "shown" and last ~= "no-icon"
+                and last or "expected-art-not-shown"
+        end
+        return unit .. " art=" .. tostring(icon and art or "native")
+            .. " host=" .. tostring(unit == "pet" and localPet ~= nil or host ~= nil)
+            .. " expected=" .. tostring(icon ~= nil) .. " shown=" .. tostring(overlayShown)
+            .. " reason=" .. blocker .. " last=" .. last,
+            unit .. " access name=" .. nameAccess
+                .. " type=" .. typeNameAccess .. "/" .. typeIDAccess
+                .. " minion=" .. flag(minion, minionReadable)
+                .. " player=" .. flag(player, playerReadable)
+                .. " otherPet=" .. flag(otherPet, otherReadable)
+                .. " ownPet=" .. flag(samePet, sameReadable)
+                .. " family=" .. familyNameAccess .. "/" .. familyIDAccess
+                .. " strata=" .. parentStrataAccess
     end
     return unit
         .. " owner=" .. tostring(owner or "none")
@@ -440,7 +512,7 @@ function R.UpdateLocalPetPortrait()
     local texture = ensureLocalPetTexture()
     if not texture then return end
     local icon = foundationTexture("pet")
-    if icon then texture:SetTexture(icon); texture:Show() else texture:Hide() end
+    applyFoundationTexture(texture, icon)
 end
 
 function R.UpdatePetPortraits()

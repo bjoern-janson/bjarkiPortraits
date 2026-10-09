@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.92-local**. It documents the
+This document describes **bjarkiPortraits 0.1.93-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -35,16 +35,16 @@ The low band is:
 | --- | ---: |
 | Tracking | 0 |
 | Cosmetic transformations | 1 |
+| Boosted Rest | 1 |
 | Campfire Nearby | 2 |
-| Boosted Rest | 3 |
 | Hostile Helpful semantic fallback | 3 |
 | Small Friendly Harmful semantic fallback | 4 |
 | Plainsrunning / Elemental Blessing | 10 |
 
 Tracking includes Find Herbs and Find Minerals. Cosmetic transformations are
 one tier above it; Savory Deviate Delight and Savory Whimsyfin Delight share
-that lane. The existing bottom-band order and Boosted Rest / Hostile Helpful
-tie remain. Mobility 160 includes the established Ghost Wolf/Cheetah families
+that lane. Boosted Rest's camping cooldown shares the cosmetic/background
+priority and no longer ties the Hostile Helpful fallback. Mobility 160 includes the established Ghost Wolf/Cheetah families
 and the movement/stealth category.
 
 Selected category relationships are:
@@ -55,24 +55,24 @@ Selected category relationships are:
 | Passive Debuff / Righteous Fury | Deserter and item Martyrdom are harmful; Righteous Fury remains helpful | 59 |
 | Paladin Aura | Paladin auras, Warlock armor, persistent support totem effects, Rat Familiar and Benevolence | 60 |
 | Blood Pact | Blood Pact, the four applied Furious Howl ranks, Iron Creed and Spirit Bond | 70 |
-| Baseline Class | Baseline class buffs, Camp Benefits and Demonic Knowledge | 90 |
+| Baseline Class | Baseline class buffs, Camp Benefits, Demonic Knowledge and Blessing of Blackfathom | 90 |
 | Thorns | Thorns and all five canonical Imp Fire Shield ranks | 120 |
 | Self State | Forms, Inner Fire and Soul Link | 150 |
 | Battleground Flag | Darkspear Islands Flag, above forms and Inner Fire at 150 | 151 |
 | Consecration | The applied Forever damage-amplification aura, immediately below DoTs | 189 |
 | DoTs | Explicit damage-over-time effects | 190 |
 | Low Debuff | Low debuffs, taunts and Cursed Blood | 200 |
-| Slows | Slows, exact Chilled IDs and Frost Trap Aura | 220 |
+| Slows | Slows, exact Chilled IDs, Frost Trap Aura and Highland Venom | 220 |
 | Recently Bandaged | Separate harmful state | 229 |
 | Forbearance | Forbearance and the existing Dazed member | 240 |
-| Resurrection Sickness | Resurrection Sickness and Shark Attack share one harmful election | 241 |
+| Resurrection Sickness | Resurrection Sickness | 241 |
 | Healing | Ordinary absorbs, HoTs, First Aid channels, Mend Pet | 255 |
 | Power Word: Shield | Existing PW:S applied auras and Transformative Cocoon's absorb | 256 |
 | Honorless Target | Above Healing | 257 |
 | Food/Drink | Food, Drink, Cannibalize, Evocation and Restoration | 260 |
 | Innervate | Innervate, Druid Enrage, Bloodrage, Improved Stormstrike, resource recovery and living The Quick and the Dead variants | 261 |
 | Utility | Utility buffs and Welcoming Campfire | 270 |
-| Casting / Healing Penalty | Casting-time penalties and reduced healing received share one harmful election, immediately below offensive cooldowns | 279 |
+| Combat Debuff | Casting-time penalties, reduced healing received and Shark Attack share one harmful election, immediately below offensive cooldowns | 279 |
 | Offensive | Offensive cooldowns, Clearcasting/Preparation, Victorious, Sprint/Dash, Satchel Speed, Cocoon speed, Swift Wind and Battleground Berserking | 280 |
 | Harmful Offensive | Death Wish; one level above helpful offense to separate simultaneous countdowns | 281 |
 | Roots | Root effects and three retained legacy cast/passive records | 300 |
@@ -92,9 +92,9 @@ custom/trinket records retain their existing classification.
 The numeric priority controls presentation order. It does not express spell
 strength or establish what a live client will expose.
 
-Version 0.1.92 adds CastHealingPenalty 279. Its two source categories are
-unioned into one exact harmful lane, so casting and healing penalties use one
-native instance-order election when several are present. Current Forever
+CombatDebuff 279 unions casting penalties, healing reduction and environmental
+danger into one exact harmful lane. They use one native instance-order election
+when several are present. Current Forever
 1.60.1 applied-aura records support these families:
 
 | Family | Applied IDs |
@@ -107,10 +107,23 @@ native instance-order election when several are present. Current Forever
 | [Wound Poison](https://www.wowhead.com/forever/spell=13218/wound-poison) | 13218, 13222, 13223, 13224 |
 | [Hex of Weakness](https://www.wowhead.com/forever/spell=9035/hex-of-weakness) | 9035, 19281, 19282, 19283, 19284, 19285 |
 | [Dismember](https://www.wowhead.com/forever/spell=1264758/dismember) | 1264758, 1264927, 1264929, 1264930, 1264933 |
+| [Shark Attack](https://www.wowhead.com/forever/spell=1323184/shark-attack) | 1323184 |
 
-These 30 IDs include 10 members moved from LowDebuff and 20 additions. The
-other 1,122 existing IDs retain their owners. The catalog contains 1,152
-distinct IDs in 51 disjoint exact lanes, plus 10 semantic lanes. Wound Poison
+Version 0.1.92 introduced the first 30 members at 279. Version 0.1.93 keeps
+those priorities and moves Shark Attack from 241 into their shared lane.
+The lane opts into the existing per-aura NeverSecret scheduling rule to retain
+Shark's previous native eligibility, including small friendly hosts. A complete
+readable harmful election still owns its tier; partial streams do not elect a
+replacement. The public/private source-coverage limitation below still applies.
+
+The catalog contains 1,155 distinct IDs in 51 disjoint exact lanes, plus 10
+semantic lanes. The three additions in 0.1.93 are
+[Highland Venom 1316489](https://www.wowhead.com/forever/spell=1316489/highland-venom),
+[Blessing of Blackfathom 8733](https://www.wowhead.com/forever/spell=8733/blessing-of-blackfathom)
+and [Berserking 1286304](https://www.wowhead.com/forever/spell=1286304/berserking).
+Existing Berserking 23505/24378 remain helpful Offensive members. Shark Attack
+and Boosted Rest are the only existing IDs whose numeric priorities change;
+the other 1,150 retain their levels. Wound Poison
 qualifies through flat healing-received reduction; Mortal Strike, Hex and
 Dismember use percentage reduction. Poison coatings, training spells and
 Carve Mind's hidden proc wrapper are not applied target auras in this lane.
@@ -361,7 +374,7 @@ unit. The same event refreshes observed foundations. Other unit relation
 events remain scoped. This corrects a missing invalidation path; it does not
 change per-aura secrecy permission or prove opposing-faction priority fixed.
 
-UNIT_PORTRAIT_UPDATE refreshes only the corresponding independent foundation,
+UNIT_PORTRAIT_UPDATE and UNIT_NAME_UPDATE refresh only the corresponding independent foundation,
 without scanning auras. A successfully created late host initializes that
 foundation once; routine aura updates of an existing host do not classify pets.
 
@@ -401,6 +414,11 @@ Observed foundations stay on the portrait host layer. Local PetFrame art stays
 on BACKGROUND sublevel 1 below native BORDER chrome. Masks, pet events and
 fallback textures retain their existing behavior.
 
+Foundation texture assignment must return accessible boolean success before
+the owned overlay is shown. A rejected assignment, inaccessible result or
+assignment/show error hides stale art. A weak texture-keyed table records only
+the last operation outcome for on-demand diagnosis; it retains no unit identity.
+
 A classified totem foundation requires a readable native creature-type ID 11 or the
 corresponding native localized type name. Only after that type evidence does
 an exact readable unit name select a known totem's localized summon-spell art.
@@ -430,7 +448,7 @@ included in the low support tier; summon artwork never establishes an aura.
 ## Commands and diagnostics
 
 Commands include on/off, player/target/focus/tot/fot, swipe, decimals, pets,
-test, debug, audit and reset. Both /bp and /bjarkiportraits are supported.
+test, inspect, debug, audit and reset. Both /bp and /bjarkiportraits are supported.
 
 Debug reports relation/readability, election and active-presentation state,
 including Baseline and Healing timing evidence. Audit reports version,
@@ -441,7 +459,17 @@ name/ID access states and the parent-strata boundary when an observed host is
 missing. Unreadable GUID evidence is unknown, not a negative pet result. It
 reports the expected icon and currently shown overlay without refreshing the
 portrait first, so an absent overlay remains observable. These extra reads run
-only on demand; pet classification and runtime refresh events are unchanged.
+only on demand. `/bp pets debug target` (also pet/focus/tot/fot) provides two
+compact unit-specific state/access lines after the version/settings header.
+
+`/bp inspect [player|target|focus|tot|fot]` defaults to target. It reports current
+exact-filter eligibility, cached readable presentation state, and bounded public
+helpful/harmful scans. Each stream lists at most 12 accessible numeric spell IDs
+with catalog priorities, counts inaccessible identities, and distinguishes an
+ended scan from an error or the 80-entry limit. An ended public scan is not proof
+of private-source coverage. A final line reports current NeverSecret policy for
+the four diagnostic reference IDs. The command does not refresh presentation,
+create hosts, inspect protected native candidates or retain aura identities.
 
 ## Live validation boundary
 

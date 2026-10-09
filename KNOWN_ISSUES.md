@@ -1,11 +1,54 @@
 # Known issues and validation
 
-Status recorded 2026-10-09 for **bjarkiPortraits 0.1.92-local**.
+Status recorded 2026-10-09 for **bjarkiPortraits 0.1.93-local**.
 
-This build adds a shared casting/healing penalty priority and retains the
-preceding routing, readable election, presentation ownership and lifecycle
-repairs. Isolated behavioral checks do
-not establish that the following Battleground reports are resolved.
+This build adds verified dungeon/Battleground aura records, adjusts Shark Attack
+and Boosted Rest, and repairs two foundation presentation paths. Isolated
+behavioral checks do not establish that all reported Battleground symptoms are
+resolved.
+
+## Battleground follow-up in 0.1.93
+
+Highland Venom 1316489 joins Slows 220; Blessing of Blackfathom 8733 joins
+BaselineClass 90; the applied Berserking variant 1286304 joins Offensive 280.
+The screenshot does not distinguish the three equivalent Berserking IDs.
+Highland Venom's current record shows a 15% damage penalty while the screenshot
+shows 20%; its name, icon, Disease type and effect family match. Hidden visual
+wrappers and Shark's direct-damage trigger are not added as portrait auras.
+
+Shark Attack 1323184 moves from 241 into CombatDebuff 279, sharing the existing
+casting/healing penalty election immediately below Offensive. Its previous
+NeverSecret eligibility is retained through a scoped lane opt-in. An absent
+NeverSecret member does not displace a complete readable harmful winner;
+incomplete streams cannot produce a guessed replacement. The public/private
+source-coverage limitation remains.
+
+Boosted Rest 1229451 moves from 3 to 1, above Tracking and below the broad
+HostileHelpful fallback. This removes their presentation-level tie. The XP
+screenshot lacks a tooltip/ID; the current icon's sole spell association supports
+Boosted Rest but does not prove its live identity.
+
+Free Action 305, Ghost Wolf 160, class buffs 90 and paladin auras 60 already
+have the requested numeric order. Restricted opposing-faction helpful identities
+cannot enter exact spell-ID native filters. When no supported classified
+presenter is available, the broad native fallback uses descending AuraInstanceID,
+which can look like the last applied buff wins. The build retains that visibility
+fallback; it does not claim general opposing-faction priority repair.
+`/bp inspect target` reports the current public identities, catalog priorities
+and access state without refreshing the failing presentation.
+
+UNIT_NAME_UPDATE now retries the corresponding pet/totem foundation without
+scanning auras. This repairs names arriving after targeting and same-token name
+changes. Rejected or failed texture assignments hide previous artwork instead of
+showing stale art. Both pictured totem names already resolve under public inputs.
+Their screenshots do not establish a missing-name event or texture failure;
+unavailable identity/family/host information can still require native artwork.
+`/bp pets debug target` provides compact evidence without refreshing first.
+
+The catalog has 1,155 distinct IDs and no overlapping exact owners. Apart from
+Shark and Boosted Rest, all 1,150 existing numeric priorities are retained.
+The accepted circle/countdown calibration and five-host widget counts are
+unchanged.
 
 ## Casting and healing penalty priority in 0.1.92
 

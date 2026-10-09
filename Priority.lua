@@ -34,7 +34,7 @@ end
 -- only with a complete readable application-time election.
 R.TIERS = {
     exact("Plainsrunning", "HELPFUL", 10, true, union("buffs_plainsrunning", "buffs_elemental_blessing"), true),
-    exact("BoostedRest", "HARMFUL", 3, false, C.debuffs_boosted_rest, true),
+    exact("BoostedRest", "HARMFUL", 1, false, C.debuffs_boosted_rest, true),
     exact("CampfireNearby", "HELPFUL", 2, true, C.buffs_campfire_nearby),
     exact("Cosmetic", "HELPFUL", 1, true, C.buffs_cosmetic),
     exact("Tracking", "HELPFUL", 0, true, C.buffs_tracking),
@@ -109,8 +109,7 @@ R.TIERS = {
     }),
     semantic("PriorityDebuff", "HARMFUL", 238, { isPriorityAura = true }),
     exact("Forbearance", "HARMFUL", 240, false, C.debuffs_priority, true),
-    exact("ResSickness", "HARMFUL", 241, false,
-        union("debuffs_res_sickness", "debuffs_environmental_danger"), true),
+    exact("ResSickness", "HARMFUL", 241, false, C.debuffs_res_sickness, true),
     exact("Healing", "HELPFUL", 255, true, union("buffs_shield", "buffs_hots")),
     exact("PowerWordShield", "HELPFUL", 256, true, C.buffs_power_word_shield),
     -- PvP Honorless status outranks routine healing-over-time auras such as Renew.
@@ -131,10 +130,11 @@ R.TIERS = {
     -- fallback for otherwise unclassified important buffs; explicit categories
     -- and dedicated Big/External defensive lanes outrank it.
     semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 85),
-    -- Casting-time penalties and reduced healing received share one election,
+    -- Casting/healing penalties and environmental danger share one election,
     -- immediately below offensive cooldowns and above routine utility buffs.
-    exact("CastHealingPenalty", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 279, false,
-        union("debuffs_casting_penalty", "debuffs_healing_reduction")),
+    -- Preserve Shark Attack's existing per-aura NeverSecret eligibility.
+    exact("CombatDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 279, false,
+        union("debuffs_casting_penalty", "debuffs_healing_reduction", "debuffs_environmental_danger"), true),
     exact("Offensive", "HELPFUL", 280, true, C.buffs_offensive),
     -- Death Wish is harmful offensive state. One level above helpful offense
     -- gives simultaneous cooldowns a deterministic order within this band.

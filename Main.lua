@@ -62,11 +62,12 @@ local function installUnitStateEvents(unitA, unitB)
     register("UNIT_FLAGS")
     register("UNIT_CONNECTION")
     register("UNIT_PORTRAIT_UPDATE")
+    register("UNIT_NAME_UPDATE")
     frame:SetScript("OnEvent", function(_, event, unit)
         if not unit then return end
-        if event == "UNIT_PORTRAIT_UPDATE" then
-            -- Native portrait refresh can accompany newly available family data.
-            -- This event belongs only to the independent pet foundation.
+        if event == "UNIT_PORTRAIT_UPDATE" or event == "UNIT_NAME_UPDATE" then
+            -- Family or localized summon-name data can arrive after targeting.
+            -- These events belong only to the independent pet foundation.
             if unit ~= "player" then R.UpdateObservedPetPortrait(unit) end
             return
         end
