@@ -1,11 +1,121 @@
 # Known issues and validation
 
-Status recorded 2026-10-09 for **bjarkiPortraits 0.1.97-local**.
+Status recorded 2026-10-09 for **bjarkiPortraits 0.1.98-local**.
 
-This build updates seven pictured aura families using the existing priority
-lanes and adds Evasion to the existing inspect policy line. Evasion's reported
-opposing-player visibility failure remains open. The recorded Battleground
-aura-read and totem-identity limits remain unresolved.
+This build corrects native scheduling for public slow-aura exceptions and
+extends on-demand inspection of Shark Attack and BG slows. The live Shark
+Attack failure and the full reported slow-visibility failure remain open until
+the affected unit's API state is captured. Earlier priority changes are retained.
+
+## Shark Attack and Battleground slows in 0.1.98
+
+| Reported effect | Existing applied record | Priority |
+| --- | --- | --- |
+| [Shark Attack](https://www.wowhead.com/forever/spell=1323184/shark-attack) | 1323184, matching the pictured harmful water-hazard warning | CombatDebuff 279 |
+| [Frost Trap area slow](https://www.wowhead.com/forever/spell=13810/frost-trap) | 13810, the applied persistent area slow | Slows 220 |
+| [Frostbolt](https://www.wowhead.com/forever/spell=116/frostbolt) | Ordinary ranks 1-10 and the four already listed variants directly apply their slows | Slows 220 |
+
+Current Forever records support these mappings. This update changes no spell
+IDs or exact spell priorities. The screenshot does not identify the competing timed
+portrait aura, which is at 0.3 seconds, or expose its priority.
+
+The Slows lane lacked the per-aura NeverSecret scheduling opt-in already used
+by CombatDebuff. A source reproduction supplies a public Frostbolt, a contextual
+Frost Trap and an inaccessible harmful identity. Native's actual predicate
+admits the public slow, while the old addon scheduler disables its container
+on self, friendly target and friendly ToT. Slows now opts into the same native
+rule. The native predicate continues to reject each forbidden identity.
+
+The integrated fixture passes all 13 cases; the frozen baseline fails the
+three intended scheduling cases. The supplied NeverSecret value is a controlled
+input, not a captured classification of the user's active Frostbolt. This
+establishes the scheduler correction, not complete live BG slow visibility.
+
+Review also reproduced simultaneous admission of a public exact slow and a
+contextual Chilled approximation at the same native button level. Only the
+semantic ChilledSignature moves from 220 to 219; exact Chilled IDs stay in
+Slows 220. The exact button is configured above the approximation, while
+the approximation remains available when a public member makes Slows eligible
+but is absent. No other relative tier ordering changes.
+
+Shark Attack already has the correct native scheduling opt-in. The ordinary
+harmful-tier reader deliberately requires a complete readable election: one
+inaccessible competing identity, a failed scan or unavailable ordering can
+revoke the readable winner. Small derived frames retain their native paths.
+Readable identity also needs usable native or readable timing before the
+owned presenter can claim the lane. None of these boundaries is established
+as the screenshot's failure cause, so the election and presentation contracts
+remain unchanged.
+
+`/bp inspect player` now adds the affected reader states, native eligibility,
+base secrecy and known-spell observations for Shark Attack, Frost Trap and
+Frostbolt. The Frostbolt name query can observe another rank when exposed.
+Lookups run only on that command, without refreshing or painting the UI.
+Nil/no-values does not distinguish absence, invisibility and secrecy; a
+spell-secrecy prediction does not prove an active aura. Capture the full output
+while the missing effect is present. For a failing target/focus portrait,
+inspect that unit instead.
+
+### Source verification for 0.1.98
+
+| Check | Result |
+| --- | --- |
+| Native scheduling and permission preservation | 13/13 |
+| Exact slow / semantic Chilled coexistence and absent-public-member controls | 6/6 |
+| New inspection cases | 18/18 |
+| Retained recent portrait/inspection cases | 14/14 |
+| Retained unsafe-error cases | 3/3 |
+| Lua syntax | All seven runtime modules compile |
+| Catalogue | 1,172 IDs, 75 categories, 51 exact and 10 semantic lanes; no exact overlaps |
+| Source scope | Seven intended files; other modules and bjarkiUI unchanged |
+
+Root observed the intended failing cases before each behavioral correction.
+The fixtures load actual addon sources and the pinned native permission helper
+with modeled aura metadata and API boundaries. They do not reproduce the live
+protected client or prove current spell-secrecy classifications.
+
+The older a/b/c harness remains at 45/74 passing. Its 29 failing case names and
+error strings are identical on the complete frozen 0.1.97 baseline
+(`d6f537678ebde9c656ebba2184cd715e977d3822`) and the integrated 0.1.98 sources.
+This broader run is not a clean acceptance gate. No historical case was removed
+or weakened, and the source comparison found no additional failures.
+
+<details>
+<summary>Historical cases still failing on both complete versions</summary>
+
+```text
+retained-a: low_floor_shift_preserves_every_old_order_and_tie
+retained-a: pws_mend_pet_and_existing_special_priorities_remain_distinct
+retained-b: active_slows_suppresses_chilled_at_its_own_native_level
+retained-b: aura_removal_revokes_healing_replacement
+retained-b: baseline_irrelevant_older_tie_does_not_veto_newest_application
+retained-b: baseline_single_candidate_needs_no_timing_or_instance_witness
+retained-b: cooldown_clear_failure_revokes_readable_healing_owner
+retained-b: cooldown_set_failure_revokes_readable_healing_owner
+retained-b: equal_highest_time_and_identity_cannot_fabricate_a_winner
+retained-b: healing_failed_texture_keeps_native_fallback
+retained-b: healing_falls_back_from_sealed_duration_object_to_readable_fields
+retained-b: healing_irrelevant_older_tie_does_not_veto_newest_application
+retained-b: healing_prefers_readable_duration_object_start_time
+retained-b: healing_refresh_with_same_instance_beats_newer_instance
+retained-b: healing_resolves_only_the_highest_time_tie_by_instance_id
+retained-b: healing_single_candidate_needs_no_timing_or_instance_witness
+retained-b: inaccessible_aura_object_revokes_healing_replacement
+retained-b: inaccessible_candidate_identity_revokes_healing_replacement
+retained-b: incomplete_bounded_stream_revokes_healing_replacement
+retained-b: missing_cooldown_reference_revokes_readable_healing_owner
+retained-b: slows_empty_complete_scan_preserves_chilled_signature
+retained-b: slows_texture_failure_preserves_chilled_signature
+retained-b: slows_unresolved_election_preserves_chilled_signature
+retained-b: unknown_competing_start_time_revokes_healing_replacement
+retained-b: unresolved_highest_start_time_tie_revokes_healing_replacement
+retained-b: utility_retains_native_instance_id_ordering
+retained-c: local_hunter_and_warlock_foundations_preserve_existing_artwork
+retained-c: per_unit_disable_hides_existing_presentation_in_combat
+retained-c: per_unit_disable_hides_stale_host_before_combat_refresh_returns
+```
+
+</details>
 
 ## Requested aura priorities in 0.1.97
 

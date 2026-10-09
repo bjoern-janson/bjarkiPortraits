@@ -8,6 +8,23 @@ local function setToggle(key, value)
     R.UpdatePetPortraits()
 end
 
+local function inspectBool(object, key)
+    local value, readable = R.ReadAuraField(object, key)
+    return readable and type(value) == "boolean" and tostring(value) or "unknown"
+end
+
+local function inspectAuraLookup(getter, expectedID, ...)
+    if type(getter) ~= "function" then return "api-unavailable" end
+    local ok, aura = pcall(getter, ...)
+    if not ok then return "api-error" end -- Error objects may themselves be secret.
+    if not R.CanAccess(aura) then return "inaccessible-aura" end
+    if aura == nil then return "no-values(absent/invisible/restricted)" end
+    local id, readable = R.ReadAuraField(aura, "spellId")
+    if not readable then return "inaccessible-spellId" end
+    if type(id) ~= "number" or id <= 0 or id % 1 ~= 0 then return "invalid-spellId" end
+    return (expectedID and id ~= expectedID and "readable-other:" or "readable:") .. tostring(id)
+end
+
 local function inspectAuras(option)
     local unit = ({ player="player", target="target", focus="focus",
         tot="targettarget", targettarget="targettarget",
@@ -68,7 +85,7 @@ local function inspectAuras(option)
     end
 
     local policies = {}
-    for _, id in ipairs({ 6615, 2645, 1286304, 1229451, 5277 }) do
+    for _, id in ipairs({ 6615, 2645, 1286304, 1229451, 5277, 1323184, 13810, 116 }) do
         local state = "unknown"
         if C_Secrets and type(C_Secrets.GetSpellAuraSecrecy) == "function" and Enum and Enum.SecrecyLevel then
             local ok, value = pcall(C_Secrets.GetSpellAuraSecrecy, id)
@@ -79,6 +96,55 @@ local function inspectAuras(option)
         policies[#policies + 1] = id .. "=" .. state
     end
     R.Print("neverSecret " .. table.concat(policies, " "))
+
+    -- Observe saved reader evidence. Native eligibility is the existing
+    -- permission check, not proof that a native container has an active aura.
+    for _, lane in ipairs({ { "Slows", "_slows" }, { "CombatDebuff", "_combatDebuff" } }) do
+        R.Print("lane " .. lane[1]
+            .. " readerComplete=" .. inspectBool(host, lane[2] .. "Readable")
+            .. " readerElection=" .. inspectBool(host, lane[2] .. "ElectionReadable")
+            .. " readerActive=" .. inspectBool(host, lane[2] .. "Active")
+            .. " nativeEligible=" .. tostring(R.NativeExactContainerAllowed(unit, R.TIER_BY_KEY[lane[1]])))
+    end
+
+    -- On-demand known-spell probes only. Nil is ambiguous; retain no aura,
+    -- identity, localized name, or timing evidence after this command returns.
+    local byID = C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID
+    local playerCompat = type(byID) ~= "function" and unit == "player"
+        and C_UnitAuras and type(C_UnitAuras.GetPlayerAuraBySpellID) == "function"
+    if playerCompat then byID = C_UnitAuras.GetPlayerAuraBySpellID end
+    for _, spell in ipairs({ { "SharkAttack", 1323184 }, { "FrostTrapArea", 13810 }, { "Frostbolt", 116 } }) do
+        local result
+        if playerCompat then result = inspectAuraLookup(byID, spell[2], spell[2])
+        else result = inspectAuraLookup(byID, spell[2], unit, spell[2]) end
+        local prediction = "unknown"
+        if C_Secrets and type(C_Secrets.ShouldSpellAuraBeSecret) == "function" then
+            local ok, value = pcall(C_Secrets.ShouldSpellAuraBeSecret, spell[2])
+            if ok and R.CanAccess(value) and type(value) == "boolean" then
+                prediction = value and "yes" or "no"
+            end
+        end
+        local line = "known " .. spell[1] .. " id=" .. spell[2] .. " byID=" .. result
+            .. (playerCompat and " source=player-compat" or "") .. " predictedSecret=" .. prediction
+        if spell[2] == 116 then
+            -- Resolve Frostbolt's localized name each time so an actual rank's
+            -- returned spellId can be reported without guessing rank identity.
+            local status = "name-api-unavailable"
+            if C_Spell and type(C_Spell.GetSpellName) == "function" then
+                local ok, name = pcall(C_Spell.GetSpellName, 116)
+                if not ok then status = "name-api-error"
+                elseif not R.CanAccess(name) then status = "inaccessible-name"
+                elseif name == nil then status = "name-no-values"
+                elseif type(name) ~= "string" or name == "" then status = "invalid-name"
+                else
+                    status = inspectAuraLookup(C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName,
+                        nil, unit, name, "HARMFUL|INCLUDE_NAME_PLATE_ONLY")
+                end
+            end
+            line = line .. " byName=" .. status
+        end
+        R.Print(line)
+    end
 end
 
 SLASH_BJARKIPORTRAITS1 = "/bp"

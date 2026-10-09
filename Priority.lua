@@ -89,12 +89,16 @@ R.TIERS = {
     exact("LowDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 200, false,
         union("debuffs_other", "debuffs_taunts")),
     exact("Seal", "HELPFUL", 210, true, union("buffs_seals", "buffs_improved_stormstrike")),
+    -- Schedule public per-aura exceptions on self/friendly units as well;
+    -- Blizzard still rejects each identity that is not permitted for the unit.
     exact("Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 220, false,
-        union("slows", "slows_chilled")),
+        union("slows", "slows_chilled"), true),
     -- 12544 Frost Armor procs spell 6136 Chilled. In combat its identity is
     -- secret, but its safe metadata remains distinctive: harmful Magic,
     -- <=5 seconds, nameplate-personal, and not cast by the player/pet.
-    semantic("ChilledSignature", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 220, {
+    -- Keep the approximation below exact Slows when both native containers
+    -- are eligible; an absent public member must not hide this fallback.
+    semantic("ChilledSignature", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 219, {
         includeDispelTypes = { Magic = true },
         maxDuration = 5.1,
         nameplateShowPersonal = true,

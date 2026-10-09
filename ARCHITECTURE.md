@@ -1,7 +1,7 @@
 # bjarkiPortraits architecture
 
 Current architecture snapshot: **2026-10-09**, shipped runtime
-**bjarkiPortraits 0.1.97-local**, alongside **bjarkiUI 0.2.104-local**.
+**bjarkiPortraits 0.1.98-local**, alongside **bjarkiUI 0.2.105-local**.
 This reference describes current source contracts, presentation ownership and
 evidence limits. Chronological changes, live reports and investigation history
 belong in [KNOWN_ISSUES.md](KNOWN_ISSUES.md). Source fixtures and isolated checks
@@ -117,7 +117,7 @@ They cannot independently establish an exact spell identity.
 | SmallFriendlyHarmful | 4 | Harmful including nameplate-only auras on ToT/FoT when exact harmful filtering is unavailable; no inferred friendly identity required |
 | Important | 85 | IMPORTANT helpful, excluding BIG_DEFENSIVE and EXTERNAL_DEFENSIVE |
 | FrostArmorSignature | 150 | Magic helpful, duration at most 1800.1 seconds, not from player/pet; only positively hostile non-player units without a complete readable presenter |
-| ChilledSignature | 220 | Magic harmful, duration at most 5.1 seconds, personal nameplate, not from player/pet; yields to exact Slows permission or an active readable Slows winner |
+| ChilledSignature | 219 | Magic harmful, duration at most 5.1 seconds, personal nameplate, not from player/pet; yields to exact Slows permission or an active readable Slows winner |
 | WeakenedSoulFallback | 228 | Harmful at most 15.1 seconds, excluding DoT IDs and Magic/Curse/Disease/Poison/Bleed types; yields to exact Weakened Soul permission |
 | PriorityDebuff | 238 | Native priority-aura harmful flag |
 | ExternalDef | 288 | Native external-defensive helpful flag |
@@ -128,6 +128,12 @@ Important, ExternalDef and BigDef exclude explicitly classified helpful IDs;
 PriorityDebuff and CrowdControl exclude explicitly classified harmful IDs.
 Native exclusions apply only where identity matching is permitted. Restricted
 relations can therefore retain an already classified aura in a broad lane.
+
+ChilledSignature is an approximation below exact Slows 220, including the
+exact Chilled IDs. When a mixed Slows set is eligible through one NeverSecret
+member, the exact native button is one level above the semantic button. The
+semantic fallback remains available if that public member is absent; scheduling
+eligibility alone does not prove that the exact container has a candidate.
 
 ### Applied-record details and classification boundaries
 
@@ -240,6 +246,13 @@ The native predicate checks permission for each aura and rejects an
 unfilterable aura whenever includeSpellIDs is present. A mixed Mobility lane
 can therefore retain an eligible Ghost Wolf/Cheetah candidate while the native
 predicate rejects its forbidden members. Unknown secrecy is not NeverSecret.
+
+Slows now opts into this same per-aura scheduling rule. A public Frostbolt or
+Frost Trap aura can therefore reach the native lane on self/friendly units
+when its own current client policy is positively NeverSecret. The opt-in does
+not change the lane's membership, priority 220, or native identity predicate.
+CombatDebuff already has this opt-in, including Shark Attack at priority 279.
+No actual secrecy classification for those pictured auras was captured.
 
 The opt-in also bounds the existing partial-readable ownership rule. A tier
 can be eligible to run because of an absent NeverSecret member while rejecting
@@ -588,15 +601,34 @@ during a previous event or reconstructs a portrait after the unit has changed.
 state, and bounded public helpful/harmful scans. Each stream lists at most
 12 accessible numeric spell IDs with catalogue priorities, counts inaccessible
 identities, and distinguishes a nil-terminated scan from an API error or the
-80-entry limit. Its final line reports current NeverSecret policy for reference
-IDs 6615, 2645, 1286304, 1229451 and Evasion 5277. An ended public scan does not establish
+80-entry limit. Its policy line reports current NeverSecret policy for reference
+IDs 6615, 2645, 1286304, 1229451, Evasion 5277, Shark Attack 1323184,
+Frost Trap 13810 and Frostbolt 116. An ended public scan does not establish
 private-source coverage.
 
-On an API exception, inspect prints at most 160 characters of accessible error
+Additional on-demand lines report the current Slows/CombatDebuff reader state,
+native scheduling eligibility, and known-spell query observations for those
+three reported effects. These queries are diagnostic only: no new per-ID sweep
+is added to UNIT_AURA or the rendering path. A positive direct lookup is not a
+complete tier election; nil/no-values can mean absent, invisible or restricted.
+Frostbolt's localized-name query can expose another applied rank without
+assuming that rank 1 was cast. Spell-secrecy predictions do not prove that an
+aura is present or identify an active instance's permission state.
+
+On an indexed-scan API exception, inspect prints at most 160 characters of accessible error
 text after stripping controls and chat markup delimiters. Inaccessible or
 non-string errors are reported as unavailable without stringification.
 
 ## Live validation and open boundaries
+
+The pictured Shark Attack warning matches harmful 1323184, already owned by
+CombatDebuff 279. Frost Trap's applied slow 13810 and the ordinary Frostbolt
+ranks through rank 10 are also already catalogued. Slows' missing per-aura
+scheduling opt-in is corrected, but the screenshot does not establish each
+aura's live secrecy, native eligibility, timer access or competing portrait
+winner. The Shark Attack report remains open. Capture `/bp inspect player`
+while the harmful effect is present; use target/focus for the affected unit
+when that is the failing surface.
 
 Restricted opposing-faction helpful identities can leave only the broad native
 fallback with descending instance ordering. A catalogue's intended numeric order
