@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.89-local**. It documents the
+This document describes **bjarkiPortraits 0.1.90-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -281,17 +281,18 @@ postpones construction until an existing refresh can retry.
 Countdown placement uses the same setup for native aura buttons, readable
 presenters and test frames:
 
-- Player/target text: translate native anchors +1 X with no added Y offset.
-- Focus text: translate native anchors +1 X and +2 Y once per font string.
-  Both use AdjustPointsOffset and retain native size and anchor points.
-- Both ToT/FoT icons: +1 X; timers +1 X and +1 Y relative to their icons.
+- Player text: translate native anchors +1 X and +1 Y once per font string.
+- Target/focus text: translate native anchors +1 X with no added Y offset.
+  Large text uses AdjustPointsOffset and retains native size and anchor points.
+- Both ToT/FoT icons: +1 X; timers +1 X and -1 Y relative to their icons.
 - Small-frame timer font: two points smaller.
 
-The 0.1.89 adjustment removes the remaining player/target upward translations,
-lowering their countdowns by one and two UI units respectively from 0.1.88.
-This follows the requested visual placement. Focus, small-frame text and
-circle/icon geometry retain their previous positions. Reapplying decimals or
-swipe presentation does not accumulate offsets or further reduce the small font.
+The 0.1.90 calibration uses the lowered target countdown as its reference.
+From 0.1.89, player text moves up one UI unit; focus and both small timers move
+down two. Repeated artwork and matching countdown glyphs establish the relative
+placement difference; final pixel rendering still requires a client check.
+Circle/icon geometry is retained. Reapplying decimals or swipe presentation
+does not accumulate offsets or further reduce the small font.
 
 The native CooldownFrameTemplate owns countdown progression. By default,
 numbers have one decimal below 10 seconds, use whole seconds through 60, and

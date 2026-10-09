@@ -9,8 +9,8 @@ local STRATA_BELOW = {
 local AURA_SCAN_LIMIT = 80
 
 local SMALL_GEOMETRY = {
-    targettarget = { iconX = 1, iconY = 0, timerX = 1, timerY = 1 },
-    focustarget = { iconX = 1, iconY = 0, timerX = 1, timerY = 1 },
+    targettarget = { iconX = 1, iconY = 0, timerX = 1, timerY = -1 },
+    focustarget = { iconX = 1, iconY = 0, timerX = 1, timerY = -1 },
 }
 
 -- Use Blizzard's portrait mask when exposed. Small derived frames without one
@@ -56,7 +56,7 @@ local function configureCooldown(cooldown, unit)
             then
                 -- Preserve the native large countdown's anchor arrangement.
                 -- Translate each font string once without changing its font.
-                if pcall(text.AdjustPointsOffset, text, 1, unit == "focus" and 2 or 0) then
+                if pcall(text.AdjustPointsOffset, text, 1, unit == "player" and 1 or 0) then
                     cooldown._bjarkiTimerOffsetText = text
                 end
             end

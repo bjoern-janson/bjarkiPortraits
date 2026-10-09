@@ -1,19 +1,20 @@
 # Known issues and validation
 
-Status recorded 2026-10-09 for **bjarkiPortraits 0.1.89-local**.
+Status recorded 2026-10-09 for **bjarkiPortraits 0.1.90-local**.
 
 This build repairs confirmed source-level routing, readable election,
 presentation ownership and lifecycle defects. Isolated behavioral checks do
 not establish that the following Battleground reports are resolved.
 
-## Player and target timer placement in 0.1.89
+## Common countdown placement in 0.1.90
 
-The requested lower placement removes the remaining added upward offsets:
-player moves down one UI unit and target moves down two from 0.1.88. Both now
-use the native vertical anchor, with the existing horizontal translation.
-Focus and derived-frame placement retain their previous settings. A normal
-addon reload recreates the countdown widgets and applies the new offsets.
-This is a requested visual adjustment; final appearance still needs a game check.
+Matching countdowns in the latest screenshots expose a two-pixel Target/Focus
+placement difference after their identical artwork is aligned. The target's
+lowered position is retained as the calibration reference. Relative to 0.1.89,
+player text moves up one UI unit and focus/ToT/FoT text moves down two.
+Horizontal placement, icon geometry, fonts and duration handling are retained.
+A normal addon reload recreates the widgets and applies the new offsets.
+This is the accepted visual calibration; final appearance still needs a game check.
 
 ## Countdown, catalog and ranked totems in 0.1.88
 
@@ -263,7 +264,7 @@ Battleground execution still needs live validation.
 Live acceptance should include refresh-without-new-instance behavior, unknown
 timing and identity, token changes, combat toggles, active test settings, pet
 foundations and ToT/FoT clipping. No live WoW run has confirmed all reported
-symptoms fixed in 0.1.89-local. The added spell IDs and priority changes are
+symptoms fixed in 0.1.90-local. The added spell IDs and priority changes are
 source-confirmed; they still depend on the client exposing the corresponding
 aura to an authorized selection path.
 
