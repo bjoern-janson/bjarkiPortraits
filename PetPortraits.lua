@@ -311,6 +311,41 @@ function R.UpdateObservedPetPortraits()
 end
 
 function R.GetPetPortraitDebug(unit)
+    local function accessState(ok, value)
+        if not ok then return "error" end
+        if R.IsSecret(value) then return "secret" end
+        if not R.CanAccess(value) then return "inaccessible" end
+        return type(value)
+    end
+
+    -- These additional reads belong only to the explicit diagnostic command.
+    -- Report access states, never stringify or infer an inaccessible identity.
+    local identitySecret, identityReadable = R.SafeBool(
+        C_Secrets and C_Secrets.ShouldUnitIdentityBeSecret, unit)
+    identityReadable = identityReadable and R.CanAccess(identitySecret)
+    local familyNameAccess, familyIDAccess = "unavailable", "unavailable"
+    if type(UnitCreatureFamily) == "function" then
+        local ok, rawName, rawID = pcall(UnitCreatureFamily, unit)
+        familyNameAccess, familyIDAccess = accessState(ok, rawName), accessState(ok, rawID)
+    end
+    local guid, guidReadable = R.SafeString(UnitGUID, unit)
+    guidReadable = guidReadable and R.CanAccess(guid)
+
+    local host = R.hosts[unit]
+    local parentStrataAccess = host and "host-present" or "unavailable"
+    if not host and unit ~= "pet" then
+        local portrait = R.GetPortrait(unit)
+        if portrait and portrait.GetParent then
+            local parentOK, parent = pcall(portrait.GetParent, portrait)
+            if parentOK and R.CanAccess(parent) and parent and parent.GetFrameStrata then
+                local strataOK, strata = pcall(parent.GetFrameStrata, parent)
+                parentStrataAccess = accessState(strataOK, strata)
+            elseif not parentOK then
+                parentStrataAccess = "error"
+            end
+        end
+    end
+
     local owner, own, name, id, reason = classify(unit)
     local samePet, sameReadable = R.SafeBool(UnitIsUnit, unit, "pet")
     local otherPet, otherReadable = R.SafeBool(UnitIsOtherPlayersPet, unit)
@@ -333,7 +368,6 @@ function R.GetPetPortraitDebug(unit)
             overlayShown = ok and R.CanAccess(shown) and shown == true
         end
     else
-        local host = R.hosts[unit]
         local texture = host and observed[host]
         if texture and texture.IsShown then
             local ok, shown = pcall(texture.IsShown, texture)
@@ -344,7 +378,8 @@ function R.GetPetPortraitDebug(unit)
         .. " owner=" .. tostring(owner or "none")
         .. " ownPet=" .. (sameReadable and tostring(samePet) or "unknown")
         .. " otherPet=" .. (otherReadable and tostring(otherPet) or "unknown")
-        .. " guidPet=" .. tostring(hasPetGUID(unit))
+        .. " guidPet=" .. (guidReadable and tostring(guid:match("^Pet%-") ~= nil) or "unknown")
+        .. " identitySecret=" .. (identityReadable and tostring(identitySecret) or "unknown")
         .. " controlled=" .. (controlledReadable and tostring(controlled) or "unknown")
         .. " player=" .. (playerReadable and tostring(player) or "unknown")
         .. " minion=" .. (minionReadable and tostring(minion) or "unknown")
@@ -353,9 +388,12 @@ function R.GetPetPortraitDebug(unit)
         .. " typeID=" .. tostring(typeID or "unknown")
         .. " family=" .. tostring(name or "unknown")
         .. " familyID=" .. tostring(id or "unknown")
+        .. " familyNameAccess=" .. familyNameAccess
+        .. " familyIDAccess=" .. familyIDAccess
         .. " reason=" .. tostring(reason)
         .. " art=" .. tostring(icon and art or "native")
         .. " host=" .. tostring(unit == "pet" and localPet ~= nil or R.hosts[unit] ~= nil)
+        .. " parentStrataAccess=" .. parentStrataAccess
         .. " icon=" .. tostring(icon ~= nil)
         .. " overlay=" .. tostring(overlayShown)
 end

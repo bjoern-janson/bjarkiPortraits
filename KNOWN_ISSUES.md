@@ -1,10 +1,32 @@
 # Known issues and validation
 
-Status recorded 2026-10-09 for **bjarkiPortraits 0.1.86-local**.
+Status recorded 2026-10-09 for **bjarkiPortraits 0.1.87-local**.
 
 This build repairs confirmed source-level routing, readable election,
 presentation ownership and lifecycle defects. Isolated behavioral checks do
 not establish that the following Battleground reports are resolved.
+
+## Countdown alignment and dungeon pets in 0.1.87
+
+A screenshot showing the same 6.6 countdown on all five frames supports moving
+large-frame text +1 X and all countdowns +2 Y. The small text anchors become
+(+1, +1); large text uses a native anchor translation. Circle positions and
+font sizes are retained. The screenshot measures visible glyphs and asymmetric
+artwork, not live frame coordinates; the final rendering still needs a client
+check at the user's display scale.
+
+A dungeon screenshot shows a native Crocolisk model instead of family artwork.
+Replaying 0.1.83 through 0.1.86 with the same public and restricted family inputs
+did not establish a version-specific cause. The existing missing-host strata
+guard and unavailable-family fallback remain separate possible boundaries.
+No dungeon-pet runtime repair is claimed in this build.
+
+The pets debug command previously refreshed artwork before printing, erasing a
+reproduced missing-refresh symptom. It now preserves the current overlay state
+and reports raw family access, identity secrecy and missing-host strata access.
+Run `/bp pets debug` while the failing dungeon pet is targeted to distinguish
+missing family data, missing host construction and an expected icon whose
+overlay was not refreshed. Restricted values remain unread and unprinted.
 
 ## Applied-aura additions in 0.1.86
 
@@ -168,7 +190,7 @@ Battleground execution still needs live validation.
 Live acceptance should include refresh-without-new-instance behavior, unknown
 timing and identity, token changes, combat toggles, active test settings, pet
 foundations and ToT/FoT clipping. No live WoW run has confirmed all reported
-symptoms fixed in 0.1.86-local. The added spell IDs and priority changes are
+symptoms fixed in 0.1.87-local. The added spell IDs and priority changes are
 source-confirmed; they still depend on the client exposing the corresponding
 aura to an authorized selection path.
 

@@ -42,7 +42,7 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
         R.Print("decimals " .. tostring(R.db.showDecimals))
     elseif command == "pets" then
         if option == "debug" then
-            R.UpdatePetPortraits()
+            -- Observe the failure before a manual refresh can hide it.
             R.Print("pets debug version=" .. tostring(R.VERSION)
                 .. " enabled=" .. tostring(R.db and R.db.enabled == true)
                 .. " setting=" .. tostring(R.db and R.db.petPortraits == true))

@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.86-local**. It documents the
+This document describes **bjarkiPortraits 0.1.87-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -254,14 +254,17 @@ checks the parent-strata read for call success, accessibility and string type
 before indexing the layer map or changing frame structure. Unavailable strata
 postpones construction until an existing refresh can retry.
 
-ToT/FoT artwork and timer placement are identical:
+Countdown placement uses the same setup for native aura buttons, readable
+presenters and test frames:
 
-- Both icons: +1 X; timers +1 X and -1 Y relative to their icons.
-- The ToT correction preserves its earlier absolute timer center.
+- Player/target/focus text: translate native anchors +1 X and +2 Y once per
+  font string with AdjustPointsOffset, retaining native size and anchor points.
+- Both ToT/FoT icons: +1 X; timers +1 X and +1 Y relative to their icons.
 - Small-frame timer font: two points smaller.
 
-Player placement remains native. Screenshot comparisons found the same small
-aperture/bevel asymmetry on player and target, without a separate player offset.
+The 0.1.87 refinement moves countdown text only. Circle and icon positions
+retain their previous geometry. Reapplying decimals or swipe presentation does
+not accumulate text offsets or further reduce the small font size.
 
 The native CooldownFrameTemplate owns countdown progression. By default,
 numbers have one decimal below 10 seconds, use whole seconds through 60, and
@@ -337,6 +340,13 @@ test, debug, audit and reset. Both /bp and /bjarkiportraits are supported.
 Debug reports relation/readability, election and active-presentation state,
 including Baseline and Healing timing evidence. Audit reports version,
 settings, lane membership/overlaps and host state without changing presentation.
+
+The explicit pets debug command also reports identity secrecy, raw family
+name/ID access states and the parent-strata boundary when an observed host is
+missing. Unreadable GUID evidence is unknown, not a negative pet result. It
+reports the expected icon and currently shown overlay without refreshing the
+portrait first, so an absent overlay remains observable. These extra reads run
+only on demand; pet classification and runtime refresh events are unchanged.
 
 ## Live validation boundary
 

@@ -9,8 +9,8 @@ local STRATA_BELOW = {
 local AURA_SCAN_LIMIT = 80
 
 local SMALL_GEOMETRY = {
-    targettarget = { iconX = 1, iconY = 0, timerX = 1, timerY = -1 },
-    focustarget = { iconX = 1, iconY = 0, timerX = 1, timerY = -1 },
+    targettarget = { iconX = 1, iconY = 0, timerX = 1, timerY = 1 },
+    focustarget = { iconX = 1, iconY = 0, timerX = 1, timerY = 1 },
 }
 
 -- Use Blizzard's portrait mask when exposed. Small derived frames without one
@@ -36,19 +36,29 @@ local function configureCooldown(cooldown, unit)
     if cooldown.SetSwipeTexture then cooldown:SetSwipeTexture(R.SWIPE_TEXTURE) end
 
     local geometry = SMALL_GEOMETRY[unit]
-    if geometry and cooldown.GetCountdownFontString then
+    if cooldown.GetCountdownFontString then
         local ok, text = pcall(cooldown.GetCountdownFontString, cooldown)
-        if ok and text then
-            if not cooldown._bjarkiFontAdjusted and text.GetFont and text.SetFont then
+        if ok and R.CanAccess(text) and text then
+            if geometry and not cooldown._bjarkiFontAdjusted and text.GetFont and text.SetFont then
                 local fontOK, font, size, flags = pcall(text.GetFont, text)
                 if fontOK and font and type(size) == "number" then
                     pcall(text.SetFont, text, font, math.max(1, size - 2), flags or "")
                     cooldown._bjarkiFontAdjusted = true
                 end
             end
-            if text.ClearAllPoints and text.SetPoint then
-                pcall(text.ClearAllPoints, text)
-                pcall(text.SetPoint, text, "CENTER", cooldown, "CENTER", geometry.timerX, geometry.timerY)
+            if geometry then
+                if text.ClearAllPoints and text.SetPoint then
+                    pcall(text.ClearAllPoints, text)
+                    pcall(text.SetPoint, text, "CENTER", cooldown, "CENTER", geometry.timerX, geometry.timerY)
+                end
+            elseif (unit == "player" or unit == "target" or unit == "focus")
+                and cooldown._bjarkiTimerOffsetText ~= text and text.AdjustPointsOffset
+            then
+                -- Preserve the native large countdown's anchor arrangement.
+                -- Translate each font string once without changing its font.
+                if pcall(text.AdjustPointsOffset, text, 1, 2) then
+                    cooldown._bjarkiTimerOffsetText = text
+                end
             end
         end
     end
