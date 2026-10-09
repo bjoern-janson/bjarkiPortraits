@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.95-local**. It documents the
+This document describes **bjarkiPortraits 0.1.96-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -105,6 +105,7 @@ when several are present. Current Forever
 | [Sonic Blast](https://www.wowhead.com/forever/spell=1264478/sonic-blast) | 1264478, 1264479, 1264480, 1264481, 1264482 |
 | [Carved Mind](https://www.wowhead.com/forever/spell=1302342/carved-mind) | 1302342 |
 | [Mortal Strike](https://www.wowhead.com/forever/spell=12294/mortal-strike) | 12294, 21551, 21552, 21553 |
+| [Veil of Shadow](https://www.wowhead.com/forever/spell=7068/veil-of-shadow) | 7068, 17820, 460755 |
 | [Wound Poison](https://www.wowhead.com/forever/spell=13218/wound-poison) | 13218, 13222, 13223, 13224 |
 | [Hex of Weakness](https://www.wowhead.com/forever/spell=9035/hex-of-weakness) | 9035, 19281, 19282, 19283, 19284, 19285 |
 | [Dismember](https://www.wowhead.com/forever/spell=1264758/dismember) | 1264758, 1264927, 1264929, 1264930, 1264933 |
@@ -117,7 +118,7 @@ Shark's previous native eligibility, including small friendly hosts. A complete
 readable harmful election still owns its tier; partial streams do not elect a
 replacement. The public/private source-coverage limitation below still applies.
 
-The catalog contains 1,158 distinct IDs in 51 disjoint exact lanes, plus 10
+The catalog contains 1,161 distinct IDs in 51 disjoint exact lanes, plus 10
 semantic lanes. The three additions in 0.1.93 are
 [Highland Venom 1316489](https://www.wowhead.com/forever/spell=1316489/highland-venom),
 [Blessing of Blackfathom 8733](https://www.wowhead.com/forever/spell=8733/blessing-of-blackfathom)
@@ -149,6 +150,14 @@ not used to establish the ID. The NPC association, aura type, tick interval
 and duration support this single addition. All 1,157 existing IDs retain
 their owners and priorities. The existing DoT exclusion also gains this ID;
 no lane, widget or permission policy is added.
+
+Version 0.1.96 adds Veil of Shadow 7068, 17820 and 460755 to CombatDebuff 279
+through the existing healing-reduction category. Current Forever records
+describe the same 75% healing-reduction Curse for 15 seconds. The screenshot
+shows 12 seconds remaining but no spell ID or caster, so it supports this
+small matching family without uniquely identifying one member. All 1,158
+existing IDs retain their owners and priorities; lane construction and aura
+selection are unchanged.
 
 Version 0.1.91 corrected 13 active non-root memberships using current Forever
 1.60.1 records. Crippling Poison 3409/11201, Frost Shock 12548 and Curse of

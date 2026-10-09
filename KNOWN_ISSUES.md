@@ -1,10 +1,25 @@
 # Known issues and validation
 
-Status recorded 2026-10-09 for **bjarkiPortraits 0.1.95-local**.
+Status recorded 2026-10-09 for **bjarkiPortraits 0.1.96-local**.
 
-This build adds Ironspine's Poison Cloud to the existing DoT tier. The previous
-Speed, Stormstrike and diagnostic changes remain included. The recorded
-Battleground aura-read and totem-identity limits remain unresolved.
+This build adds the matching Veil of Shadow healing-reduction Curses to the
+existing Mortal Strike tier. Poison Cloud and the previous Speed, Stormstrike
+and diagnostic changes remain included. The recorded Battleground aura-read
+and totem-identity limits remain unresolved.
+
+## Veil of Shadow in 0.1.96
+
+Veil of Shadow 7068, 17820 and 460755 join the existing healing-reduction
+category at CombatDebuff 279, immediately below Offensive 280. Current
+Forever records give all three the screenshot's 75% healing-reduction Curse
+tooltip and a 15-second duration. The crop's 12 seconds remaining cannot
+distinguish the exact ID or caster. No name-based classification is added.
+
+The catalog contains 1,161 distinct IDs with no overlapping exact owners.
+All 1,158 pre-existing IDs retain their owners and priorities. This data-only
+addition uses the existing lane and selection rules; portrait geometry and
+countdown calibration are unchanged. The membership check does not certify
+live visibility where client aura access is restricted.
 
 ## Poison Cloud in 0.1.95
 

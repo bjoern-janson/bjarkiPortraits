@@ -619,6 +619,9 @@ PT.categories = {
         [1302342] = true, -- Carved Mind (applied casting-time penalty)
     },
     debuffs_healing_reduction = {
+        [7068] = true, -- Veil of Shadow (75% healing reduction, single target)
+        [17820] = true, -- Veil of Shadow (75% healing reduction, nearby enemies)
+        [460755] = true, -- Veil of Shadow (75% healing reduction, area variant)
         [12294] = true, -- Mortal Strike Rank 1
         [21551] = true, -- Mortal Strike Rank 2
         [21552] = true, -- Mortal Strike Rank 3
