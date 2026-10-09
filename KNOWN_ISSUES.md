@@ -1,10 +1,42 @@
 # Known issues and validation
 
-Status recorded 2026-10-09 for **bjarkiPortraits 0.1.90-local**.
+Status recorded 2026-10-09 for **bjarkiPortraits 0.1.91-local**.
 
 This build repairs confirmed source-level routing, readable election,
 presentation ownership and lifecycle defects. Isolated behavioral checks do
 not establish that the following Battleground reports are resolved.
+
+## Lifecycle and catalog repairs in 0.1.91
+
+Player UNIT_FLAGS/UNIT_FACTION now refresh all five aura hosts and observed
+foundations, following the native identity-filter invalidation contract.
+Previously only the player's host was refreshed even though UnitCanAssist
+could change for every other unit. Per-aura permissions and the existing
+NeverSecret opt-ins remain unchanged. This source repair does not prove the
+Ice Block/Forbearance or other opposing-faction screenshots are resolved.
+
+Existing presentation now refreshes on combat re-enable while structural work
+remains deferred. Reset immediately applies default swipe/decimal options.
+A late-created host initializes its foundation once, and native portrait-only
+events retry or clear pet art without scanning auras. Player and local-pet
+overlays relinquish presentation when native vehicle layout rebinds their
+frames to another or unavailable unit. These fixes close demonstrated lifecycle
+gaps; inaccessible family data can still leave native art in instances.
+
+Thirteen non-root applied records leave Roots 300: Crippling Poison, one Frost
+Shock variant and Curse of Exhaustion use Slows 220; Tongues, Viper Sting,
+Drain Soul and Shadowburn's death-item residual use LowDebuff 200. The exact
+1,132-ID universe and other 1,119 memberships are preserved. Current public
+records were retrieved for 195 of the baseline's 200 IDs at priority 291 or above; IDs
+5530/12798/19386/24132/24133 were unavailable and remain unchanged. The
+932 IDs outside that semantic pass received structural checks, not a fresh effect-by-effect
+validation. Current database records are not live aura-disposition captures.
+
+One complete five-host build constructs 300 native containers, 300 buttons and
+352 cooldowns. Manual teardown disables dynamic subscriptions but does not
+destroy native slot objects or their static data-provider-switch callbacks;
+completed rebuilds retain another set until reload. This is a source-level
+resource-lifetime limitation, without an in-game memory or performance estimate.
 
 ## Common countdown placement in 0.1.90
 
@@ -264,7 +296,7 @@ Battleground execution still needs live validation.
 Live acceptance should include refresh-without-new-instance behavior, unknown
 timing and identity, token changes, combat toggles, active test settings, pet
 foundations and ToT/FoT clipping. No live WoW run has confirmed all reported
-symptoms fixed in 0.1.90-local. The added spell IDs and priority changes are
+symptoms fixed in 0.1.91-local. The added spell IDs and priority changes are
 source-confirmed; they still depend on the client exposing the corresponding
 aura to an authorized selection path.
 

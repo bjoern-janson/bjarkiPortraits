@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.90-local**. It documents the
+This document describes **bjarkiPortraits 0.1.91-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -74,7 +74,7 @@ Selected category relationships are:
 | Utility | Utility buffs and Welcoming Campfire | 270 |
 | Offensive | Offensive cooldowns, Clearcasting/Preparation, Victorious, Sprint/Dash, Satchel Speed, Cocoon speed, Swift Wind and Battleground Berserking | 280 |
 | Harmful Offensive | Death Wish; one level above helpful offense to separate simultaneous countdowns | 281 |
-| Roots | Root effects | 300 |
+| Roots | Root effects and three retained legacy cast/passive records | 300 |
 | Root Immunity | Root immunity, Free Action, Voice of Truth's casting immunity and Grounding spell redirection share this priority | 305 |
 | Control / Stun | Separate disjoint exact lanes | 310 / 320 |
 | Physical Immunity | Three Blessing of Protection ranks | 315 |
@@ -90,6 +90,16 @@ custom/trinket records retain their existing classification.
 
 The numeric priority controls presentation order. It does not express spell
 strength or establish what a live client will expose.
+
+Version 0.1.91 corrects 13 active non-root memberships using current Forever
+1.60.1 records. Crippling Poison 3409/11201, Frost Shock 12548 and Curse of
+Exhaustion 18223 move from Roots 300 to Slows 220. Tongues 1714/11719,
+Viper Sting 3034/14279/14280, Drain Soul 1120/8288 and the Shadowburn
+death-item residual 17877/18867 move to LowDebuff 200, following the existing
+low-curse/drain/channel policy. No IDs are added or removed; the other 1,119
+members retain their owners. Roots retains 31 current root-effect records and
+legacy cast/passive IDs 16979/18310/18313. Lane definitions and semantic
+exclusion sets are unchanged.
 
 Deserter shares the low passive harmful lane so its long queue penalty does
 not displace combat effects. Martyrdom here is the harmful item aura 1292749,
@@ -306,16 +316,46 @@ There is no addon-owned OnUpdate countdown or aura polling loop.
 
 Structural construction, restoration and reparenting remain outside combat.
 A combat request queues structural work for PLAYER_REGEN_ENABLED.
+BuildAll still refreshes existing presentation in combat, so global/per-unit
+re-enable does not require an unrelated later event. Reset applies default
+swipe and decimal settings immediately to surviving cooldowns while rebuilding
+is deferred.
 
 Per-unit disable immediately refreshes existing presentation before any
 stale-host return, including a test frame, while structural work stays queued.
 Global off also prevents later unit events from creating new hosts.
 
-Main.lua scopes high-frequency UNIT_AURA, UNIT_FACTION, UNIT_FLAGS and
-UNIT_CONNECTION registrations to the five tracked tokens. UNIT_TARGET is
+Main.lua scopes UNIT_AURA, UNIT_FACTION, UNIT_FLAGS, UNIT_CONNECTION and
+UNIT_PORTRAIT_UPDATE registrations to the five tracked tokens. UNIT_TARGET is
 registered only for target/focus to refresh their derived tokens. Unit-aura
 events refresh presentation; relation and token changes can additionally
 force native container refresh.
+
+Player UNIT_FLAGS and UNIT_FACTION invalidate all five hosts because native
+identity filters depend on the player's UnitCanAssist relationship to every
+unit. The same event refreshes observed foundations. Other unit relation
+events remain scoped. This corrects a missing invalidation path; it does not
+change per-aura secrecy permission or prove opposing-faction priority fixed.
+
+UNIT_PORTRAIT_UPDATE refreshes only the corresponding independent foundation,
+without scanning auras. A successfully created late host initializes that
+foundation once; routine aura updates of an existing host do not classify pets.
+
+The native vehicle layout can reuse PlayerFrame and PetFrame without replacing
+the objects. Player aura/test presentation requires public PlayerFrame.unit
+equal to player; local foundation art requires public PetFrame.unit equal to
+pet. A scoped native UnitFrame_SetUnit post-hook reconciles these owned layers
+immediately after rebinding. Different or unavailable bindings relinquish the
+overlay in place, without creating vehicle hosts or reparenting in combat.
+
+With all five hosts available, 60 lanes create 300 native containers and 300 buttons
+and 300 cooldowns. Readable/test presentation adds 52 cooldowns, for 352 per
+complete build. These are source constructor counts, not measured client memory
+or CPU time. Native slot frames and static data-provider-switch subscriptions
+outlive host teardown; a completed manual rebuild allocates another set until
+reload. Disabled dynamic aura subscriptions are released. Ordinary stable
+refreshes reuse the existing structure. This retained resource cost remains a
+separate optimization question rather than a proven frame-rate regression.
 
 ## Pet and totem foundations
 

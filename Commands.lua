@@ -154,7 +154,13 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
                 .. " assistReadable=" .. tostring(host and host._assistReadable or false))
         end
     elseif command == "reset" then
-        BjarkiPortraitsDB = nil; R.ApplyDefaults(); R.DestroyAll(); R.BuildAll(); R.UpdatePetPortraits(); R.Print("reset")
+        BjarkiPortraitsDB = nil
+        R.ApplyDefaults()
+        R.DestroyAll()
+        R.BuildAll()
+        R.ApplyPresentation()
+        R.UpdatePetPortraits()
+        R.Print("reset")
     else
         R.Print("unknown command; /bp help")
     end

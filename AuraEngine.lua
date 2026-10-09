@@ -912,6 +912,14 @@ local function hostStillCurrent(host)
     return portrait == host.portrait and unitFrame == host.unitFrame
 end
 
+local function hostHasSupportedBinding(host)
+    if host.unit ~= "player" then return true end
+    -- The native PlayerFrame can temporarily display a vehicle. Missing or
+    -- inaccessible bindings also leave that native portrait in control.
+    local binding = host.unitFrame and host.unitFrame.unit
+    return R.CanAccess(binding) and binding == "player"
+end
+
 local function disableContainers(host)
     for _, container in ipairs(host.containers or {}) do
         pcall(container.SetEnabled, container, false)
@@ -1127,6 +1135,11 @@ function R.CreateHost(unit)
         )
     end
 
+    -- A delayed host can be created by an aura-only refresh. Initialize its
+    -- independent foundation once; existing hosts keep their scoped pet events.
+    if unit ~= "player" and R.UpdateObservedPetPortrait then
+        R.UpdateObservedPetPortrait(unit)
+    end
     return host
 end
 
@@ -1164,7 +1177,7 @@ function R.UpdateHost(host, forceContainerRefresh)
     host._readableTierOwners = owners
     local unitExists, existsReadable = R.UnitExistsState(host.unit)
     local present = not UnitExists or (existsReadable and unitExists)
-    local base = R.IsUnitEnabled(host.unit) and not R.testMode and present
+    local base = R.IsUnitEnabled(host.unit) and not R.testMode and present and hostHasSupportedBinding(host)
     host._unitExists = present and true or false
     host._unitExistsReadable = existsReadable
     local hostileUnit, hostileRelationReadable = R.HostileUnitState(host.unit)
@@ -1408,7 +1421,7 @@ function R.Refresh(unit, forceContainerRefresh)
     host = host or R.CreateHost(unit)
     if not host then return end
 
-    if R.testMode and R.IsUnitEnabled(unit) then
+    if R.testMode and R.IsUnitEnabled(unit) and hostHasSupportedBinding(host) then
         R.UpdateHost(host, forceContainerRefresh)
         showTest(host)
     else
@@ -1424,6 +1437,8 @@ end
 function R.BuildAll()
     if InCombatLockdown and InCombatLockdown() then
         R.buildQueued = true
+        -- Existing hosts can reconcile presentation while structural work waits.
+        R.RefreshAll()
         return
     end
     if not R.db or not R.db.enabled then

@@ -429,7 +429,11 @@ local function ensureLocalPetTexture()
 end
 
 function R.UpdateLocalPetPortrait()
-    if not R.db or not R.db.enabled or not R.db.petPortraits then
+    local _, _, frame = getPetPortrait()
+    local displayedUnit = frame and frame.unit
+    -- The native vehicle layout can reuse PetFrame to display the player.
+    if not R.db or not R.db.enabled or not R.db.petPortraits
+        or not R.CanAccess(displayedUnit) or displayedUnit ~= "pet" then
         if localPet then localPet:Hide() end
         return
     end
