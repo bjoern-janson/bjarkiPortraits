@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.93-local**. It documents the
+This document describes **bjarkiPortraits 0.1.94-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -62,6 +62,7 @@ Selected category relationships are:
 | Consecration | The applied Forever damage-amplification aura, immediately below DoTs | 189 |
 | DoTs | Explicit damage-over-time effects | 190 |
 | Low Debuff | Low debuffs, taunts and Cursed Blood | 200 |
+| Seal | Paladin seals and Improved Stormstrike share one helpful election | 210 |
 | Slows | Slows, exact Chilled IDs, Frost Trap Aura and Highland Venom | 220 |
 | Recently Bandaged | Separate harmful state | 229 |
 | Forbearance | Forbearance and the existing Dazed member | 240 |
@@ -70,10 +71,10 @@ Selected category relationships are:
 | Power Word: Shield | Existing PW:S applied auras and Transformative Cocoon's absorb | 256 |
 | Honorless Target | Above Healing | 257 |
 | Food/Drink | Food, Drink, Cannibalize, Evocation and Restoration | 260 |
-| Innervate | Innervate, Druid Enrage, Bloodrage, Improved Stormstrike, resource recovery and living The Quick and the Dead variants | 261 |
+| Innervate | Innervate, Druid Enrage, Bloodrage, resource recovery and living The Quick and the Dead variants | 261 |
 | Utility | Utility buffs and Welcoming Campfire | 270 |
 | Combat Debuff | Casting-time penalties, reduced healing received and Shark Attack share one harmful election, immediately below offensive cooldowns | 279 |
-| Offensive | Offensive cooldowns, Clearcasting/Preparation, Victorious, Sprint/Dash, Satchel Speed, Cocoon speed, Swift Wind and Battleground Berserking | 280 |
+| Offensive | Offensive cooldowns, Clearcasting/Preparation, Victorious, Sprint/Dash, Satchel Speed, Cocoon speed, Swift Wind and Battleground Speed/Berserking | 280 |
 | Harmful Offensive | Death Wish; one level above helpful offense to separate simultaneous countdowns | 281 |
 | Roots | Root effects and three retained legacy cast/passive records | 300 |
 | Root Immunity | Root immunity, Free Action, Voice of Truth's casting immunity and Grounding spell redirection share this priority | 305 |
@@ -116,17 +117,29 @@ Shark's previous native eligibility, including small friendly hosts. A complete
 readable harmful election still owns its tier; partial streams do not elect a
 replacement. The public/private source-coverage limitation below still applies.
 
-The catalog contains 1,155 distinct IDs in 51 disjoint exact lanes, plus 10
+The catalog contains 1,157 distinct IDs in 51 disjoint exact lanes, plus 10
 semantic lanes. The three additions in 0.1.93 are
 [Highland Venom 1316489](https://www.wowhead.com/forever/spell=1316489/highland-venom),
 [Blessing of Blackfathom 8733](https://www.wowhead.com/forever/spell=8733/blessing-of-blackfathom)
 and [Berserking 1286304](https://www.wowhead.com/forever/spell=1286304/berserking).
-Existing Berserking 23505/24378 remain helpful Offensive members. Shark Attack
-and Boosted Rest are the only existing IDs whose numeric priorities change;
-the other 1,150 retain their levels. Wound Poison
+Existing Berserking 23505/24378 remain helpful Offensive members. In 0.1.93,
+Shark Attack and Boosted Rest were the only existing IDs whose numeric
+priorities changed; the other 1,150 retained their levels. Wound Poison
 qualifies through flat healing-received reduction; Mortal Strike, Hex and
 Dismember use percentage reduction. Poison coatings, training spells and
 Carve Mind's hidden proc wrapper are not applied target auras in this lane.
+
+Version 0.1.94 adds the two missing applied Battleground Speed variants
+[23978](https://www.wowhead.com/forever/spell=23978/speed) and
+[1286345](https://www.wowhead.com/forever/spell=1286345/speed) to Offensive 280,
+alongside the existing 23451. All three records describe 100% movement speed
+for ten seconds. The separate potion Speed 1309728 stays at 280; hidden rune
+visual 1286342 is not a portrait aura.
+[Improved Stormstrike 1238931](https://www.wowhead.com/forever/spell=1238931/improved-stormstrike)
+moves from Innervate 261 to Seal 210. Its own source category is unioned with
+the seals before native construction, retaining one shared instance-order
+election. This is the only existing priority change in 0.1.94; the other 1,154
+existing IDs retain their owners and levels. No native lane or widget is added.
 
 Version 0.1.91 corrected 13 active non-root memberships using current Forever
 1.60.1 records. Crippling Poison 3409/11201, Frost Shock 12548 and Curse of
@@ -470,6 +483,9 @@ ended scan from an error or the 80-entry limit. An ended public scan is not proo
 of private-source coverage. A final line reports current NeverSecret policy for
 the four diagnostic reference IDs. The command does not refresh presentation,
 create hosts, inspect protected native candidates or retain aura identities.
+On an API exception, 0.1.94 also reports at most 160 characters of accessible
+error text after stripping controls and chat markup delimiters. An inaccessible
+or non-string error is reported as unavailable without being stringified.
 
 ## Live validation boundary
 

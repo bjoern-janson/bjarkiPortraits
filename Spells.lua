@@ -517,7 +517,9 @@ PT.categories = {
         [20554] = true, -- Berserking (Troll racial, Forever)
         [20600] = true,
         [20572] = true, -- Blood Fury (Orc racial)
-        [23451] = true,
+        [23451] = true, -- Speed (battleground rune)
+        [23978] = true, -- Speed (battleground rune applied variant)
+        [1286345] = true, -- Speed (Forever battleground rune applied aura)
         [23505] = true, -- Berserking (battleground)
         [1286304] = true, -- Berserking (Forever battleground applied aura)
         [24364] = true,
@@ -724,6 +726,9 @@ PT.categories = {
     debuffs_recently_bandaged = {
         [11196] = true, -- Recently Bandaged
     },
+    buffs_improved_stormstrike = {
+        [1238931] = true, -- Improved Stormstrike (mana-regeneration proc)
+    },
     buffs_seals = {
         [20154] = true, -- Seal of Righteousness Rank 1 (Paladin)
         [20287] = true, -- Seal of Righteousness Rank 2 (Paladin)
@@ -877,7 +882,6 @@ PT.categories = {
 
     buffs_innervate = {
         [29166] = true, -- Innervate (Druid)
-        [1238931] = true, -- Improved Stormstrike (mana-regeneration aura)
         -- The Quick and the Dead: visible resource-cost buffs after resurrection.
         [1262243] = true, -- Mage
         [1262307] = true, -- Druid

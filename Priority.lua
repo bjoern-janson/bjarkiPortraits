@@ -88,7 +88,7 @@ R.TIERS = {
     -- Taunts and Faerie Fire share one election, including equal-tier recency.
     exact("LowDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 200, false,
         union("debuffs_other", "debuffs_taunts")),
-    exact("Seal", "HELPFUL", 210, true, C.buffs_seals),
+    exact("Seal", "HELPFUL", 210, true, union("buffs_seals", "buffs_improved_stormstrike")),
     exact("Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 220, false,
         union("slows", "slows_chilled")),
     -- 12544 Frost Armor procs spell 6136 Chilled. In combat its identity is

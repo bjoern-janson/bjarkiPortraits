@@ -25,12 +25,19 @@ local function inspectAuras(option)
     local getter = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
     for _, filter in ipairs({ "HELPFUL", "HARMFUL" }) do
         local readable, restricted, ids = 0, 0, {}
-        local status = "unavailable"
+        local status, apiError = "unavailable", nil
         if type(getter) == "function" then
             status = "limit"
             for index = 1, 80 do
                 local ok, aura = pcall(getter, unit, index, filter .. "|INCLUDE_NAME_PLATE_ONLY")
-                if not ok then status = "error"; break end
+                if not ok then
+                    status = "error"
+                    -- Keep access failures distinguishable from other API errors.
+                    -- Error objects can also be inaccessible; never stringify them.
+                    apiError = R.CanAccess(aura) and type(aura) == "string"
+                        and aura:gsub("[%c|]", " "):sub(1, 160) or "unavailable"
+                    break
+                end
                 if not R.CanAccess(aura) then
                     restricted = restricted + 1
                 elseif aura == nil then
@@ -56,7 +63,8 @@ local function inspectAuras(option)
         end
         R.Print(filter:lower() .. " readable=" .. readable .. " restricted=" .. restricted
             .. " listed=" .. #ids .. "/" .. readable .. " scan=" .. status
-            .. " ids=" .. (#ids > 0 and table.concat(ids, ",") or "none"))
+            .. " ids=" .. (#ids > 0 and table.concat(ids, ",") or "none")
+            .. (apiError and " error=" .. apiError or ""))
     end
 
     local policies = {}

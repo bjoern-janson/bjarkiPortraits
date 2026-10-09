@@ -1,11 +1,49 @@
 # Known issues and validation
 
-Status recorded 2026-10-09 for **bjarkiPortraits 0.1.93-local**.
+Status recorded 2026-10-09 for **bjarkiPortraits 0.1.94-local**.
 
-This build adds verified dungeon/Battleground aura records, adjusts Shark Attack
-and Boosted Rest, and repairs two foundation presentation paths. Isolated
-behavioral checks do not establish that all reported Battleground symptoms are
-resolved.
+This build completes the known Battleground Speed family, lowers Improved
+Stormstrike to the Seal priority, and makes diagnostic API errors informative.
+The new live captures establish specific aura-read and totem-identity limits.
+They do not establish resolution of the remaining Battleground symptoms.
+
+## Speed, Stormstrike and live diagnostics in 0.1.94
+
+Applied Speed 23978 and 1286345 join the existing 23451 at Offensive 280,
+sharing the requested Sprint/Dash priority. All three current records describe
+100% movement speed for ten seconds. Hidden visual 1286342 is excluded, and
+potion Speed 1309728 retains its existing membership. No Speed tooltip/ID was
+supplied in this batch: the additions close verified catalog gaps but do not
+prove the cause of the reported friendly display failure.
+
+Improved Stormstrike 1238931 moves from Innervate 261 to Seal 210. Its distinct
+source category joins the same native election as the paladin seals; there is
+no second widget at that priority. The passive talent 1223031 is not added.
+The catalog now has 1,157 distinct IDs, with 51 exact and 10 semantic lanes.
+The other 1,154 existing IDs retain their exact owners and numeric levels.
+
+Four .93 captures show exactHelpful=false, exactHarmful=true, no readable
+hostile winner, and immediate scan=error with zero returned entries in both
+streams. The four reference IDs (Free Action 6615, Ghost Wolf 2645, Berserking
+1286304 and Boosted Rest 1229451) all report neverSecret=no. Thus the readable
+scan cannot supply a category in those captures, and those reference IDs do
+not qualify for a NeverSecret exception. Native broad fallback ordering remains.
+
+The current GetAuraDataByIndex contract requires unit aura access, with a
+documented error failure when that access precondition is not met. The capture
+does not include the exception text, so it cannot uniquely establish the error's
+cause. `/bp inspect target` now includes a bounded, sanitized accessible error
+message; inaccessible error objects remain unprinted. This diagnostic change
+does not broaden aura access or claim to repair restricted sorting.
+
+The Earthbind Totem capture reports host=true, expected=false, last=none,
+name=secret and type=secret/secret. Its minion witness and player/pet exclusions
+pass. This establishes missing classification information in that state, rather
+than an expected icon lost to a missing refresh or failed texture assignment.
+UnitIsMinion also covers guardians, so it cannot alone authorize a generic
+totem icon. The inspected native slot-based Totem APIs provide no arbitrary
+target discriminator. The supported native model remains in this captured
+state; further name aliases or refreshes do not address it.
 
 ## Battleground follow-up in 0.1.93
 
