@@ -39,6 +39,7 @@ local unresolvedTotemSummons = {
     8512, 8835, 8177, 10595, 15107, 25908, 6495, -- Windfury, Grace, Grounding, resistance, Sentry
 }
 local TOTEM_SUMMON_BY_NAME = {}
+local TOTEM_RANK_SUFFIXES = { II=true, III=true, IV=true, V=true, VI=true }
 
 local function classToken(unit)
     if UnitClassBase then
@@ -139,7 +140,12 @@ local function totemTexture(unit, exactOnly)
         if not exactOnly then return GENERIC_TOTEM_TEXTURE, "totem-generic" end
         return nil
     end
-    local summon = TOTEM_SUMMON_BY_NAME[name]
+    -- Ranked summons append a Roman rank to the localized spell name, e.g.
+    -- Searing Totem III. Strip only the known rank suffix; the base must still
+    -- exactly match a public client spell name.
+    local baseName, rank = name:match("^(.+) ([IV]+)$")
+    if not TOTEM_RANK_SUFFIXES[rank] then baseName = nil end
+    local summon = TOTEM_SUMMON_BY_NAME[name] or (baseName and TOTEM_SUMMON_BY_NAME[baseName])
     if not summon then
         local getName = C_Spell and C_Spell.GetSpellName or GetSpellInfo
         for index = #unresolvedTotemSummons, 1, -1 do
@@ -148,7 +154,7 @@ local function totemTexture(unit, exactOnly)
             if nameReadable and R.CanAccess(spellName) then
                 TOTEM_SUMMON_BY_NAME[spellName] = spellID
                 table.remove(unresolvedTotemSummons, index)
-                if spellName == name then summon = spellID; break end
+                if spellName == name or spellName == baseName then summon = spellID; break end
             end
         end
         -- Resolved public names leave the pending list; unknown/custom totems
@@ -240,8 +246,8 @@ end
 
 local function namedMinionTexture(unit, familyName, familyID)
     -- Creature type and names have separate native access rules. A public
-    -- minion with an exact summon name can select static art without claiming
-    -- a creature type or a current aura. Unknown pet/player witnesses reject.
+    -- minion with a matching localized summon name can select static art without
+    -- claiming a creature type or a current aura. Unknown pet/player witnesses reject.
     if not publicBoolIs(UnitIsMinion, true, unit)
         or not publicBoolIs(UnitIsPlayer, false, unit)
         or not publicBoolIs(UnitIsOtherPlayersPet, false, unit)

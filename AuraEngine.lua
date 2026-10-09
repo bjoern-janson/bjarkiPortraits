@@ -56,7 +56,7 @@ local function configureCooldown(cooldown, unit)
             then
                 -- Preserve the native large countdown's anchor arrangement.
                 -- Translate each font string once without changing its font.
-                if pcall(text.AdjustPointsOffset, text, 1, 2) then
+                if pcall(text.AdjustPointsOffset, text, 1, unit == "player" and 1 or 2) then
                     cooldown._bjarkiTimerOffsetText = text
                 end
             end

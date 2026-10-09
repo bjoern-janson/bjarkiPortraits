@@ -14,6 +14,7 @@ PT.categories = {
         [642] = true,
         [1020] = true,
         [11958] = true,
+        [27619] = true, -- Ice Block (visible NPC/Forever equivalent)
         [20230] = true,
     },
     immunities_physical = {
@@ -722,6 +723,7 @@ PT.categories = {
     buffs_fooddrink = {
         [23493] = true, -- Restoration (battleground health and mana recovery)
         [24379] = true, -- Restoration (battleground health, mana and pet-happiness recovery)
+        [1286344] = true, -- Restoration (current Forever battleground recovery aura)
         -- Active recovery/channel states share one portrait priority lane.
         [20577] = true, -- Cannibalize activation (Undead)
         [20578] = true, -- Cannibalize channel aura (Undead)
@@ -1267,6 +1269,7 @@ PT.categories = {
     },
     buffs_other = {
         [25228] = true, -- Soul Link (applied Warlock/demon aura)
+        [18789] = true, -- Burning Shadow (Demonic Sacrifice effect; forms/Self State)
         [23605] = true,
         [18137] = true, -- Shadowguard Rank 1 (Troll Priest)
         [19308] = true, -- Shadowguard Rank 2 (Troll Priest)

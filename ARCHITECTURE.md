@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.87-local**. It documents the
+This document describes **bjarkiPortraits 0.1.88-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -104,9 +104,16 @@ Version 0.1.86 retains those 1,125 IDs and adds four applied-aura IDs:
 [Spirit Bond 24529](https://www.wowhead.com/forever/spell=24529/spirit-bond),
 [Spirit Bond 1310725](https://www.wowhead.com/forever/spell=1310725/spirit-bond), and
 [Improved Stormstrike 1238931](https://www.wowhead.com/forever/spell=1238931/improved-stormstrike).
-They use existing Offensive, Blood Pact and Innervate membership sets. The exact
-catalog contains 1,129 distinct IDs in 50 disjoint exact lanes, plus 10 semantic
-lanes. All existing lane definitions and priorities are unchanged. The harmful
+They use existing Offensive, Blood Pact and Innervate membership sets.
+Version 0.1.88 retains those 1,129 IDs and adds
+[Restoration 1286344](https://www.wowhead.com/forever/spell=1286344/restoration)
+at FoodDrink 260,
+[Burning Shadow 18789](https://www.wowhead.com/forever/spell=18789/burning-shadow)
+at Self State 150, and the visible NPC
+[Ice Block 27619](https://www.wowhead.com/forever/spell=27619/ice-block)
+at Immunity 330. The exact catalog now contains 1,132 distinct IDs in 50
+disjoint exact lanes, plus 10 semantic lanes. All existing lane definitions
+and priorities are unchanged. The harmful
 offensive lane remains immediately above helpful offense and below defensive
 lanes; it provides deterministic layering, not cross-disposition recency.
 
@@ -139,6 +146,13 @@ The native predicate checks permission for each aura and rejects an
 unfilterable aura whenever includeSpellIDs is present. A mixed Mobility lane
 can therefore retain an eligible Ghost Wolf/Cheetah candidate while the native
 predicate rejects its forbidden members. Unknown secrecy is not NeverSecret.
+
+The opt-in also bounds the existing partial-readable ownership rule. A tier
+can be eligible to run because of an absent NeverSecret member while rejecting
+a different, directly readable contextual member. Broadening scheduling alone
+can therefore hide a readable portrait without supplying a native replacement.
+Version 0.1.88 retains the previous scheduling and ownership policy. Native
+per-aura admission is not evidence of an active candidate or a complete election.
 
 Important, ExternalDef and BigDef exclude explicitly classified helpful IDs
 where native identity matching is allowed. On restricted relations native
@@ -237,6 +251,16 @@ election and successful rendering. Chilled Signature is suppressed by native
 exact Slows permission or an active readable Slows winner, not by an empty or
 failed scan.
 
+Here, a complete readable scan covers the public indexed aura stream. Native
+[managed containers](https://github.com/Gethe/wow-ui-source/blob/9465cb273b5513495d8ecc12fbb19930dd6b8957/Interface/AddOns/Blizzard_AuraContainer/Blizzard_ManagedAuraContainer.lua)
+also support a separate
+[private source](https://github.com/Gethe/wow-ui-source/blob/9465cb273b5513495d8ecc12fbb19930dd6b8957/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerSources.lua), which does not
+signal UNIT_AURA. The public election is therefore not proof of a complete
+native-source election. The current candidate API has no private-source
+selector; a readable owner can suppress a private same-tier competitor or the
+hostile-NPC Frost Armor fallback. This source-coverage limitation remains open;
+it does not establish that any pictured player immunity uses the private source.
+
 Readable tier replacements use tier priority + 1, matching the native button.
 They do not gain an extra level to defeat their own native counterpart.
 Ghost retains its separate UnitIsGhost state witness and Immunity + 2 level;
@@ -257,14 +281,16 @@ postpones construction until an existing refresh can retry.
 Countdown placement uses the same setup for native aura buttons, readable
 presenters and test frames:
 
-- Player/target/focus text: translate native anchors +1 X and +2 Y once per
-  font string with AdjustPointsOffset, retaining native size and anchor points.
+- Player text: translate native anchors +1 X and +1 Y once per font string.
+- Target/focus text: translate native anchors +1 X and +2 Y once per font string.
+  Both use AdjustPointsOffset and retain native size and anchor points.
 - Both ToT/FoT icons: +1 X; timers +1 X and +1 Y relative to their icons.
 - Small-frame timer font: two points smaller.
 
-The 0.1.87 refinement moves countdown text only. Circle and icon positions
-retain their previous geometry. Reapplying decimals or swipe presentation does
-not accumulate text offsets or further reduce the small font size.
+The 0.1.88 refinement lowers player countdown text by one UI unit from 0.1.87.
+Target/focus text, small-frame text and all circle/icon positions retain their
+previous geometry. Reapplying decimals or swipe presentation does not accumulate
+text offsets or further reduce the small font size.
 
 The native CooldownFrameTemplate owns countdown progression. By default,
 numbers have one decimal below 10 seconds, use whole seconds through 60, and
@@ -312,6 +338,9 @@ fallback textures retain their existing behavior.
 A classified totem foundation requires a readable native creature-type ID 11 or the
 corresponding native localized type name. Only after that type evidence does
 an exact readable unit name select a known totem's localized summon-spell art.
+Canonical rank suffixes II through VI are accepted after that localized base
+name, covering ranked summons such as Searing Totem III. Other trailing words,
+partial names and malformed ranks do not match.
 An unrecognized totem retains generic totem artwork; an unreadable type does
 not authorize a totem foundation. Unit names, models and creature families
 alone do not establish totem identity.

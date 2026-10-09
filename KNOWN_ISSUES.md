@@ -1,10 +1,74 @@
 # Known issues and validation
 
-Status recorded 2026-10-09 for **bjarkiPortraits 0.1.87-local**.
+Status recorded 2026-10-09 for **bjarkiPortraits 0.1.88-local**.
 
 This build repairs confirmed source-level routing, readable election,
 presentation ownership and lifecycle defects. Isolated behavioral checks do
 not establish that the following Battleground reports are resolved.
+
+## Countdown, catalog and ranked totems in 0.1.88
+
+Comparing matching countdown glyphs against the screenshot's gold portrait
+rings shows player text about one pixel higher than target text. Player text
+is lowered by one UI unit. The target/focus and small-frame offsets, fonts and
+all portrait circles are retained. Offline checks cover the shared native,
+readable and test presenters; final optical alignment needs the live client.
+
+The current applied Restoration aura 1286344 joins FoodDrink 260, alongside
+the existing Restoration variants. Burning Shadow 18789 joins forms/Self
+State 150. Ice Block 27619 adds a visible NPC equivalent to Immunity 330;
+player Ice Block 11958 was already present. These additions follow current
+Forever spell records and do not establish the exact ID in a screenshot
+without an exposed ID.
+
+A friendly Battleground screenshot shows Searing Totem III. Its public summon
+spell name is unranked, so the prior exact-name lookup could not select its
+specific art. Localized name matching now accepts canonical II–VI rank suffixes.
+All existing native-type or public-minion qualifications, player/pet exclusions,
+access checks and native-art fallbacks remain. This repairs the ranked-name gap;
+the screenshot does not establish which identity or host-construction inputs
+the live client supplied. `/bp pets debug` remains useful if a totem still lacks
+its expected icon.
+
+## Battleground ordering remains unresolved in 0.1.88
+
+Leader of the Pack remains Baseline Class 90, Forbearance remains 240, player
+Ice Block remains Immunity 330 and Divine Protection remains 331. The current
+native scheduling and readable ownership rules are unchanged in this build.
+
+The addon's native scheduling opt-in is narrower than Blizzard's per-aura
+NeverSecret admission rule. Removing that opt-in alone reproduced a regression:
+an absent NeverSecret member could enable a mixed tier and make the partial
+readable presenter yield, even though native filtering still rejected the
+present readable member. No active native replacement was established. That
+scheduling change is not included in this build.
+
+The pictured player Ice Block's live secrecy policy is not established.
+Divine Protection already has the existing opt-in, and its latest screenshot
+shows zero seconds remaining, so neither a policy nor an expiry cause is
+established for that report.
+
+Both native and readable Forbearance stay below eligible immunity and defensive
+lanes in isolated checks. An aura exposed only through a broad native fallback
+may still lack its exact catalog priority. The remaining opposite-faction
+reports require live exposure/filter evidence; the tier numbers alone do not
+explain them.
+
+## Public and private aura-source coverage
+
+The public indexed scan can finish without covering the private source used
+by native managed containers. Private aura updates also use a separate native
+callback rather than UNIT_AURA. With a synthetic private competitor, isolated
+execution reproduces suppression of a same-tier native owner or the hostile-NPC
+Frost Armor signature by an otherwise complete public readable election.
+BigDef and ExternalDef remain enabled. This proves a source-coverage gap; it
+does not prove that the pictured Ice Block or Divine Protection is private.
+
+The current native candidate API offers no private-source selector. Keeping
+the broad NPC signature permanently enabled would change known public-aura
+classification, while relinquishing all readable owners would lose the existing
+application-time election. No general source-merging repair is included in
+0.1.88; the current readable recency and native category policies are retained.
 
 ## Countdown alignment and dungeon pets in 0.1.87
 
@@ -190,7 +254,7 @@ Battleground execution still needs live validation.
 Live acceptance should include refresh-without-new-instance behavior, unknown
 timing and identity, token changes, combat toggles, active test settings, pet
 foundations and ToT/FoT clipping. No live WoW run has confirmed all reported
-symptoms fixed in 0.1.87-local. The added spell IDs and priority changes are
+symptoms fixed in 0.1.88-local. The added spell IDs and priority changes are
 source-confirmed; they still depend on the client exposing the corresponding
 aura to an authorized selection path.
 
