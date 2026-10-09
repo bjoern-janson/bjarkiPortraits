@@ -515,6 +515,7 @@ PT.categories = {
                 [18708] = true, -- Fel Domination
     },
     buffs_offensive = {
+        [402975] = true, -- Victorious (applied Victory Rush state)
         [8385] = true, -- Swift Wind (movement and attack speed)
         [24378] = true, -- Berserking (battleground damage buff)
         -- Short movement cooldowns share the existing Sprint/Dash priority.
@@ -846,6 +847,7 @@ PT.categories = {
 
     buffs_innervate = {
         [29166] = true, -- Innervate (Druid)
+        [1238931] = true, -- Improved Stormstrike (mana-regeneration aura)
         -- The Quick and the Dead: visible resource-cost buffs after resurrection.
         [1262243] = true, -- Mage
         [1262307] = true, -- Druid
@@ -978,6 +980,8 @@ PT.categories = {
     },
     buffs_minor_class = {
         [1311033] = true, -- Iron Creed (minor damage-reduction aura)
+        [24529] = true, -- Spirit Bond (5 sec pet regeneration aura)
+        [1310725] = true, -- Spirit Bond (10 sec pet regeneration variant)
     },
     buffs_scrolls = {
         -- Vanilla stat/armor scroll buffs. Kept below maintained class buffs.

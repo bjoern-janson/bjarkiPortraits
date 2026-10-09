@@ -1,10 +1,19 @@
 # Known issues and validation
 
-Status recorded 2026-10-09 for **bjarkiPortraits 0.1.85-local**.
+Status recorded 2026-10-09 for **bjarkiPortraits 0.1.86-local**.
 
 This build repairs confirmed source-level routing, readable election,
 presentation ownership and lifecycle defects. Isolated behavioral checks do
 not establish that the following Battleground reports are resolved.
+
+## Applied-aura additions in 0.1.86
+
+Victorious 402975 joins Offensive 280. Spirit Bond 24529 and 1310725 join
+Blood Pact 70. Improved Stormstrike 1238931 joins resource recovery/Innervate
+261. These are catalog additions only: existing native permissions, timers,
+priority lanes and artwork paths are unchanged. The applied IDs match the
+current Forever spell records; no live run of this build has confirmed their
+portrait presentation or availability in protected contexts.
 
 ## Catalog and artwork repairs in 0.1.85
 
@@ -159,7 +168,7 @@ Battleground execution still needs live validation.
 Live acceptance should include refresh-without-new-instance behavior, unknown
 timing and identity, token changes, combat toggles, active test settings, pet
 foundations and ToT/FoT clipping. No live WoW run has confirmed all reported
-symptoms fixed in 0.1.85-local. The added spell IDs and priority changes are
+symptoms fixed in 0.1.86-local. The added spell IDs and priority changes are
 source-confirmed; they still depend on the client exposing the corresponding
 aura to an authorized selection path.
 

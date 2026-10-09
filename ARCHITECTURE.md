@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.85-local**. It documents the
+This document describes **bjarkiPortraits 0.1.86-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -54,7 +54,7 @@ Selected category relationships are:
 | Travel Utility | Water Breathing, Unending Breath, Water Walking, Aquatic Form and the three applied Noggenfogger effects | 50 |
 | Passive Debuff / Righteous Fury | Deserter and item Martyrdom are harmful; Righteous Fury remains helpful | 59 |
 | Paladin Aura | Paladin auras, Warlock armor, persistent support totem effects, Rat Familiar and Benevolence | 60 |
-| Blood Pact | Blood Pact, the four applied Furious Howl ranks and Iron Creed | 70 |
+| Blood Pact | Blood Pact, the four applied Furious Howl ranks, Iron Creed and Spirit Bond | 70 |
 | Baseline Class | Baseline class buffs, Camp Benefits and Demonic Knowledge | 90 |
 | Thorns | Thorns and all five canonical Imp Fire Shield ranks | 120 |
 | Self State | Forms, Inner Fire and Soul Link | 150 |
@@ -70,9 +70,9 @@ Selected category relationships are:
 | Power Word: Shield | Existing PW:S applied auras and Transformative Cocoon's absorb | 256 |
 | Honorless Target | Above Healing | 257 |
 | Food/Drink | Food, Drink, Cannibalize, Evocation and Restoration | 260 |
-| Innervate | Innervate, Druid Enrage, Bloodrage, resource recovery and living The Quick and the Dead variants | 261 |
+| Innervate | Innervate, Druid Enrage, Bloodrage, Improved Stormstrike, resource recovery and living The Quick and the Dead variants | 261 |
 | Utility | Utility buffs and Welcoming Campfire | 270 |
-| Offensive | Offensive cooldowns, Clearcasting/Preparation, Sprint/Dash, Satchel Speed, Cocoon speed, Swift Wind and Battleground Berserking | 280 |
+| Offensive | Offensive cooldowns, Clearcasting/Preparation, Victorious, Sprint/Dash, Satchel Speed, Cocoon speed, Swift Wind and Battleground Berserking | 280 |
 | Harmful Offensive | Death Wish; one level above helpful offense to separate simultaneous countdowns | 281 |
 | Roots | Root effects | 300 |
 | Root Immunity | Root immunity, Free Action, Voice of Truth's casting immunity and Grounding spell redirection share this priority | 305 |
@@ -99,10 +99,16 @@ Resurrect. Grounding's shared priority does not classify it as root immunity.
 Version 0.1.85 retains all 1,120 IDs from 0.1.84 and adds five applied-aura IDs:
 Soul Link, Demonic Knowledge and three Noggenfogger variants. Death Wish moves
 to its harmful stream; Iron Creed moves to the existing minor-buff band.
-The exact catalog contains 1,125 distinct IDs in 50 disjoint exact lanes,
-plus 10 semantic lanes. Existing lane priorities are unchanged. The new harmful
-offensive lane is immediately above helpful offense and below defensive lanes;
-it provides deterministic layering, not cross-disposition recency.
+Version 0.1.86 retains those 1,125 IDs and adds four applied-aura IDs:
+[Victorious 402975](https://www.wowhead.com/forever/spell=402975/victorious),
+[Spirit Bond 24529](https://www.wowhead.com/forever/spell=24529/spirit-bond),
+[Spirit Bond 1310725](https://www.wowhead.com/forever/spell=1310725/spirit-bond), and
+[Improved Stormstrike 1238931](https://www.wowhead.com/forever/spell=1238931/improved-stormstrike).
+They use existing Offensive, Blood Pact and Innervate membership sets. The exact
+catalog contains 1,129 distinct IDs in 50 disjoint exact lanes, plus 10 semantic
+lanes. All existing lane definitions and priorities are unchanged. The harmful
+offensive lane remains immediately above helpful offense and below defensive
+lanes; it provides deterministic layering, not cross-disposition recency.
 
 Preparation and the two new temporary speed effects share the existing
 Clearcasting and Sprint/Dash priority at 280. They do not move the separate
