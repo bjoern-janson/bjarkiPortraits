@@ -68,7 +68,7 @@ local function inspectAuras(option)
     end
 
     local policies = {}
-    for _, id in ipairs({ 6615, 2645, 1286304, 1229451 }) do
+    for _, id in ipairs({ 6615, 2645, 1286304, 1229451, 5277 }) do
         local state = "unknown"
         if C_Secrets and type(C_Secrets.GetSpellAuraSecrecy) == "function" and Enum and Enum.SecrecyLevel then
             local ok, value = pcall(C_Secrets.GetSpellAuraSecrecy, id)

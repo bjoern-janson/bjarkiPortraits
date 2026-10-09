@@ -8,6 +8,7 @@ PT.categories = {
         [1278162] = true, -- Ghost (Forever model variant; no native aura icon)
     },
     immunities = {
+        [1303458] = true, -- Reflection Field (applied allied spell-reflection aura)
         [3169] = true,
         [16621] = true,
         [425876] = true,
@@ -575,7 +576,6 @@ PT.categories = {
                 [16246] = true, -- Clearcasting
                 [16886] = true, -- Nature's Grace
                 [19271] = true, -- Feedback
-                [20050] = true, -- Vengeance
                 [400589] = true, -- Missile Barrage
                 [1284536] = true, -- Holy Purpose
                 [1299448] = true, -- Quick Strikes
@@ -589,8 +589,7 @@ PT.categories = {
         [14325] = true, -- Hunter's Mark Rank 4
         [1213268] = true, -- Hunter's Mark Rank 4 (Forever alternate aura)
     },
-    -- Player rank families verified against Forever build 1.60.1.70170.
-    -- Applied attack-power auras, not name-matched NPC variants.
+    -- Applied player/pet attack-power rank families, not training spells.
     debuffs_demoralizing = {
         [1160] = true,  -- Demoralizing Shout Rank 1
         [6190] = true,  -- Demoralizing Shout Rank 2
@@ -602,8 +601,12 @@ PT.categories = {
         [9490] = true,  -- Demoralizing Roar Rank 3
         [9747] = true,  -- Demoralizing Roar Rank 4
         [9898] = true,  -- Demoralizing Roar Rank 5
+        [24423] = true, -- Demoralizing Screech Rank 1 (Hunter pet)
+        [24577] = true, -- Demoralizing Screech Rank 2 (Hunter pet)
+        [24578] = true, -- Demoralizing Screech Rank 3 (Hunter pet)
+        [24579] = true, -- Demoralizing Screech Rank 4 (Hunter pet)
     },
-    -- Applied casting-time and healing-received penalties share priority 279.
+    -- Applied casting, attack and healing penalties share priority 279.
     -- Rank families verified against current Forever 1.60.1 records.
     debuffs_casting_penalty = {
         [1714] = true, -- Curse of Tongues Rank 1
@@ -617,6 +620,17 @@ PT.categories = {
         [1264481] = true, -- Sonic Blast Rank 4
         [1264482] = true, -- Sonic Blast Rank 5
         [1302342] = true, -- Carved Mind (applied casting-time penalty)
+    },
+    debuffs_attack_penalty = {
+        [6343] = true, -- Thunder Clap Rank 1 (Warrior attack-speed penalty)
+        [8198] = true, -- Thunder Clap Rank 2
+        [8204] = true, -- Thunder Clap Rank 3
+        [8205] = true, -- Thunder Clap Rank 4
+        [11580] = true, -- Thunder Clap Rank 5
+        [11581] = true, -- Thunder Clap Rank 6
+        [8078] = true, -- Thunderclap (NPC attack-speed and movement penalty)
+        [1213464] = true, -- Thunderclap (matching NPC applied variant)
+        [1316382] = true, -- Dust Storm (applied attack-hit penalty)
     },
     debuffs_healing_reduction = {
         [7068] = true, -- Veil of Shadow (75% healing reduction, single target)
@@ -643,6 +657,7 @@ PT.categories = {
         [1264933] = true, -- Dismember Rank 5
     },
     debuffs_other = {
+        [8139] = true, -- Fevered Fatigue (applied Intellect/Spirit Disease)
         [8267] = true, -- Cursed Blood (open-world Intellect curse)
         [770] = true, -- Faerie Fire Rank 1
         [778] = true, -- Faerie Fire Rank 2
@@ -667,12 +682,9 @@ PT.categories = {
         [2908] = true, -- Soothe Animal
         [3043] = true, -- Scorpid Sting
         [5138] = true, -- Drain Mana
-        [6343] = true, -- Thunder Clap
         [7386] = true, -- Sunder Armor
         [7405] = true, -- Sunder Armor
         [7658] = true, -- Curse of Recklessness
-        [8198] = true, -- Thunder Clap
-        [8204] = true, -- Thunder Clap
         [8647] = true, -- Expose Armor
         [8649] = true, -- Expose Armor
         [12579] = true, -- Winter's Chill
@@ -681,8 +693,6 @@ PT.categories = {
         [16511] = true, -- Hemorrhage
         [17364] = true, -- Stormstrike
         [22959] = true, -- Fire Vulnerability
-        [24423] = true, -- Demoralizing Screech
-        [24577] = true, -- Demoralizing Screech
         [440892] = true, -- Curse of the Elements
         [1225228] = true, -- Bane of Havoc
         [1265899] = true, -- Dust Cloud
@@ -708,6 +718,7 @@ PT.categories = {
     },
     debuffs_environmental_danger = {
         [1323184] = true, -- Shark Attack (Darkspear Islands water hazard)
+        [1316387] = true, -- Muculent Rot (applied Spirit/Stamina Disease)
     },
     buffs_waiting_to_resurrect = {
         [2584] = true,    -- Waiting to Resurrect
@@ -1017,6 +1028,7 @@ PT.categories = {
         [24597] = true, -- Furious Howl Rank 4 (Hunter Wolf)
     },
     buffs_minor_class = {
+        [20050] = true, -- Vengeance (applied Paladin damage proc)
         [1311033] = true, -- Iron Creed (minor damage-reduction aura)
         [24529] = true, -- Spirit Bond (5 sec pet regeneration aura)
         [1310725] = true, -- Spirit Bond (10 sec pet regeneration variant)

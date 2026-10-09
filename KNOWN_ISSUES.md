@@ -1,11 +1,79 @@
 # Known issues and validation
 
-Status recorded 2026-10-09 for **bjarkiPortraits 0.1.96-local**.
+Status recorded 2026-10-09 for **bjarkiPortraits 0.1.97-local**.
 
-This build adds the matching Veil of Shadow healing-reduction Curses to the
-existing Mortal Strike tier. Poison Cloud and the previous Speed, Stormstrike
-and diagnostic changes remain included. The recorded Battleground aura-read
-and totem-identity limits remain unresolved.
+This build updates seven pictured aura families using the existing priority
+lanes and adds Evasion to the existing inspect policy line. Evasion's reported
+opposing-player visibility failure remains open. The recorded Battleground
+aura-read and totem-identity limits remain unresolved.
+
+## Requested aura priorities in 0.1.97
+
+| Effect | Applied IDs | Current priority |
+| --- | --- | --- |
+| [Vengeance](https://www.wowhead.com/forever/spell=20050/vengeance) | 20050 | BloodPact 70, alongside Furious Howl |
+| [Warrior Thunder Clap](https://www.wowhead.com/forever/spell=6343/thunder-clap) | 6343, 8198, 8204, 8205, 11580, 11581 | CombatDebuff 279 |
+| [NPC Thunderclap](https://www.wowhead.com/forever/spell=8078/thunderclap) | 8078, 1213464 | CombatDebuff 279 |
+| [Muculent Rot](https://www.wowhead.com/forever/spell=1316387/muculent-rot) | 1316387 | CombatDebuff 279 |
+| [Dust Storm](https://www.wowhead.com/forever/spell=1316382/dust-storm) | 1316382 | CombatDebuff 279 |
+| [Demoralizing Screech](https://www.wowhead.com/forever/spell=24423/demoralizing-screech) | 24423, 24577, 24578, 24579 | Demoralizing 185 |
+| [Fevered Fatigue](https://www.wowhead.com/forever/spell=8139/fevered-fatigue) | 8139 | LowDebuff 200 |
+| [Reflection Field](https://www.wowhead.com/forever/spell=1303458/reflection-field) | 1303458 | Helpful Immunity 330 |
+
+Vengeance moves down from Offensive 280. The three previously listed warrior
+Thunder Clap ranks move up from LowDebuff 200, and the two previously listed
+Screech ranks move to Demoralizing 185. Eleven IDs are added, producing
+1,172 distinct IDs across the same 51 exact and 10 semantic lanes, with no
+overlapping exact owners. The other 1,155 existing IDs retain their exact
+owners and priorities. Attack penalties have a distinct source category
+unioned into the existing CombatDebuff lane, so no additional native widgets
+are created.
+
+The two NPC Thunderclap records have matching Nature-damage, attack-speed and
+movement-slow descriptions; the screenshot does not distinguish their IDs.
+All six canonical warrior ranks apply attack-speed penalties. Screech's four
+applied pet ranks share the Shout/Roar category. Passive Vengeance 20049 and
+Screech's Learn Spell 24424 are excluded.
+
+Current public records and screenshots differ in two quantities: Muculent Rot
+describes 15% Spirit/Stamina reduction while the image says 35%; Fevered
+Fatigue's default tooltip describes 6/6 while the image says 11/11. Each has
+one visible current exact-name aura, and Fevered Fatigue's source usage list
+includes the pictured Mesa Buzzard. No explanation for either difference is
+established. Their passive triggers 1316388 and 11964/18847 are
+excluded. Selection uses the applied ID, not a parsed amount or aura name.
+
+Reflection Field 1303458 directly applies spell reflection and describes
+protection of nearby allies, supporting the helpful Immunity 330 category.
+The screenshot does not expose its live aura disposition. The area-trigger
+cast 1303459 is excluded; its ten-second lifetime is not the applied aura's
+duration. The five-second Magic variant 10831 and the unrelated same-name
+Agility effect Dust Storm 1269929 remain outside this screenshot addition.
+
+## Evasion on an opposing open-world player
+
+[Evasion 5277](https://www.wowhead.com/forever/spell=5277/evasion) already has one
+owner, helpful Defensive 290. The current player record matches the pictured
+50% dodge description. Neither catalogue absence nor a low numeric priority
+explains this report. Source checks show that readable Evasion already wins
+over a newer offensive aura, including the existing eligible partial-readable
+path. These checks do not identify the screenshot's actual failure boundary.
+
+The pinned native identity-filter predicate applies helpful/harmful relation
+rules independently of combat or instance location. An opposing helpful aura
+whose identity is unfilterable can be rejected by the exact-ID container in
+the open world. A readable ID with unusable timing can also relinquish the
+readable presenter. No live access, timing or NeverSecret policy capture was
+supplied, so this build leaves the existing rendering and scheduling rules
+intact rather than promoting a conditional explanation to a confirmed fix.
+
+`/bp inspect target` now appends Evasion 5277 to its existing on-demand
+NeverSecret reference line. It retains the same guarded API call and
+yes/no/unknown output; it performs no presentation refresh. Capture the full
+inspect output while the affected target still has Evasion active. `/bp debug`
+can add the current selection/presentation state. A readable policy result is
+one boundary observation, not proof that every other rendering prerequisite
+was satisfied.
 
 ## Veil of Shadow in 0.1.96
 

@@ -1,7 +1,7 @@
 # bjarkiPortraits architecture
 
 Current architecture snapshot: **2026-10-09**, shipped runtime
-**bjarkiPortraits 0.1.96-local**, alongside **bjarkiUI 0.2.104-local**.
+**bjarkiPortraits 0.1.97-local**, alongside **bjarkiUI 0.2.104-local**.
 This reference describes current source contracts, presentation ownership and
 evidence limits. Chronological changes, live reports and investigation history
 belong in [KNOWN_ISSUES.md](KNOWN_ISSUES.md). Source fixtures and isolated checks
@@ -44,7 +44,7 @@ those frames. Blizzard retains unit bindings and the native small aura lists.
 priority into one lane before native construction. Each exact ID has one lane
 owner; helpful and harmful dispositions remain separate. The derived
 `TIER_BY_KEY`, `HELPFUL_TIER_BY_SPELL` and `TIER_AUDIT` indexes are built once
-from these definitions. The current catalogue has **1,161 distinct IDs,
+from these definitions. The current catalogue has **1,172 distinct IDs,
 51 disjoint exact lanes, no exact-owner overlaps, and 10 semantic lanes**.
 
 Higher numeric priorities appear above lower ones. The number specifies
@@ -65,7 +65,7 @@ lanes unless the contents explicitly describe a union.
 | TravelUtility | 50 | Water Breathing, Unending Breath, Water Walking, Aquatic Form and three applied Noggenfogger effects |
 | PassiveDebuff / RighteousFury | 59 | Harmful Deserter/item Martyrdom; separate helpful Righteous Fury |
 | PaladinAura | 60 | Paladin auras, Warlock armor, persistent support totem effects, Rat Familiar and Benevolence |
-| BloodPact | 70 | Blood Pact, four applied Furious Howl ranks, Iron Creed and Spirit Bond |
+| BloodPact | 70 | Blood Pact, four applied Furious Howl ranks, Vengeance, Iron Creed and Spirit Bond |
 | Scrolls | 80 | Scroll buffs |
 | BaselineClass | 90 | Baseline class buffs, Camp Benefits, Demonic Knowledge and Blessing of Blackfathom |
 | WellFed | 110 | Well Fed buffs |
@@ -76,10 +76,10 @@ lanes unless the contents explicitly describe a union.
 | Mobility | 160 | Ghost Wolf/Cheetah families and established movement/stealth category |
 | LoneWolf | 170 | Lone Wolf |
 | HuntersMark | 180 | Hunter's Mark |
-| Demoralizing | 185 | Demoralizing effects |
+| Demoralizing | 185 | Demoralizing Shout/Roar and four applied pet Demoralizing Screech ranks |
 | Consecration | 189 | Applied Forever damage-amplification aura, immediately below DoTs |
 | DoTs | 190 | Explicit damage-over-time effects, including Ironspine's Poison Cloud 3815 |
-| LowDebuff | 200 | Low debuffs, taunts, Cursed Blood, Viper Sting, Drain Soul and Shadowburn's death-item residual |
+| LowDebuff | 200 | Low debuffs, taunts, Cursed Blood, Fevered Fatigue, Viper Sting, Drain Soul and Shadowburn's death-item residual |
 | Seal | 210 | Paladin seals and Improved Stormstrike 1238931, one shared helpful election |
 | Slows | 220 | Slows, exact Chilled IDs, Frost Trap Aura, Highland Venom, Crippling Poison, Frost Shock 12548 and Curse of Exhaustion |
 | RecentlyBandaged | 229 | Separate harmful state |
@@ -92,7 +92,7 @@ lanes unless the contents explicitly describe a union.
 | FoodDrink | 260 | Food, Drink, Cannibalize, Evocation and Restoration |
 | Innervate | 261 | Innervate, Druid Enrage, Bloodrage, resource recovery and living Quick and the Dead variants |
 | Utility | 270 | Utility buffs and Welcoming Campfire, one shared election |
-| CombatDebuff | 279 | Casting penalties, reduced healing received and Shark Attack, one shared harmful election |
+| CombatDebuff | 279 | Casting/attack penalties, reduced healing received, Shark Attack and Muculent Rot, one shared harmful election |
 | Offensive | 280 | Offensive cooldowns, Clearcasting/Preparation, Victorious, Sprint/Dash, Satchel Speed, Cocoon speed, Swift Wind and Battleground Speed/Berserking |
 | OffensiveHarmful | 281 | Death Wish, above helpful offense and below defensive lanes |
 | Defensive | 290 | Defensive buffs |
@@ -102,7 +102,7 @@ lanes unless the contents explicitly describe a union.
 | Control | 310 | Interrupts and non-stun crowd control; harmful Stun IDs excluded |
 | PhysicalImmunity | 315 | Three Blessing of Protection ranks |
 | Stun / HelpfulSelfStun | 320 | Separate harmful stuns and currently helpful Cocoon self-stun |
-| Immunity / ImmunityHarmful | 330 | Separate helpful and harmful immunity dispositions |
+| Immunity / ImmunityHarmful | 330 | Separate helpful and harmful immunity-priority lanes; helpful includes Reflection Field's spell reflection |
 | DivineProtection | 331 | Separate helpful Divine Protection lane |
 | WaitingToResurrect | 332 | Resurrection waiting and dead-only Quick and the Dead aura, above Ghost |
 
@@ -139,12 +139,16 @@ CombatDebuff 279 uses these applied-aura families in one instance-order election
 | [Mind-numbing Poison](https://www.wowhead.com/forever/spell=5760/mind-numbing-poison) | 5760, 8692, 11398 |
 | [Sonic Blast](https://www.wowhead.com/forever/spell=1264478/sonic-blast) | 1264478, 1264479, 1264480, 1264481, 1264482 |
 | [Carved Mind](https://www.wowhead.com/forever/spell=1302342/carved-mind) | 1302342 |
+| [Warrior Thunder Clap](https://www.wowhead.com/forever/spell=6343/thunder-clap) | 6343, 8198, 8204, 8205, 11580, 11581 |
+| [NPC Thunderclap](https://www.wowhead.com/forever/spell=8078/thunderclap) | 8078, 1213464 |
+| [Dust Storm](https://www.wowhead.com/forever/spell=1316382/dust-storm) | 1316382 |
 | [Mortal Strike](https://www.wowhead.com/forever/spell=12294/mortal-strike) | 12294, 21551, 21552, 21553 |
 | [Veil of Shadow](https://www.wowhead.com/forever/spell=7068/veil-of-shadow) | 7068, 17820, 460755 |
 | [Wound Poison](https://www.wowhead.com/forever/spell=13218/wound-poison) | 13218, 13222, 13223, 13224 |
 | [Hex of Weakness](https://www.wowhead.com/forever/spell=9035/hex-of-weakness) | 9035, 19281, 19282, 19283, 19284, 19285 |
 | [Dismember](https://www.wowhead.com/forever/spell=1264758/dismember) | 1264758, 1264927, 1264929, 1264930, 1264933 |
 | [Shark Attack](https://www.wowhead.com/forever/spell=1323184/shark-attack) | 1323184 |
+| [Muculent Rot](https://www.wowhead.com/forever/spell=1316387/muculent-rot) | 1316387 |
 
 Wound Poison qualifies through flat healing-received reduction; Mortal Strike,
 Hex and Dismember use percentage reduction. Veil of Shadow 7068/17820/460755
@@ -154,6 +158,30 @@ hidden proc wrapper do not identify applied target auras in this lane.
 CombatDebuff opts into per-aura NeverSecret scheduling, preserving eligibility
 for Shark where the client positively allows it, including small hosts. This
 opt-in does not prove that any member is currently NeverSecret.
+
+The attack-penalty source category joins this same lane. Six warrior Thunder
+Clap ranks apply attack-speed penalties; the two matching NPC Thunderclap
+records also apply a movement slow. Dust Storm applies an attack-hit penalty.
+Muculent Rot belongs to the serious world-debuff source category. Its current
+record describes a 15% Spirit/Stamina reduction, while the supplied screenshot
+says 35%; the sole current visible exact-name record is included without
+claiming a cause for that quantity difference.
+
+[Vengeance 20050](https://www.wowhead.com/forever/spell=20050/vengeance) is the
+applied Paladin proc at BloodPact 70; its passive talent 20049 is excluded.
+[Demoralizing Screech](https://www.wowhead.com/forever/spell=24423/demoralizing-screech)
+24423/24577/24578/24579 shares Demoralizing 185 with Shout/Roar; the Learn Spell
+record 24424 is excluded. [Fevered Fatigue 8139](https://www.wowhead.com/forever/spell=8139/fevered-fatigue)
+is the applied Intellect/Spirit Disease at LowDebuff 200. Its current default
+tooltip says 6/6, while the screenshot says 11/11; no scaling or beta-change
+explanation has been established. Hidden proc drivers 11964/18847 are excluded.
+
+[Reflection Field 1303458](https://www.wowhead.com/forever/spell=1303458/reflection-field)
+shares helpful Immunity 330 for its spell-reflection protection. The current
+record directly applies Reflect All Spells to protect nearby allies and
+publishes no debuff flag. This is a source-based helpful classification, not a
+live aura-disposition capture. The area-trigger cast 1303459 is excluded, and
+its ten-second lifetime is not used as the duration of the applied aura.
 
 [Poison Cloud 3815](https://www.wowhead.com/forever/spell=3815/poison-cloud)
 belongs to DoTs 190 and the derived DoT exclusion. The applied Ironspine Poison
@@ -267,7 +295,7 @@ define this inclusion flag and instance ordering.
 
 On player/target/focus, the complete-readable harmful-tier helper serves
 Slows, Forbearance/Dazed, Resurrection Sickness, CombatDebuff
-(casting/healing penalties and Shark Attack), and harmful Death Wish.
+(casting/attack/healing penalties and serious world debuffs), and harmful Death Wish.
 It is used only when the conservative exact native filter is unavailable.
 Each reader scans that lane's actual filter and membership, requires a complete
 election, and produces at most one readable owner. Partial or inaccessible
@@ -561,7 +589,7 @@ state, and bounded public helpful/harmful scans. Each stream lists at most
 12 accessible numeric spell IDs with catalogue priorities, counts inaccessible
 identities, and distinguishes a nil-terminated scan from an API error or the
 80-entry limit. Its final line reports current NeverSecret policy for reference
-IDs 6615, 2645, 1286304 and 1229451. An ended public scan does not establish
+IDs 6615, 2645, 1286304, 1229451 and Evasion 5277. An ended public scan does not establish
 private-source coverage.
 
 On an API exception, inspect prints at most 160 characters of accessible error
@@ -575,6 +603,15 @@ fallback with descending instance ordering. A catalogue's intended numeric order
 therefore does not prove general Battleground priority correctness. Native
 metadata signatures cannot guarantee an exact identity, and a complete public
 readable election does not cover the independent private native source.
+
+Evasion 5277 already belongs to Defensive 290. Its reported absence on an
+opposing player in the open world remains unresolved. A readable Evasion can
+win through the existing hostile presenter, but the native exact-ID relation
+predicate does not become permissive merely because a unit is outside an
+instance or combat. No live NeverSecret policy or failure-path capture was
+supplied for that screenshot. `/bp inspect target` now includes 5277 in its
+on-demand policy line; this observation neither changes permission nor
+enables a new rendering fallback.
 
 Reported Warlock pet artwork remains **open**. The latest dungeon investigation
 has no actual failing-pet image or contemporaneous diagnostic snapshot. The user
