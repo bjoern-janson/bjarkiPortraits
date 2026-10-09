@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.91-local**. It documents the
+This document describes **bjarkiPortraits 0.1.92-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -72,6 +72,7 @@ Selected category relationships are:
 | Food/Drink | Food, Drink, Cannibalize, Evocation and Restoration | 260 |
 | Innervate | Innervate, Druid Enrage, Bloodrage, Improved Stormstrike, resource recovery and living The Quick and the Dead variants | 261 |
 | Utility | Utility buffs and Welcoming Campfire | 270 |
+| Casting / Healing Penalty | Casting-time penalties and reduced healing received share one harmful election, immediately below offensive cooldowns | 279 |
 | Offensive | Offensive cooldowns, Clearcasting/Preparation, Victorious, Sprint/Dash, Satchel Speed, Cocoon speed, Swift Wind and Battleground Berserking | 280 |
 | Harmful Offensive | Death Wish; one level above helpful offense to separate simultaneous countdowns | 281 |
 | Roots | Root effects and three retained legacy cast/passive records | 300 |
@@ -91,7 +92,30 @@ custom/trinket records retain their existing classification.
 The numeric priority controls presentation order. It does not express spell
 strength or establish what a live client will expose.
 
-Version 0.1.91 corrects 13 active non-root memberships using current Forever
+Version 0.1.92 adds CastHealingPenalty 279. Its two source categories are
+unioned into one exact harmful lane, so casting and healing penalties use one
+native instance-order election when several are present. Current Forever
+1.60.1 applied-aura records support these families:
+
+| Family | Applied IDs |
+| --- | --- |
+| [Curse of Tongues](https://www.wowhead.com/forever/spell=1714/curse-of-tongues) | 1714, 11719 |
+| [Mind-numbing Poison](https://www.wowhead.com/forever/spell=5760/mind-numbing-poison) | 5760, 8692, 11398 |
+| [Sonic Blast](https://www.wowhead.com/forever/spell=1264478/sonic-blast) | 1264478, 1264479, 1264480, 1264481, 1264482 |
+| [Carved Mind](https://www.wowhead.com/forever/spell=1302342/carved-mind) | 1302342 |
+| [Mortal Strike](https://www.wowhead.com/forever/spell=12294/mortal-strike) | 12294, 21551, 21552, 21553 |
+| [Wound Poison](https://www.wowhead.com/forever/spell=13218/wound-poison) | 13218, 13222, 13223, 13224 |
+| [Hex of Weakness](https://www.wowhead.com/forever/spell=9035/hex-of-weakness) | 9035, 19281, 19282, 19283, 19284, 19285 |
+| [Dismember](https://www.wowhead.com/forever/spell=1264758/dismember) | 1264758, 1264927, 1264929, 1264930, 1264933 |
+
+These 30 IDs include 10 members moved from LowDebuff and 20 additions. The
+other 1,122 existing IDs retain their owners. The catalog contains 1,152
+distinct IDs in 51 disjoint exact lanes, plus 10 semantic lanes. Wound Poison
+qualifies through flat healing-received reduction; Mortal Strike, Hex and
+Dismember use percentage reduction. Poison coatings, training spells and
+Carve Mind's hidden proc wrapper are not applied target auras in this lane.
+
+Version 0.1.91 corrected 13 active non-root memberships using current Forever
 1.60.1 records. Crippling Poison 3409/11201, Frost Shock 12548 and Curse of
 Exhaustion 18223 move from Roots 300 to Slows 220. Tongues 1714/11719,
 Viper Sting 3034/14279/14280, Drain Soul 1120/8288 and the Shadowburn
@@ -121,9 +145,9 @@ at FoodDrink 260,
 [Burning Shadow 18789](https://www.wowhead.com/forever/spell=18789/burning-shadow)
 at Self State 150, and the visible NPC
 [Ice Block 27619](https://www.wowhead.com/forever/spell=27619/ice-block)
-at Immunity 330. The exact catalog now contains 1,132 distinct IDs in 50
-disjoint exact lanes, plus 10 semantic lanes. All existing lane definitions
-and priorities are unchanged. The harmful
+at Immunity 330. At that release the exact catalog contained 1,132 distinct IDs
+in 50 disjoint exact lanes, plus 10 semantic lanes. Existing lane definitions
+and priorities were unchanged. The harmful
 offensive lane remains immediately above helpful offense and below defensive
 lanes; it provides deterministic layering, not cross-disposition recency.
 
@@ -211,8 +235,8 @@ The native [aura filter and sort definitions](https://github.com/Gethe/wow-ui-so
 define this inclusion flag and instance ordering.
 
 On player/target/focus, the existing complete-readable harmful-tier helper
-now serves Slows, Forbearance/Dazed, Resurrection Sickness/Shark Attack and
-harmful Death Wish.
+serves Slows, Forbearance/Dazed, Resurrection Sickness/Shark Attack,
+casting/healing penalties and harmful Death Wish.
 It is used only when the conservative exact native filter is unavailable.
 Each reader scans that lane's actual filter and membership, requires a complete
 election, and produces at most one readable owner. This replaces the old
@@ -348,8 +372,8 @@ pet. A scoped native UnitFrame_SetUnit post-hook reconciles these owned layers
 immediately after rebinding. Different or unavailable bindings relinquish the
 overlay in place, without creating vehicle hosts or reparenting in combat.
 
-With all five hosts available, 60 lanes create 300 native containers and 300 buttons
-and 300 cooldowns. Readable/test presentation adds 52 cooldowns, for 352 per
+With all five hosts available, 61 lanes create 305 native containers and 305 buttons
+and 305 cooldowns. Readable/test presentation adds 55 cooldowns, for 360 per
 complete build. These are source constructor counts, not measured client memory
 or CPU time. Native slot frames and static data-provider-switch subscriptions
 outlive host teardown; a completed manual rebuild allocates another set until

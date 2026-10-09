@@ -131,6 +131,10 @@ R.TIERS = {
     -- fallback for otherwise unclassified important buffs; explicit categories
     -- and dedicated Big/External defensive lanes outrank it.
     semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 85),
+    -- Casting-time penalties and reduced healing received share one election,
+    -- immediately below offensive cooldowns and above routine utility buffs.
+    exact("CastHealingPenalty", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 279, false,
+        union("debuffs_casting_penalty", "debuffs_healing_reduction")),
     exact("Offensive", "HELPFUL", 280, true, C.buffs_offensive),
     -- Death Wish is harmful offensive state. One level above helpful offense
     -- gives simultaneous cooldowns a deterministic order within this band.

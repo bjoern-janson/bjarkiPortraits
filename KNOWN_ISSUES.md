@@ -1,10 +1,32 @@
 # Known issues and validation
 
-Status recorded 2026-10-09 for **bjarkiPortraits 0.1.91-local**.
+Status recorded 2026-10-09 for **bjarkiPortraits 0.1.92-local**.
 
-This build repairs confirmed source-level routing, readable election,
-presentation ownership and lifecycle defects. Isolated behavioral checks do
+This build adds a shared casting/healing penalty priority and retains the
+preceding routing, readable election, presentation ownership and lifecycle
+repairs. Isolated behavioral checks do
 not establish that the following Battleground reports are resolved.
+
+## Casting and healing penalty priority in 0.1.92
+
+CastHealingPenalty 279 sits directly below Offensive 280 and above Utility
+270. Its 30 applied aura IDs cover Curse of Tongues, Mind-numbing Poison,
+bat Sonic Blast, Carved Mind, Mortal Strike, Wound Poison, Hex of Weakness
+and crocolisk Dismember. Ten existing IDs move from LowDebuff; 20 verified
+applied ranks/effects are added. The other 1,122 existing IDs retain their
+owners. The exact catalog has 1,152 distinct IDs and no overlapping owners.
+
+The native lane covers all five existing aura hosts under the same permission
+rules. Player/target/focus also use the existing complete-readable harmful
+fallback when native exact filtering is unavailable. Partial or inaccessible
+streams cannot establish a winner. Small derived hosts retain their existing
+native-only harmful fallback. No new NeverSecret opt-in is introduced.
+
+Thirteen isolated behavioral cases cover ordering, shared membership,
+semantic exclusions, nameplate-only inclusion, readable/native ownership,
+relation changes, removal, disable, test mode, rebinding and widget reuse.
+Current public spell records establish the applied IDs and effects; neither
+those records nor isolated tests prove live Battleground presentation.
 
 ## Lifecycle and catalog repairs in 0.1.91
 
@@ -32,8 +54,10 @@ records were retrieved for 195 of the baseline's 200 IDs at priority 291 or abov
 932 IDs outside that semantic pass received structural checks, not a fresh effect-by-effect
 validation. Current database records are not live aura-disposition captures.
 
-One complete five-host build constructs 300 native containers, 300 buttons and
-352 cooldowns. Manual teardown disables dynamic subscriptions but does not
+## Resource lifetime
+
+One complete five-host build constructs 305 native containers, 305 buttons and
+360 cooldowns. Manual teardown disables dynamic subscriptions but does not
 destroy native slot objects or their static data-provider-switch callbacks;
 completed rebuilds retain another set until reload. This is a source-level
 resource-lifetime limitation, without an in-game memory or performance estimate.

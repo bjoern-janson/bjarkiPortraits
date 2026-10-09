@@ -954,6 +954,7 @@ function R.DestroyHost(unit)
     if host.readableSlowsFrame then host.readableSlowsFrame:Hide() end
     if host.readableForbearanceFrame then hideReadableExact(host.readableForbearanceFrame) end
     if host.readableResSicknessFrame then host.readableResSicknessFrame:Hide() end
+    if host.readableCastHealingPenaltyFrame then hideReadableExact(host.readableCastHealingPenaltyFrame) end
     if host.readableOffensiveHarmfulFrame then hideReadableExact(host.readableOffensiveHarmfulFrame) end
     if host.readableRecentlyBandagedFrame then host.readableRecentlyBandagedFrame:Hide() end
     if host.readableGhostFrame then host.readableGhostFrame:Hide() end
@@ -1102,6 +1103,11 @@ function R.CreateHost(unit)
         local resTier = findTierByKey("ResSickness")
         host.readableResSicknessFrame = createReadableExactFrame(host, resTier and resTier.level or 241)
 
+        local castHealingPenaltyTier = findTierByKey("CastHealingPenalty")
+        host.readableCastHealingPenaltyFrame = createReadableExactFrame(
+            host, castHealingPenaltyTier and castHealingPenaltyTier.level or 279
+        )
+
         local offensiveHarmfulTier = findTierByKey("OffensiveHarmful")
         host.readableOffensiveHarmfulFrame = createReadableExactFrame(
             host, offensiveHarmfulTier and offensiveHarmfulTier.level or 281
@@ -1218,6 +1224,7 @@ function R.UpdateHost(host, forceContainerRefresh)
     updateReadableHarmfulTier(host, base, "Slows", "readableSlowsFrame", "_slows")
     updateReadableHarmfulTier(host, base, "Forbearance", "readableForbearanceFrame", "_forbearance")
     updateReadableHarmfulTier(host, base, "ResSickness", "readableResSicknessFrame", "_resSickness")
+    updateReadableHarmfulTier(host, base, "CastHealingPenalty", "readableCastHealingPenaltyFrame", "_castHealingPenalty")
     updateReadableHarmfulTier(host, base, "OffensiveHarmful", "readableOffensiveHarmfulFrame", "_offensiveHarmful")
 
     -- Boosted Rest is a harmful camping cooldown that can be directly readable
