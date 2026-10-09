@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes **bjarkiPortraits 0.1.84-local**. It documents the
+This document describes **bjarkiPortraits 0.1.85-local**. It documents the
 implementation and its evidence limits; it does not certify live WoW: Forever
 Battleground behavior.
 
@@ -24,8 +24,8 @@ host. Pet artwork and aura selection have separate owners.
 
 ## Categories and priorities
 
-Spells.lua contains static membership data. Exact categories that share a
-priority are unioned into one native lane, and every exact spell ID has one
+Spells.lua contains static membership data. Exact categories in the same aura
+stream that share a priority are unioned into one native lane, and every exact spell ID has one
 lane owner. Priority.lua derives TIER_BY_KEY, HELPFUL_TIER_BY_SPELL and the
 read-only membership audit from that table.
 
@@ -51,12 +51,13 @@ Selected category relationships are:
 
 | Lane | Contents or relationship | Priority |
 | --- | --- | ---: |
-| Travel Utility | Water Breathing, Unending Breath, Water Walking, Aquatic Form | 50 |
+| Travel Utility | Water Breathing, Unending Breath, Water Walking, Aquatic Form and the three applied Noggenfogger effects | 50 |
 | Passive Debuff / Righteous Fury | Deserter and item Martyrdom are harmful; Righteous Fury remains helpful | 59 |
 | Paladin Aura | Paladin auras, Warlock armor, persistent support totem effects, Rat Familiar and Benevolence | 60 |
-| Blood Pact | Blood Pact and the four applied Furious Howl ranks | 70 |
-| Baseline Class | Baseline class buffs and Camp Benefits | 90 |
+| Blood Pact | Blood Pact, the four applied Furious Howl ranks and Iron Creed | 70 |
+| Baseline Class | Baseline class buffs, Camp Benefits and Demonic Knowledge | 90 |
 | Thorns | Thorns and all five canonical Imp Fire Shield ranks | 120 |
+| Self State | Forms, Inner Fire and Soul Link | 150 |
 | Battleground Flag | Darkspear Islands Flag, above forms and Inner Fire at 150 | 151 |
 | Consecration | The applied Forever damage-amplification aura, immediately below DoTs | 189 |
 | DoTs | Explicit damage-over-time effects | 190 |
@@ -72,6 +73,7 @@ Selected category relationships are:
 | Innervate | Innervate, Druid Enrage, Bloodrage, resource recovery and living The Quick and the Dead variants | 261 |
 | Utility | Utility buffs and Welcoming Campfire | 270 |
 | Offensive | Offensive cooldowns, Clearcasting/Preparation, Sprint/Dash, Satchel Speed, Cocoon speed, Swift Wind and Battleground Berserking | 280 |
+| Harmful Offensive | Death Wish; one level above helpful offense to separate simultaneous countdowns | 281 |
 | Roots | Root effects | 300 |
 | Root Immunity | Root immunity, Free Action, Voice of Truth's casting immunity and Grounding spell redirection share this priority | 305 |
 | Control / Stun | Separate disjoint exact lanes | 310 / 320 |
@@ -94,12 +96,13 @@ not displace combat effects. Martyrdom here is the harmful item aura 1292749,
 which deals damage on death; it is separate from Priest talents and Waiting to
 Resurrect. Grounding's shared priority does not classify it as root immunity.
 
-Version 0.1.84 retains all 1,109 IDs from 0.1.83, adds 11 applied-aura IDs and
-relocates six existing IDs: three Blessing of Protection ranks, Free Action,
-and two Fire Shield ranks. The exact catalog contains 1,120 distinct IDs in
-49 disjoint exact lanes, plus 10 semantic lanes. The three new lanes are
-Battleground Flag, Physical Immunity and Helpful Self-Stun; existing lane
-priorities are unchanged.
+Version 0.1.85 retains all 1,120 IDs from 0.1.84 and adds five applied-aura IDs:
+Soul Link, Demonic Knowledge and three Noggenfogger variants. Death Wish moves
+to its harmful stream; Iron Creed moves to the existing minor-buff band.
+The exact catalog contains 1,125 distinct IDs in 50 disjoint exact lanes,
+plus 10 semantic lanes. Existing lane priorities are unchanged. The new harmful
+offensive lane is immediately above helpful offense and below defensive lanes;
+it provides deterministic layering, not cross-disposition recency.
 
 Preparation and the two new temporary speed effects share the existing
 Clearcasting and Sprint/Dash priority at 280. They do not move the separate
@@ -178,7 +181,8 @@ The native [aura filter and sort definitions](https://github.com/Gethe/wow-ui-so
 define this inclusion flag and instance ordering.
 
 On player/target/focus, the existing complete-readable harmful-tier helper
-now serves Slows, Forbearance/Dazed and Resurrection Sickness/Shark Attack.
+now serves Slows, Forbearance/Dazed, Resurrection Sickness/Shark Attack and
+harmful Death Wish.
 It is used only when the conservative exact native filter is unavailable.
 Each reader scans that lane's actual filter and membership, requires a complete
 election, and produces at most one readable owner. This replaces the old
@@ -244,11 +248,14 @@ checks the parent-strata read for call success, accessibility and string type
 before indexing the layer map or changing frame structure. Unavailable strata
 postpones construction until an existing refresh can retry.
 
-Existing ToT/FoT adjustments remain:
+ToT/FoT artwork and timer placement are identical:
 
-- ToT icon: +2 X; timer centered with -1 Y.
-- FoT icon: +1 X; timer +1 X and -1 Y.
+- Both icons: +1 X; timers +1 X and -1 Y relative to their icons.
+- The ToT correction preserves its earlier absolute timer center.
 - Small-frame timer font: two points smaller.
+
+Player placement remains native. Screenshot comparisons found the same small
+aperture/bevel asymmetry on player and target, without a separate player offset.
 
 The native CooldownFrameTemplate owns countdown progression. By default,
 numbers have one decimal below 10 seconds, use whole seconds through 60, and
@@ -293,12 +300,21 @@ Observed foundations stay on the portrait host layer. Local PetFrame art stays
 on BACKGROUND sublevel 1 below native BORDER chrome. Masks, pet events and
 fallback textures retain their existing behavior.
 
-A totem foundation requires a readable native creature-type ID 11 or the
+A classified totem foundation requires a readable native creature-type ID 11 or the
 corresponding native localized type name. Only after that type evidence does
 an exact readable unit name select a known totem's localized summon-spell art.
 An unrecognized totem retains generic totem artwork; an unreadable type does
 not authorize a totem foundation. Unit names, models and creature families
 alone do not establish totem identity.
+
+A separate static-art path accepts a readable native minion result, explicit
+readable player and local/other-pet exclusions, and an exact localized summon
+name. Readable non-totem types, Pet GUIDs and recognized pet families veto this
+path. It does not infer a creature type or current aura, and missing names or
+textures retain native artwork. Generic totem artwork still requires native
+totem-type evidence. An otherwise indistinguishable minion sharing that exact
+summon name can receive the same static art; this is a presentation rule, not
+proof of its restricted type.
 
 The localized name map caches public spell data only. Resolved summon IDs
 leave a small pending list; only unavailable spell data is retried. No unit

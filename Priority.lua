@@ -44,7 +44,8 @@ R.TIERS = {
     exact("RighteousFury", "HELPFUL", 59, true, C.buffs_righteous_fury),
     exact("PaladinAura", "HELPFUL", 60, true,
         union("buffs_paladin_auras", "buffs_warlock_armor", "buffs_minor_world")),
-    exact("BloodPact", "HELPFUL", 70, true, union("buffs_blood_pact", "buffs_furious_howl")),
+    exact("BloodPact", "HELPFUL", 70, true,
+        union("buffs_blood_pact", "buffs_furious_howl", "buffs_minor_class")),
     exact("Scrolls", "HELPFUL", 80, true, C.buffs_scrolls),
     exact("BaselineClass", "HELPFUL", 90, true,
         union("buffs_class_baseline", "buffs_camp_benefits")),
@@ -131,6 +132,9 @@ R.TIERS = {
     -- and dedicated Big/External defensive lanes outrank it.
     semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 85),
     exact("Offensive", "HELPFUL", 280, true, C.buffs_offensive),
+    -- Death Wish is harmful offensive state. One level above helpful offense
+    -- gives simultaneous cooldowns a deterministic order within this band.
+    exact("OffensiveHarmful", "HARMFUL", 281, false, C.debuffs_offensive, true),
     semantic("ExternalDef", "HELPFUL|EXTERNAL_DEFENSIVE", 288),
     semantic("BigDef", "HELPFUL|BIG_DEFENSIVE", 289),
     exact("Defensive", "HELPFUL", 290, true, C.buffs_defensive),

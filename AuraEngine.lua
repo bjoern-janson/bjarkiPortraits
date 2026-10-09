@@ -9,7 +9,7 @@ local STRATA_BELOW = {
 local AURA_SCAN_LIMIT = 80
 
 local SMALL_GEOMETRY = {
-    targettarget = { iconX = 2, iconY = 0, timerX = 0, timerY = -1 },
+    targettarget = { iconX = 1, iconY = 0, timerX = 1, timerY = -1 },
     focustarget = { iconX = 1, iconY = 0, timerX = 1, timerY = -1 },
 }
 
@@ -936,6 +936,7 @@ function R.DestroyHost(unit)
     if host.readableSlowsFrame then host.readableSlowsFrame:Hide() end
     if host.readableForbearanceFrame then hideReadableExact(host.readableForbearanceFrame) end
     if host.readableResSicknessFrame then host.readableResSicknessFrame:Hide() end
+    if host.readableOffensiveHarmfulFrame then hideReadableExact(host.readableOffensiveHarmfulFrame) end
     if host.readableRecentlyBandagedFrame then host.readableRecentlyBandagedFrame:Hide() end
     if host.readableGhostFrame then host.readableGhostFrame:Hide() end
     if host.readableWelcomingCampfireFrame then host.readableWelcomingCampfireFrame:Hide() end
@@ -1083,6 +1084,11 @@ function R.CreateHost(unit)
         local resTier = findTierByKey("ResSickness")
         host.readableResSicknessFrame = createReadableExactFrame(host, resTier and resTier.level or 241)
 
+        local offensiveHarmfulTier = findTierByKey("OffensiveHarmful")
+        host.readableOffensiveHarmfulFrame = createReadableExactFrame(
+            host, offensiveHarmfulTier and offensiveHarmfulTier.level or 281
+        )
+
         local waitingTier = findTierByKey("WaitingToResurrect")
         host.readableWaitingToResurrectFrame = createReadableExactFrame(
             host, waitingTier and waitingTier.level or 332
@@ -1189,6 +1195,7 @@ function R.UpdateHost(host, forceContainerRefresh)
     updateReadableHarmfulTier(host, base, "Slows", "readableSlowsFrame", "_slows")
     updateReadableHarmfulTier(host, base, "Forbearance", "readableForbearanceFrame", "_forbearance")
     updateReadableHarmfulTier(host, base, "ResSickness", "readableResSicknessFrame", "_resSickness")
+    updateReadableHarmfulTier(host, base, "OffensiveHarmful", "readableOffensiveHarmfulFrame", "_offensiveHarmful")
 
     -- Boosted Rest is a harmful camping cooldown that can be directly readable
     -- on friendly/self units even when exact harmful-ID AuraContainer filtering

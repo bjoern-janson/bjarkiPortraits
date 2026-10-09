@@ -1,10 +1,35 @@
 # Known issues and validation
 
-Status recorded 2026-10-08 for **bjarkiPortraits 0.1.84-local**.
+Status recorded 2026-10-09 for **bjarkiPortraits 0.1.85-local**.
 
 This build repairs confirmed source-level routing, readable election,
 presentation ownership and lifecycle defects. Isolated behavioral checks do
 not establish that the following Battleground reports are resolved.
+
+## Catalog and artwork repairs in 0.1.85
+
+Soul Link now occupies forms/Self State 150; Demonic Knowledge occupies
+Baseline Class 90; Iron Creed moves to Blood Pact/Furious Howl 70. All three
+applied Noggenfogger variants occupy Travel Utility 50. Death Wish uses its
+harmful disposition at 281, immediately above helpful offense so their separate
+countdown surfaces have a deterministic draw order. Player/target/focus can use
+the existing complete-readable harmful fallback when exact native filtering is
+unavailable. ToT/FoT retain their existing native permission boundary.
+
+A new live screenshot still places Cocoon self-stun in the helpful bar.
+Its helpful stun mapping is therefore retained; a patch-note description alone
+does not justify moving it to the harmful stream.
+
+Magma and Grounding already had summon mappings. The new minion-spell artwork
+path covers unavailable creature type when every required public minion/name
+and exclusion witness is available. The screenshots do not expose those inputs,
+so their missing portraits still require a live check. `/bp pets debug` reports
+the current artwork mode and readable qualification inputs.
+
+ToT and FoT now use identical internal icon offsets. The ToT timer retains its
+previous absolute position. Player artwork is unchanged after comparison with
+the same icon in the target frame. These measured adjustments do not certify
+native clipping at every display scale.
 
 ## Protected countdown presentation in 0.1.82
 
@@ -116,9 +141,10 @@ adjacent icons or replace a precise category with a name-based fallback.
 ## ToT/FoT border bleed
 
 Aura artwork on target-of-target/focus-of-target has been reported peeking past
-the small portrait border. The existing native masks, offsets, frame hierarchy
-and chrome are preserved. Static inspection cannot establish successful mask
-attachment or correct clipping; no geometry repair is claimed.
+the small portrait border. Native masks, frame hierarchy and chrome are
+preserved. Version 0.1.85 corrects the measured internal ToT offset, but static
+inspection cannot establish successful mask attachment or correct clipping.
+No border-clipping repair is claimed.
 
 ## Secret aura-update metadata
 
@@ -133,7 +159,7 @@ Battleground execution still needs live validation.
 Live acceptance should include refresh-without-new-instance behavior, unknown
 timing and identity, token changes, combat toggles, active test settings, pet
 foundations and ToT/FoT clipping. No live WoW run has confirmed all reported
-symptoms fixed in 0.1.84-local. The added spell IDs and priority changes are
+symptoms fixed in 0.1.85-local. The added spell IDs and priority changes are
 source-confirmed; they still depend on the client exposing the corresponding
 aura to an authorized selection path.
 

@@ -484,7 +484,6 @@ PT.categories = {
                 [26064] = true, -- Shell Shield
                 [27828] = true, -- Focused Casting
                 [1311015] = true, -- Templar's Bulwark
-                [1311033] = true, -- Iron Creed
                 [1310612] = true, -- Trickster's Dance
     },
     buffs_utility = {
@@ -564,7 +563,6 @@ PT.categories = {
         [8696] = true,
         [11305] = true,
         [1719] = true,
-        [12328] = true,
         [18499] = true,
         
         [1323969] = true, -- Gore Drinker
@@ -978,6 +976,9 @@ PT.categories = {
         [24603] = true, -- Furious Howl Rank 3 (Hunter Wolf)
         [24597] = true, -- Furious Howl Rank 4 (Hunter Wolf)
     },
+    buffs_minor_class = {
+        [1311033] = true, -- Iron Creed (minor damage-reduction aura)
+    },
     buffs_scrolls = {
         -- Vanilla stat/armor scroll buffs. Kept below maintained class buffs.
         -- Protection / Armor
@@ -1021,6 +1022,7 @@ PT.categories = {
         -- forms/stealth and active combat effects.
         [17007] = true, -- Leader of the Pack (talent aura)
         [24932] = true, -- Leader of the Pack (party buff)
+        [1243120] = true, -- Demonic Knowledge (Warlock pet-owner aura)
 
         -- Warrior: Battle Shout
         [6673] = true,
@@ -1140,6 +1142,9 @@ PT.categories = {
         [7744] = true, -- Will of the Forsaken
         [20594] = true, -- Stoneform
     },
+    debuffs_offensive = {
+        [12328] = true, -- Death Wish (offensive cooldown, applied as a debuff)
+    },
     buffs_mobility = {
         -- Movement/stealth state shares the existing Mobility priority lane.
                 [5384] = true, -- Feign Death
@@ -1209,6 +1214,9 @@ PT.categories = {
         [5697] = true, -- Unending Breath (Warlock)
         [546] = true,  -- Water Walking (Shaman)
         [1066] = true, -- Aquatic Form (Druid)
+        [16591] = true, -- Noggenfogger Elixir (skeleton and underwater breathing)
+        [16593] = true, -- Noggenfogger Elixir (slow fall)
+        [16595] = true, -- Noggenfogger Elixir (shrink)
     },
     buffs_lightning_shield = {
         [324] = true,   -- Lightning Shield Rank 1
@@ -1254,6 +1262,7 @@ PT.categories = {
         [1284560] = true, -- Darkspear Islands Flag (carried objective)
     },
     buffs_other = {
+        [25228] = true, -- Soul Link (applied Warlock/demon aura)
         [23605] = true,
         [18137] = true, -- Shadowguard Rank 1 (Troll Priest)
         [19308] = true, -- Shadowguard Rank 2 (Troll Priest)

@@ -85,15 +85,22 @@ local function creatureFamily(unit)
     return name, id
 end
 
-local function isTotem(unit)
-    if not UnitCreatureType then return false end
+local function creatureType(unit)
+    if not UnitCreatureType then return nil, nil end
     local ok, name, id = pcall(UnitCreatureType, unit)
-    if not ok then return false end
-    if R.CanAccess(id) and type(id) == "number" then
-        return id == TOTEM_CREATURE_TYPE_ID
+    if not ok then return nil, nil end
+    name = R.CanAccess(name) and type(name) == "string" and name or nil
+    id = R.CanAccess(id) and type(id) == "number" and id or nil
+    return name, id
+end
+
+local function isTotem(unit)
+    local name, id = creatureType(unit)
+    if id then
+        return id == TOTEM_CREATURE_TYPE_ID, true
     end
-    if not R.CanAccess(name) or type(name) ~= "string" then return false end
-    if name == "Totem" then return true end
+    if not name then return false, false end
+    if name == "Totem" then return true, true end
 
     -- Some Classic API variants return only a localized creature-type name.
     -- Match the client's type table; unit names/models/families are not proof.
@@ -101,16 +108,18 @@ local function isTotem(unit)
         local infoOK, info = pcall(C_CreatureInfo.GetCreatureTypeInfo, TOTEM_CREATURE_TYPE_ID)
         if infoOK and R.CanAccess(info) and info ~= nil then
             local totemName = info.name
-            return R.CanAccess(totemName) and type(totemName) == "string" and totemName == name
+            if R.CanAccess(totemName) and type(totemName) == "string" then
+                return totemName == name, true
+            end
         end
     end
-    return false
+    return false, false
 end
 
 local function hasPetGUID(unit)
     if not UnitGUID then return false end
     local guid, readable = R.SafeString(UnitGUID, unit)
-    return readable and guid:match("^Pet%-") ~= nil
+    return readable and R.CanAccess(guid) and guid:match("^Pet%-") ~= nil
 end
 
 local function spellTexture(spellID)
@@ -124,9 +133,12 @@ local function spellTexture(spellID)
     end
 end
 
-local function totemTexture(unit)
+local function totemTexture(unit, exactOnly)
     local name, readable = R.SafeString(UnitName, unit)
-    if not readable or not R.CanAccess(name) then return GENERIC_TOTEM_TEXTURE end
+    if not readable or not R.CanAccess(name) then
+        if not exactOnly then return GENERIC_TOTEM_TEXTURE, "totem-generic" end
+        return nil
+    end
     local summon = TOTEM_SUMMON_BY_NAME[name]
     if not summon then
         local getName = C_Spell and C_Spell.GetSpellName or GetSpellInfo
@@ -146,9 +158,9 @@ local function totemTexture(unit)
     if (type(texture) == "number" and texture > 0)
         or (type(texture) == "string" and texture ~= "")
     then
-        return texture
+        return texture, "totem-spell"
     end
-    return GENERIC_TOTEM_TEXTURE
+    if not exactOnly then return GENERIC_TOTEM_TEXTURE, "totem-generic" end
 end
 
 local function familyTexture(familyID)
@@ -221,6 +233,31 @@ local function classify(unit)
     return nil, false, name, id, "unrecognized controlled family"
 end
 
+local function publicBoolIs(fn, expected, ...)
+    local value, readable = R.SafeBool(fn, ...)
+    return readable and R.CanAccess(value) and value == expected
+end
+
+local function namedMinionTexture(unit, familyName, familyID)
+    -- Creature type and names have separate native access rules. A public
+    -- minion with an exact summon name can select static art without claiming
+    -- a creature type or a current aura. Unknown pet/player witnesses reject.
+    if not publicBoolIs(UnitIsMinion, true, unit)
+        or not publicBoolIs(UnitIsPlayer, false, unit)
+        or not publicBoolIs(UnitIsOtherPlayersPet, false, unit)
+        or not publicBoolIs(UnitIsUnit, false, unit, "pet")
+    then return nil end
+
+    local totem, typeReadable = isTotem(unit)
+    if (typeReadable and not totem) or hasPetGUID(unit)
+        or HUNTER_IDS[familyID] or HUNTER_NAMES[familyName]
+        or WARLOCK_IDS[familyID] or WARLOCK_NAMES[familyName]
+    then return nil end
+
+    local icon = totemTexture(unit, true)
+    if icon then return icon, "minion-spell" end
+end
+
 local function foundationTexture(unit)
     local owner, own, name, id = classify(unit)
     if owner == "TOTEM" then return totemTexture(unit) end
@@ -229,12 +266,14 @@ local function foundationTexture(unit)
         -- pet. Leave the portrait art alone until the family is actually known.
         return nil
     end
-    if owner ~= "HUNTER" and owner ~= "WARLOCK" then return nil end
+    if owner ~= "HUNTER" and owner ~= "WARLOCK" then
+        return namedMinionTexture(unit, name, id)
+    end
     if owner == "HUNTER" then
-        return familyTexture(id) or (own and petActionTexture()) or spellTexture(2649)
+        return familyTexture(id) or (own and petActionTexture()) or spellTexture(2649), "pet"
     end
     local summon = WARLOCK_NAMES[name] or WARLOCK_IDS[id]
-    return spellTexture(summon)
+    return spellTexture(summon), "pet"
 end
 
 local function createHostTexture(host)
@@ -276,19 +315,29 @@ function R.GetPetPortraitDebug(unit)
     local samePet, sameReadable = R.SafeBool(UnitIsUnit, unit, "pet")
     local otherPet, otherReadable = R.SafeBool(UnitIsOtherPlayersPet, unit)
     local controlled, controlledReadable = R.SafeBool(UnitPlayerControlled, unit)
-    local icon = foundationTexture(unit)
+    local player, playerReadable = R.SafeBool(UnitIsPlayer, unit)
+    local minion, minionReadable = R.SafeBool(UnitIsMinion, unit)
+    sameReadable = sameReadable and R.CanAccess(samePet)
+    otherReadable = otherReadable and R.CanAccess(otherPet)
+    controlledReadable = controlledReadable and R.CanAccess(controlled)
+    playerReadable = playerReadable and R.CanAccess(player)
+    minionReadable = minionReadable and R.CanAccess(minion)
+    local unitName, nameReadable = R.SafeString(UnitName, unit)
+    if not nameReadable or not R.CanAccess(unitName) then unitName = nil end
+    local typeName, typeID = creatureType(unit)
+    local icon, art = foundationTexture(unit)
     local overlayShown = false
     if unit == "pet" then
         if localPet and localPet.IsShown then
             local ok, shown = pcall(localPet.IsShown, localPet)
-            overlayShown = ok and shown == true
+            overlayShown = ok and R.CanAccess(shown) and shown == true
         end
     else
         local host = R.hosts[unit]
         local texture = host and observed[host]
         if texture and texture.IsShown then
             local ok, shown = pcall(texture.IsShown, texture)
-            overlayShown = ok and shown == true
+            overlayShown = ok and R.CanAccess(shown) and shown == true
         end
     end
     return unit
@@ -297,9 +346,16 @@ function R.GetPetPortraitDebug(unit)
         .. " otherPet=" .. (otherReadable and tostring(otherPet) or "unknown")
         .. " guidPet=" .. tostring(hasPetGUID(unit))
         .. " controlled=" .. (controlledReadable and tostring(controlled) or "unknown")
+        .. " player=" .. (playerReadable and tostring(player) or "unknown")
+        .. " minion=" .. (minionReadable and tostring(minion) or "unknown")
+        .. " unitName=" .. tostring(unitName or "unknown")
+        .. " type=" .. tostring(typeName or "unknown")
+        .. " typeID=" .. tostring(typeID or "unknown")
         .. " family=" .. tostring(name or "unknown")
         .. " familyID=" .. tostring(id or "unknown")
         .. " reason=" .. tostring(reason)
+        .. " art=" .. tostring(icon and art or "native")
+        .. " host=" .. tostring(unit == "pet" and localPet ~= nil or R.hosts[unit] ~= nil)
         .. " icon=" .. tostring(icon ~= nil)
         .. " overlay=" .. tostring(overlayShown)
 end
