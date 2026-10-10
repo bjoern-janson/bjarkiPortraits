@@ -8,21 +8,34 @@ PT.categories = {
         [1278162] = true, -- Ghost (Forever model variant; no native aura icon)
     },
     immunities = {
+        [1303458] = true, -- Reflection Field (applied allied spell-reflection aura)
         [3169] = true,
         [16621] = true,
-        [8178] = true,
         [425876] = true,
-        [1022] = true,
-        [5599] = true,
-        [10278] = true,
         [642] = true,
         [1020] = true,
         [11958] = true,
+        [27619] = true, -- Ice Block (visible NPC/Forever equivalent)
         [20230] = true,
+    },
+    immunities_physical = {
+        [1022] = true, -- Blessing of Protection Rank 1
+        [5599] = true, -- Blessing of Protection Rank 2
+        [10278] = true, -- Blessing of Protection Rank 3
     },
     immunities_root = {
         [1044] = true, -- Blessing of Freedom
         [20589] = true, -- Escape Artist
+        [6615] = true, -- Free Action (potion: root, snare and stun immunity)
+    },
+    immunities_interrupt = {
+        [1310897] = true, -- Voice of Truth (Silence and Interrupt immunity)
+    },
+    buffs_grounding = {
+        [8178] = true, -- Grounding Totem Effect (spell redirection)
+    },
+    buffs_self_stun = {
+        [1301167] = true, -- Transformative Cocoon (self-stun; currently a helpful aura)
     },
     cc = {
         [20549] = true,
@@ -34,6 +47,7 @@ PT.categories = {
         [4068] = true,
         [15753] = true,
         [13237] = true,
+        [13238] = true,
         [18798] = true,
         [446391] = true,
         [605] = true,
@@ -138,6 +152,7 @@ PT.categories = {
         [4068] = true, -- Iron Grenade
         [15753] = true, -- Linken's Boomerang Stun
         [13237] = true, -- Goblin Mortar
+        [13238] = true, -- Goblin Mortar (separate self-area stun)
         [15269] = true, -- Blackout
         [18093] = true, -- Pyroclasm
         [853] = true, -- Hammer of Justice
@@ -209,7 +224,11 @@ PT.categories = {
                 [19577] = true, -- Intimidation
                 [1277455] = true, -- Confounding Flash
     },
+    debuffs_consecration = {
+        [1280353] = true, -- Consecration (Forever applied damage-amplification aura)
+    },
     debuffs_dots = {
+        [3815] = true, -- Poison Cloud (Ironspine, periodic Poison)
         -- Mage residual/periodic damage
         [133] = true, [143] = true, [145] = true, [3140] = true,
         [8400] = true, [8401] = true, [8402] = true,
@@ -272,6 +291,7 @@ PT.categories = {
         [1265066] = true, -- Savage Rend
     },
     slows = {
+        [1316489] = true, -- Highland Venom (dungeon Disease, movement slow)
         [116] = true, -- Frostbolt Rank 1
         [205] = true, -- Frostbolt Rank 2
         [837] = true, -- Frostbolt Rank 3
@@ -288,6 +308,7 @@ PT.categories = {
         [420526] = true, -- Frostbolt (NPC/Forever variant)
         [1303226] = true, -- Frostbolt (NPC/Forever variant)
         [3600] = true, -- Earthbind (Earthbind Totem slow aura)
+        [13810] = true, -- Frost Trap Aura (applied 60% slow, not the trap summon)
     
         [1265038] = true, -- Tendon Rip
         [1715] = true, -- Hamstring
@@ -304,6 +325,10 @@ PT.categories = {
         [1264735] = true, -- Pinch
         [1264736] = true, -- Pinch
         [1265039] = true, -- Tendon Rip
+        [3409] = true, -- Crippling Poison (movement slow)
+        [11201] = true, -- Crippling Poison (movement slow)
+        [12548] = true, -- Frost Shock (movement slow)
+        [18223] = true, -- Curse of Exhaustion (movement slow)
     },
     slows_chilled = {
         [6136] = true, -- Chilled (Frost Armor)
@@ -318,21 +343,14 @@ PT.categories = {
     roots = {
         [6533] = true,
         [16979] = true,
-        [18223] = true,
         [18310] = true,
         [18313] = true,
-        [1714] = true,
-        [11719] = true,
-        [12548] = true,
         [19229] = true,
         [19306] = true,
         [20909] = true,
         [20910] = true,
         [19185] = true,
         [25999] = true,
-        [3034] = true,
-        [14279] = true,
-        [14280] = true,
         [339] = true,
         [1062] = true,
         [5195] = true,
@@ -350,15 +368,9 @@ PT.categories = {
         [865] = true,
         [6131] = true,
         [10230] = true,
-        [3409] = true,
-        [11201] = true,
         [23694] = true,
     
         [1277331] = true, -- Chastise
-        [1120] = true, -- Drain Soul
-        [8288] = true, -- Drain Soul
-        [17877] = true, -- Shadowburn
-        [18867] = true, -- Shadowburn
         [19675] = true, -- Feral Charge
         [1242634] = true, -- Counterattack
         [1265843] = true, -- Web
@@ -399,11 +411,42 @@ PT.categories = {
         [10899] = true, -- Power Word: Shield
         [10900] = true, -- Power Word: Shield
         [10901] = true, -- Power Word: Shield
+        [1316048] = true, -- Transformative Cocoon (absorb aura)
     },
-    buffs_shield = {},
+    buffs_shield = {
+        [6229] = true, -- Shadow Ward
+        [11739] = true, -- Shadow Ward
+        [11740] = true, -- Shadow Ward
+        [28610] = true, -- Shadow Ward
+        [7812] = true, -- Sacrifice
+        [19438] = true, -- Sacrifice
+        [19440] = true, -- Sacrifice
+        [19441] = true, -- Sacrifice
+        [19442] = true, -- Sacrifice
+        [19443] = true, -- Sacrifice
+        [11426] = true, -- Ice Barrier
+        [13031] = true, -- Ice Barrier
+        [13032] = true, -- Ice Barrier
+        [13033] = true, -- Ice Barrier
+        [543] = true, -- Fire Ward
+        [8457] = true, -- Fire Ward
+        [8458] = true, -- Fire Ward
+        [10223] = true, -- Fire Ward
+        [10225] = true, -- Fire Ward
+        [6143] = true, -- Frost Ward
+        [8461] = true, -- Frost Ward
+        [8462] = true, -- Frost Ward
+        [10177] = true, -- Frost Ward
+        [28609] = true, -- Frost Ward
+        [1463] = true, -- Mana Shield
+        [8494] = true, -- Mana Shield
+        [8495] = true, -- Mana Shield
+        [10191] = true, -- Mana Shield
+        [10192] = true, -- Mana Shield
+        [10193] = true, -- Mana Shield
+    },
     buffs_defensive = {
         [1299026] = true, -- Shatter Curse
-        [23493] = true,
         [23506] = true,
         [29506] = true,
         [14892] = true,
@@ -411,16 +454,6 @@ PT.categories = {
         [15363] = true,
         [402004] = true,
         [425294] = true,
-        [6229] = true,
-        [11739] = true,
-        [11740] = true,
-        [28610] = true,
-        [7812] = true,
-        [19438] = true,
-        [19440] = true,
-        [19441] = true,
-        [19442] = true,
-        [19443] = true,
         [16188] = true,
         [436391] = true,
         [6940] = true,
@@ -429,26 +462,6 @@ PT.categories = {
         [412019] = true,
         [19263] = true,
         [22812] = true,
-        [11426] = true,
-        [13031] = true,
-        [13032] = true,
-        [13033] = true,
-        [543] = true,
-        [8457] = true,
-        [8458] = true,
-        [10223] = true,
-        [10225] = true,
-        [6143] = true,
-        [8461] = true,
-        [8462] = true,
-        [10177] = true,
-        [28609] = true,
-        [1463] = true,
-        [8494] = true,
-        [8495] = true,
-        [10191] = true,
-        [10192] = true,
-        [10193] = true,
         [5277] = true,
         [14278] = true,
         [871] = true,
@@ -460,8 +473,6 @@ PT.categories = {
                 [2565] = true, -- Shield Block
                 [2651] = true, -- Elune's Grace
                 [2893] = true, -- Abolish Poison
-                [2947] = true, -- Fire Shield
-                [8316] = true, -- Fire Shield
                 [14751] = true, -- Inner Focus
                 [16177] = true, -- Ancestral Fortitude
                 [17116] = true, -- Nature's Swiftness
@@ -469,9 +480,7 @@ PT.categories = {
                 [20216] = true, -- Divine Favor
                 [26064] = true, -- Shell Shield
                 [27828] = true, -- Focused Casting
-                [1310897] = true, -- Voice of Truth
                 [1311015] = true, -- Templar's Bulwark
-                [1311033] = true, -- Iron Creed
                 [1310612] = true, -- Trickster's Dance
     },
     buffs_utility = {
@@ -496,7 +505,6 @@ PT.categories = {
         [16813] = true, -- Nature's Grasp Rank 5
         [17329] = true, -- Nature's Grasp Rank 6
                 [130] = true, -- Slow Fall
-                [131] = true, -- Water Breathing
                 [1539] = true, -- Feed Pet Effect
                 [1725] = true, -- Distract
                 [4511] = true, -- Phase Shift
@@ -504,12 +512,20 @@ PT.categories = {
                 [18708] = true, -- Fel Domination
     },
     buffs_offensive = {
+        [402975] = true, -- Victorious (applied Victory Rush state)
+        [8385] = true, -- Swift Wind (movement and attack speed)
+        [24378] = true, -- Berserking (battleground damage buff)
+        -- Short movement cooldowns share the existing Sprint/Dash priority.
+        [1309728] = true, -- Speed (Satchel of Potions)
+        [1301168] = true, -- Transformative Cocoon (movement-speed aura)
         [20554] = true, -- Berserking (Troll racial, Forever)
         [20600] = true,
         [20572] = true, -- Blood Fury (Orc racial)
-        [23451] = true,
-        [23505] = true,
-        [6615] = true,
+        [23451] = true, -- Speed (battleground rune)
+        [23978] = true, -- Speed (battleground rune applied variant)
+        [1286345] = true, -- Speed (Forever battleground rune applied aura)
+        [23505] = true, -- Berserking (battleground)
+        [1286304] = true, -- Berserking (Forever battleground applied aura)
         [24364] = true,
         [11359] = true,
         [5024] = true,
@@ -540,6 +556,7 @@ PT.categories = {
         [1259823] = true, -- Eureka! (Gnome Priest)
         [1259799] = true, -- Elune's Light
         [16870] = true, -- Clearcasting (Druid)
+        [422621] = true, -- Preparation (battleground resource-cost aura)
         [12042] = true,
         [13750] = true,
         [13877] = true,
@@ -547,7 +564,6 @@ PT.categories = {
         [8696] = true,
         [11305] = true,
         [1719] = true,
-        [12328] = true,
         [18499] = true,
         
         [1323969] = true, -- Gore Drinker
@@ -562,9 +578,6 @@ PT.categories = {
                 [16246] = true, -- Clearcasting
                 [16886] = true, -- Nature's Grace
                 [19271] = true, -- Feedback
-                [20050] = true, -- Vengeance
-                [24604] = true, -- Furious Howl
-                [24605] = true, -- Furious Howl
                 [400589] = true, -- Missile Barrage
                 [1284536] = true, -- Holy Purpose
                 [1299448] = true, -- Quick Strikes
@@ -578,8 +591,7 @@ PT.categories = {
         [14325] = true, -- Hunter's Mark Rank 4
         [1213268] = true, -- Hunter's Mark Rank 4 (Forever alternate aura)
     },
-    -- Player rank families verified against Forever build 1.60.1.70170.
-    -- Applied attack-power auras, not name-matched NPC variants.
+    -- Applied player/pet attack-power rank families, not training spells.
     debuffs_demoralizing = {
         [1160] = true,  -- Demoralizing Shout Rank 1
         [6190] = true,  -- Demoralizing Shout Rank 2
@@ -591,8 +603,64 @@ PT.categories = {
         [9490] = true,  -- Demoralizing Roar Rank 3
         [9747] = true,  -- Demoralizing Roar Rank 4
         [9898] = true,  -- Demoralizing Roar Rank 5
+        [24423] = true, -- Demoralizing Screech Rank 1 (Hunter pet)
+        [24577] = true, -- Demoralizing Screech Rank 2 (Hunter pet)
+        [24578] = true, -- Demoralizing Screech Rank 3 (Hunter pet)
+        [24579] = true, -- Demoralizing Screech Rank 4 (Hunter pet)
+    },
+    -- Applied casting, attack and healing penalties share priority 279.
+    -- Rank families verified against current Forever 1.60.1 records.
+    debuffs_casting_penalty = {
+        [1714] = true, -- Curse of Tongues Rank 1
+        [11719] = true, -- Curse of Tongues Rank 2
+        [5760] = true, -- Mind-numbing Poison Rank 1
+        [8692] = true, -- Mind-numbing Poison Rank 2
+        [11398] = true, -- Mind-numbing Poison Rank 3
+        [1264478] = true, -- Sonic Blast Rank 1
+        [1264479] = true, -- Sonic Blast Rank 2
+        [1264480] = true, -- Sonic Blast Rank 3
+        [1264481] = true, -- Sonic Blast Rank 4
+        [1264482] = true, -- Sonic Blast Rank 5
+        [1302342] = true, -- Carved Mind (applied casting-time penalty)
+    },
+    debuffs_attack_penalty = {
+        [6343] = true, -- Thunder Clap Rank 1 (Warrior attack-speed penalty)
+        [8198] = true, -- Thunder Clap Rank 2
+        [8204] = true, -- Thunder Clap Rank 3
+        [8205] = true, -- Thunder Clap Rank 4
+        [11580] = true, -- Thunder Clap Rank 5
+        [11581] = true, -- Thunder Clap Rank 6
+        [8078] = true, -- Thunderclap (NPC attack-speed and movement penalty)
+        [1213464] = true, -- Thunderclap (matching NPC applied variant)
+        [1316382] = true, -- Dust Storm (applied attack-hit penalty)
+    },
+    debuffs_healing_reduction = {
+        [7068] = true, -- Veil of Shadow (75% healing reduction, single target)
+        [17820] = true, -- Veil of Shadow (75% healing reduction, nearby enemies)
+        [460755] = true, -- Veil of Shadow (75% healing reduction, area variant)
+        [12294] = true, -- Mortal Strike Rank 1
+        [21551] = true, -- Mortal Strike Rank 2
+        [21552] = true, -- Mortal Strike Rank 3
+        [21553] = true, -- Mortal Strike Rank 4
+        [13218] = true, -- Wound Poison Rank 1 (flat healing-received reduction)
+        [13222] = true, -- Wound Poison Rank 2
+        [13223] = true, -- Wound Poison Rank 3
+        [13224] = true, -- Wound Poison Rank 4
+        [9035] = true, -- Hex of Weakness Rank 1
+        [19281] = true, -- Hex of Weakness Rank 2
+        [19282] = true, -- Hex of Weakness Rank 3
+        [19283] = true, -- Hex of Weakness Rank 4
+        [19284] = true, -- Hex of Weakness Rank 5
+        [19285] = true, -- Hex of Weakness Rank 6
+        [1264758] = true, -- Dismember Rank 1
+        [1264927] = true, -- Dismember Rank 2
+        [1264929] = true, -- Dismember Rank 3
+        [1264930] = true, -- Dismember Rank 4
+        [1264933] = true, -- Dismember Rank 5
     },
     debuffs_other = {
+        [8139] = true, -- Fevered Fatigue (applied Intellect/Spirit Disease)
+        [8267] = true, -- Cursed Blood (applied Intellect curse, including the dungeon report)
         [770] = true, -- Faerie Fire Rank 1
         [778] = true, -- Faerie Fire Rank 2
         [9749] = true, -- Faerie Fire Rank 3
@@ -616,34 +684,32 @@ PT.categories = {
         [2908] = true, -- Soothe Animal
         [3043] = true, -- Scorpid Sting
         [5138] = true, -- Drain Mana
-        [5760] = true, -- Mind-numbing Poison
-        [6343] = true, -- Thunder Clap
         [7386] = true, -- Sunder Armor
         [7405] = true, -- Sunder Armor
         [7658] = true, -- Curse of Recklessness
-        [8198] = true, -- Thunder Clap
-        [8204] = true, -- Thunder Clap
         [8647] = true, -- Expose Armor
         [8649] = true, -- Expose Armor
-        [9035] = true, -- Hex of Weakness
         [12579] = true, -- Winter's Chill
         [15258] = true, -- Shadow Weaving
         [15286] = true, -- Vampiric Embrace
         [16511] = true, -- Hemorrhage
         [17364] = true, -- Stormstrike
-        [19281] = true, -- Hex of Weakness
-        [19282] = true, -- Hex of Weakness
         [22959] = true, -- Fire Vulnerability
-        [24423] = true, -- Demoralizing Screech
-        [24577] = true, -- Demoralizing Screech
         [440892] = true, -- Curse of the Elements
         [1225228] = true, -- Bane of Havoc
-        [1264478] = true, -- Sonic Blast
-        [1264479] = true, -- Sonic Blast
-        [1264758] = true, -- Dismember
-        [1264927] = true, -- Dismember
         [1265899] = true, -- Dust Cloud
         [1311676] = true, -- Curse of the Elements
+        [3034] = true, -- Viper Sting (mana drain)
+        [14279] = true, -- Viper Sting (mana drain)
+        [14280] = true, -- Viper Sting (mana drain)
+        [1120] = true, -- Drain Soul (damage channel)
+        [8288] = true, -- Drain Soul (damage channel)
+        [17877] = true, -- Shadowburn (create-item-on-death aura)
+        [18867] = true, -- Shadowburn (create-item-on-death aura)
+    },
+    debuffs_passive = {
+        [26013] = true, -- Deserter (battleground queue lockout)
+        [1292749] = true, -- Martyrdom (permanent harmful item aura; not the Priest talent)
     },
     debuffs_priority = {
         [25771] = true, -- Forbearance (Paladin)
@@ -652,10 +718,17 @@ PT.categories = {
     debuffs_res_sickness = {
         [15007] = true, -- Resurrection Sickness
     },
+    debuffs_environmental_danger = {
+        [1323184] = true, -- Shark Attack (Darkspear Islands water hazard)
+        [1316387] = true, -- Muculent Rot (applied Spirit/Stamina Disease)
+    },
     buffs_waiting_to_resurrect = {
         [2584] = true,    -- Waiting to Resurrect
         [21989] = true,   -- Waiting to Resurrect
         [1234325] = true, -- Waiting to Resurrect (Forever)
+    },
+    buffs_ghost_speed = {
+        [1262229] = true, -- The Quick and the Dead (visible movement buff while dead)
     },
     buffs_divine_protection = {
         [498] = true, -- Divine Protection
@@ -669,6 +742,9 @@ PT.categories = {
     },
     debuffs_recently_bandaged = {
         [11196] = true, -- Recently Bandaged
+    },
+    buffs_improved_stormstrike = {
+        [1238931] = true, -- Improved Stormstrike (mana-regeneration proc)
     },
     buffs_seals = {
         [20154] = true, -- Seal of Righteousness Rank 1 (Paladin)
@@ -695,11 +771,13 @@ PT.categories = {
                 [1311656] = true, -- Seal of Fury
     },
     buffs_fooddrink = {
+        [23493] = true, -- Restoration (battleground health and mana recovery)
+        [24379] = true, -- Restoration (battleground health, mana and pet-happiness recovery)
+        [1286344] = true, -- Restoration (current Forever battleground recovery aura)
         -- Active recovery/channel states share one portrait priority lane.
         [20577] = true, -- Cannibalize activation (Undead)
         [20578] = true, -- Cannibalize channel aura (Undead)
         [12051] = true, -- Evocation (Mage)
-        -- First Aid / bandage channels
         -- Food (Vanilla/Forever eating auras)
         [433] = true, -- Food
         [434] = true, -- Food
@@ -799,27 +877,37 @@ PT.categories = {
         [8940] = true, -- Regrowth
         [16488] = true, -- Blood Craze
         [17850] = true, -- Consume Shadows
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        -- First Aid / bandage channels share the Healing lane.
+        [746] = true, -- Linen Bandage
+        [1159] = true, -- Heavy Linen Bandage
+        [3267] = true, -- Wool Bandage
+        [3268] = true, -- Heavy Wool Bandage
+        [7926] = true, -- Silk Bandage
+        [7927] = true, -- Heavy Silk Bandage
+        [10838] = true, -- Mageweave Bandage
+        [10839] = true, -- Heavy Mageweave Bandage
+        [18608] = true, -- Runecloth Bandage
+        [18610] = true, -- Heavy Runecloth Bandage
+        [23567] = true, -- Warsong Gulch Runecloth Bandage
+        [23568] = true, -- Warsong Gulch Mageweave Bandage
+        [23569] = true, -- Warsong Gulch Silk Bandage
+        [23696] = true, -- Alterac Heavy Runecloth Bandage
+        [24412] = true, -- Arathi Basin Silk Bandage
+        [24413] = true, -- Arathi Basin Mageweave Bandage
+        [24414] = true, -- Arathi Basin Runecloth Bandage
     },
 
     buffs_innervate = {
         [29166] = true, -- Innervate (Druid)
+        -- The Quick and the Dead: visible resource-cost buffs after resurrection.
+        [1262243] = true, -- Mage
+        [1262307] = true, -- Druid
+        [1262309] = true, -- Hunter
+        [1262310] = true, -- Paladin
+        [1262312] = true, -- Priest
+        [1262315] = true, -- Shaman
+        [1262316] = true, -- Warlock
+        [1262317] = true, -- Warrior
                 [15271] = true, -- Spirit Tap
                 [16191] = true, -- Mana Tide
                 [17355] = true, -- Mana Tide
@@ -841,12 +929,17 @@ PT.categories = {
         [8914] = true, -- Thorns Rank 4 (Druid)
         [9756] = true, -- Thorns Rank 5 (Druid)
         [9910] = true, -- Thorns Rank 6 (Druid)
+        [2947] = true, -- Fire Shield Rank 1 (Imp)
+        [8316] = true, -- Fire Shield Rank 2 (Imp)
+        [8317] = true, -- Fire Shield Rank 3 (Imp)
+        [11770] = true, -- Fire Shield Rank 4 (Imp)
+        [11771] = true, -- Fire Shield Rank 5 (Imp)
     },
     buffs_righteous_fury = {
         [25780] = true, -- Righteous Fury (Paladin)
     },
     buffs_paladin_auras = {
-        -- Passive Paladin aura states share the PaladinAura priority lane.
+        -- Persistent party-support auras share the PaladinAura priority lane.
         [19746] = true, -- Concentration Aura
 
         [465] = true, -- Devotion Aura Rank 1
@@ -878,6 +971,12 @@ PT.categories = {
         [20218] = true, -- Sanctity Aura
 
         -- Shaman: persistent party-support totem auras share this priority band.
+        -- Flametongue: applied party auras, not summons or weapon enchants.
+        [8230] = true,
+        [8250] = true,
+        [10521] = true,
+        [15036] = true,
+
         -- Stoneskin
         [8072] = true,
         [8156] = true,
@@ -911,7 +1010,13 @@ PT.categories = {
                 [10599] = true, -- Nature Resistance
                 [24853] = true, -- Mana Spring
                 [25362] = true, -- Strength of Earth
-                [1299346] = true, -- Trueshot Aura
+        [1299346] = true, -- Trueshot Aura
+        [17007] = true, -- Leader of the Pack (retained talent record)
+        [24932] = true, -- Leader of the Pack (applied party aura)
+    },
+    buffs_minor_world = {
+        [1296202] = true, -- Rat Familiar (+2 Intellect)
+        [1292142] = true, -- Benevolence (minor party health regeneration)
     },
     buffs_blood_pact = {
         [6307] = true, -- Blood Pact Rank 1 (Warlock Imp)
@@ -919,6 +1024,18 @@ PT.categories = {
         [7805] = true, -- Blood Pact Rank 3 (Warlock Imp)
         [11766] = true, -- Blood Pact Rank 4 (Warlock Imp)
         [11767] = true, -- Blood Pact Rank 5 (Warlock Imp)
+    },
+    buffs_furious_howl = {
+        [24604] = true, -- Furious Howl Rank 1 (Hunter Wolf)
+        [24605] = true, -- Furious Howl Rank 2 (Hunter Wolf)
+        [24603] = true, -- Furious Howl Rank 3 (Hunter Wolf)
+        [24597] = true, -- Furious Howl Rank 4 (Hunter Wolf)
+    },
+    buffs_minor_class = {
+        [20050] = true, -- Vengeance (applied Paladin damage proc)
+        [1311033] = true, -- Iron Creed (minor damage-reduction aura)
+        [24529] = true, -- Spirit Bond (5 sec pet regeneration aura)
+        [1310725] = true, -- Spirit Bond (10 sec pet regeneration variant)
     },
     buffs_scrolls = {
         -- Vanilla stat/armor scroll buffs. Kept below maintained class buffs.
@@ -961,8 +1078,8 @@ PT.categories = {
     buffs_class_baseline = {
         -- Regular class buffs: meaningful combat state, but deliberately below
         -- forms/stealth and active combat effects.
-        [17007] = true, -- Leader of the Pack (talent aura)
-        [24932] = true, -- Leader of the Pack (party buff)
+        [8733] = true, -- Blessing of Blackfathom (dungeon blessing)
+        [1243120] = true, -- Demonic Knowledge (Warlock pet-owner aura)
 
         -- Warrior: Battle Shout
         [6673] = true,
@@ -1054,6 +1171,10 @@ PT.categories = {
     },
     buffs_tracking = {
         -- Pure information/scouting auras are the absolute bottom helpful tier.
+        [2383] = true, -- Find Herbs Rank 1
+        [8387] = true, -- Find Herbs Rank 2
+        [2580] = true, -- Find Minerals Rank 1
+        [8388] = true, -- Find Minerals Rank 2
                 [126] = true, -- Eye of Kilrogg
                 [132] = true, -- Detect Invisibility
                 [1462] = true, -- Beast Lore
@@ -1068,11 +1189,18 @@ PT.categories = {
                 [19884] = true, -- Track Undead
                 [19885] = true, -- Track Hidden
     },
+    buffs_cosmetic = {
+        [8213] = true, -- Savory Deviate Delight (transformation aura)
+        [1252576] = true, -- Savory Whimsyfin Delight (transformation aura)
+    },
     buffs_racial_defensive = {
         -- Defensive racials share a high-priority PvP category, separate from
         -- offensive cooldowns and ordinary passive class buffs.
         [7744] = true, -- Will of the Forsaken
         [20594] = true, -- Stoneform
+    },
+    debuffs_offensive = {
+        [12328] = true, -- Death Wish (offensive cooldown, applied as a debuff)
     },
     buffs_mobility = {
         -- Movement/stealth state shares the existing Mobility priority lane.
@@ -1121,6 +1249,9 @@ PT.categories = {
         [1294007] = true, -- Forever Well Fed: movement speed (Hyjal)
         [1302064] = true, -- Forever Well Fed: Strength variant
     },
+    buffs_passive_speed = {
+        [1293199] = true, -- Agamaggan's Clutch (minor regional movement bonus)
+    },
     buffs_plainsrunning = {
         [1299038] = true, -- Plainsrunning active aura (Forever Tauren)
     },
@@ -1139,9 +1270,13 @@ PT.categories = {
         [1289723] = true, -- Welcoming Campfire (Forever live variant)
     },
     buffs_travel_utility = {
+        [131] = true, -- Water Breathing
         [5697] = true, -- Unending Breath (Warlock)
         [546] = true,  -- Water Walking (Shaman)
         [1066] = true, -- Aquatic Form (Druid)
+        [16591] = true, -- Noggenfogger Elixir (skeleton and underwater breathing)
+        [16593] = true, -- Noggenfogger Elixir (slow fall)
+        [16595] = true, -- Noggenfogger Elixir (shrink)
     },
     buffs_lightning_shield = {
         [324] = true,   -- Lightning Shield Rank 1
@@ -1183,7 +1318,12 @@ PT.categories = {
         [12544] = true, -- Frost Armor (NPC/Forever visible variant)
         [15784] = true, -- Frost Armor (NPC/Forever ally-target variant)
     },
+    buffs_battleground_flag = {
+        [1284560] = true, -- Darkspear Islands Flag (carried objective)
+    },
     buffs_other = {
+        [25228] = true, -- Soul Link (applied Warlock/demon aura)
+        [18789] = true, -- Burning Shadow (Demonic Sacrifice effect; forms/Self State)
         [23605] = true,
         [18137] = true, -- Shadowguard Rank 1 (Troll Priest)
         [19308] = true, -- Shadowguard Rank 2 (Troll Priest)

@@ -9,7 +9,7 @@ local STRATA_BELOW = {
 local AURA_SCAN_LIMIT = 80
 
 local SMALL_GEOMETRY = {
-    targettarget = { iconX = 2, iconY = 0, timerX = 0, timerY = -1 },
+    targettarget = { iconX = 1, iconY = 0, timerX = 1, timerY = -1 },
     focustarget = { iconX = 1, iconY = 0, timerX = 1, timerY = -1 },
 }
 
@@ -36,19 +36,29 @@ local function configureCooldown(cooldown, unit)
     if cooldown.SetSwipeTexture then cooldown:SetSwipeTexture(R.SWIPE_TEXTURE) end
 
     local geometry = SMALL_GEOMETRY[unit]
-    if geometry and cooldown.GetCountdownFontString then
+    if cooldown.GetCountdownFontString then
         local ok, text = pcall(cooldown.GetCountdownFontString, cooldown)
-        if ok and text then
-            if not cooldown._bjarkiFontAdjusted and text.GetFont and text.SetFont then
+        if ok and R.CanAccess(text) and text then
+            if geometry and not cooldown._bjarkiFontAdjusted and text.GetFont and text.SetFont then
                 local fontOK, font, size, flags = pcall(text.GetFont, text)
                 if fontOK and font and type(size) == "number" then
                     pcall(text.SetFont, text, font, math.max(1, size - 2), flags or "")
                     cooldown._bjarkiFontAdjusted = true
                 end
             end
-            if text.ClearAllPoints and text.SetPoint then
-                pcall(text.ClearAllPoints, text)
-                pcall(text.SetPoint, text, "CENTER", cooldown, "CENTER", geometry.timerX, geometry.timerY)
+            if geometry then
+                if text.ClearAllPoints and text.SetPoint then
+                    pcall(text.ClearAllPoints, text)
+                    pcall(text.SetPoint, text, "CENTER", cooldown, "CENTER", geometry.timerX, geometry.timerY)
+                end
+            elseif (unit == "player" or unit == "target" or unit == "focus")
+                and cooldown._bjarkiTimerOffsetText ~= text and text.AdjustPointsOffset
+            then
+                -- Preserve the native large countdown's anchor arrangement.
+                -- Translate each font string once without changing its font.
+                if pcall(text.AdjustPointsOffset, text, 1, unit == "player" and 1 or 0) then
+                    cooldown._bjarkiTimerOffsetText = text
+                end
             end
         end
     end
@@ -104,7 +114,6 @@ local function findHelpfulTierForSpell(spellID)
 end
 
 local BOOSTED_REST_SPELL_ID = 1229451
-local RES_SICKNESS_SPELL_ID = 15007
 local RECENTLY_BANDAGED_SPELL_ID = 11196
 local GHOST_SPELL_ID = 8326
 local WELCOMING_CAMPFIRE_SPELL_IDS = {
@@ -127,9 +136,8 @@ local function findTierByKey(key)
     end
 end
 
--- The priority-90 class-buff band has a stronger within-tier contract than
--- AuraInstanceID sorting alone can provide: a refreshed aura should become the
--- visible winner even when Forever preserves that aura's instance ID.
+-- BaselineClass and Healing use application-time recency: a refreshed aura
+-- should win within its tier even when Forever preserves its instance ID.
 -- auraInstanceID is an identity/deterministic sort key, not application time.
 --
 -- Prefer Blizzard's DurationObject start time when it is readable. Fall back to
@@ -159,82 +167,54 @@ local function readAuraStartTime(unit, aura, auraInstanceID)
     return nil, false, nil
 end
 
-local function scanLatestReadableBaselineAura(unit)
-    local tier = findTierByKey("BaselineClass")
-    if not tier or not tier.spellIDs then return nil, false, false end
-    if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false, false end
+local function usesApplicationTime(tier)
+    return tier and (tier.key == "BaselineClass" or tier.key == "Healing")
+end
 
-    local candidates = {}
-    local allTimingReadable = true
-    local complete = false
+local function readableCandidate(unit, aura, spellID, tier)
+    local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
+    if not instanceReadable or type(auraInstanceID) ~= "number" then auraInstanceID = nil end
+    local candidate = { aura = aura, spellID = spellID, auraInstanceID = auraInstanceID, tier = tier }
+    if usesApplicationTime(tier) then
+        candidate.appliedAt, candidate.timingReadable, candidate.timingSource =
+            readAuraStartTime(unit, aura, auraInstanceID)
+    end
+    return candidate
+end
 
-    for index = 1, AURA_SCAN_LIMIT do
-        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
-            unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
-        if not ok or not R.CanAccess(aura) then return nil, false, false end
-        if aura == nil then
-            complete = true
-            break
+local function electReadableCandidate(candidates, byApplicationTime)
+    if #candidates == 0 then return nil, true end
+    -- A single candidate needs identity evidence, but no ordering evidence.
+    if #candidates == 1 then return candidates[1], true end
+
+    if byApplicationTime then
+        local latest
+        for _, candidate in ipairs(candidates) do
+            if not candidate.timingReadable then return nil, false end
+            if latest == nil or candidate.appliedAt > latest then latest = candidate.appliedAt end
         end
-
-        local spellID, spellReadable = R.ReadAuraField(aura, "spellId")
-        if not spellReadable or type(spellID) ~= "number" then
-            -- We cannot prove that an unreadable aura is outside BaselineClass.
-            -- Relinquish the readable override and let secure rendering stand.
-            return nil, false, false
+        -- Only ties at the latest start need native instance ordering. An
+        -- unreadable ID in an older tie cannot veto a strictly newer aura.
+        local newest = {}
+        for _, candidate in ipairs(candidates) do
+            if candidate.appliedAt == latest then newest[#newest + 1] = candidate end
         end
-
-        if tier.spellIDs[spellID] then
-            local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
-            if not instanceReadable or type(auraInstanceID) ~= "number" then
-                auraInstanceID = nil
-            end
-
-            local appliedAt, timingReadable, timingSource = readAuraStartTime(
-                unit, aura, auraInstanceID
-            )
-            if not timingReadable then allTimingReadable = false end
-
-            candidates[#candidates + 1] = {
-                aura = aura,
-                spellID = spellID,
-                auraInstanceID = auraInstanceID,
-                appliedAt = appliedAt,
-                timingSource = timingSource,
-            }
-        end
+        candidates = newest
+        if #candidates == 1 then return candidates[1], true end
     end
 
-    if not complete then return nil, false, false end
-    if #candidates == 0 then return nil, true, true end
-    if not allTimingReadable then return nil, true, false end
-    if #candidates == 1 then
-        candidates[1].timingReadable = true
-        return candidates[1], true, true
-    end
-
-    local best = candidates[1]
-    for i = 2, #candidates do
-        local candidate = candidates[i]
-        if candidate.appliedAt > best.appliedAt then
-            best = candidate
-        elseif candidate.appliedAt == best.appliedAt then
-            if type(candidate.auraInstanceID) ~= "number"
-                or type(best.auraInstanceID) ~= "number"
-            then
-                -- Equal application-time evidence without a readable native
-                -- ordering witness is a real tie, not permission to keep the
-                -- first enumerated candidate.
-                return nil, true, false
-            end
-            if candidate.auraInstanceID > best.auraInstanceID then
-                best = candidate
-            end
+    local best
+    local unique = true
+    for _, candidate in ipairs(candidates) do
+        if type(candidate.auraInstanceID) ~= "number" then return nil, false end
+        if not best or candidate.auraInstanceID > best.auraInstanceID then
+            best, unique = candidate, true
+        elseif candidate.auraInstanceID == best.auraInstanceID then
+            unique = false
         end
     end
-
-    best.timingReadable = true
-    return best, true, true
+    if byApplicationTime and not unique then return nil, false end
+    return best, true
 end
 
 local function scanReadableExactAura(unit, filter, spellID)
@@ -393,32 +373,10 @@ local function scanReadableUtilityWinner(unit)
     meta.welcomingReadable = meta.welcomingReadable or complete
     if #candidates == 0 then return nil, true, meta end
 
-    local recencyComplete = true
-    local anyRecency = false
-    for _, candidate in ipairs(candidates) do
-        candidate.recency = R.GetAuraRecency(unit, candidate.auraInstanceID)
-        if candidate.recency then
-            anyRecency = true
-        else
-            recencyComplete = false
-        end
-    end
-
     local best = candidates[1]
-    if anyRecency and recencyComplete then
-        for i = 2, #candidates do
-            if candidates[i].recency > best.recency
-                or (candidates[i].recency == best.recency
-                    and candidates[i].auraInstanceID > best.auraInstanceID)
-            then
-                best = candidates[i]
-            end
-        end
-    else
-        for i = 2, #candidates do
-            if candidates[i].auraInstanceID > best.auraInstanceID then
-                best = candidates[i]
-            end
+    for i = 2, #candidates do
+        if candidates[i].auraInstanceID > best.auraInstanceID then
+            best = candidates[i]
         end
     end
 
@@ -444,37 +402,13 @@ local function scanLatestReadableExactTierAura(unit, tierKey, filter)
         if not readable or type(spellID) ~= "number" then return nil, false, false end
 
         if tier.spellIDs[spellID] then
-            local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
-            candidates[#candidates + 1] = {
-                aura = aura,
-                spellID = spellID,
-                auraInstanceID = instanceReadable and type(auraInstanceID) == "number"
-                    and auraInstanceID or nil,
-                tier = tier,
-            }
+            candidates[#candidates + 1] = readableCandidate(unit, aura, spellID, tier)
         end
     end
 
     if not complete then return nil, false, false end
-    if #candidates == 0 then return nil, true, true end
-    if #candidates == 1 then return candidates[1], true, true end
-
-    -- The fallback contract is "latest within this tier". If several tracked
-    -- candidates exist and their ordering witness is inaccessible, selecting
-    -- the first one would turn UNKNOWN recency into a fabricated winner.
-    for _, candidate in ipairs(candidates) do
-        if type(candidate.auraInstanceID) ~= "number" then
-            return nil, true, false
-        end
-    end
-
-    local best = candidates[1]
-    for i = 2, #candidates do
-        if candidates[i].auraInstanceID > best.auraInstanceID then
-            best = candidates[i]
-        end
-    end
-    return best, true, true
+    local best, electionReadable = electReadableCandidate(candidates, usesApplicationTime(tier))
+    return best, true, electionReadable
 end
 
 local function scanReadableHostileHelpful(unit)
@@ -488,11 +422,10 @@ local function scanReadableHostileHelpful(unit)
     local complete = false
 
     for index = 1, AURA_SCAN_LIMIT do
-        -- Read the full helpful list here, not only INCLUDE_NAME_PLATE_ONLY.
-        -- The latter can omit recovery effects such as FoodDrink, which means
-        -- their existing category priority never enters hostile election.
+        -- Include ordinary helpful auras plus otherwise omitted nameplate-only
+        -- auras. Drink and other ordinary recovery effects remain in this list.
         local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
-            unit, index, "HELPFUL")
+            unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
         if not ok then
             allIdentitiesReadable = false
             break
@@ -516,14 +449,7 @@ local function scanReadableHostileHelpful(unit)
             else
                 local tier = findHelpfulTierForSpell(spellID)
                 if tier then
-                    local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
-                    candidates[#candidates + 1] = {
-                        aura = aura,
-                        spellID = spellID,
-                        tier = tier,
-                        auraInstanceID = instanceReadable and type(auraInstanceID) == "number"
-                            and auraInstanceID or nil,
-                    }
+                    candidates[#candidates + 1] = readableCandidate(unit, aura, spellID, tier)
                 end
             end
         end
@@ -544,24 +470,7 @@ local function scanReadableHostileHelpful(unit)
             end
         end
 
-        if #top == 1 then
-            best = top[1]
-        else
-            for _, candidate in ipairs(top) do
-                if type(candidate.auraInstanceID) ~= "number" then
-                    electionReadable = false
-                    break
-                end
-            end
-            if electionReadable then
-                best = top[1]
-                for i = 2, #top do
-                    if top[i].auraInstanceID > best.auraInstanceID then
-                        best = top[i]
-                    end
-                end
-            end
-        end
+        best, electionReadable = electReadableCandidate(top, usesApplicationTime(top[1].tier))
     end
 
     -- A complete Lua-visible stream still does not prove the secure plane empty.
@@ -596,20 +505,74 @@ local function createReadableExactFrame(host, level)
     return frame
 end
 
-local function hideReadableExact(frame)
-    if not frame then return end
-    if frame.cooldown then
-        if frame.cooldown.Clear then
-            pcall(frame.cooldown.Clear, frame.cooldown)
-        elseif frame.cooldown.SetCooldown then
-            pcall(frame.cooldown.SetCooldown, frame.cooldown, 0, 0)
-        end
+local function clearReadableCooldown(cooldown)
+    if not cooldown then return false end
+    if cooldown.Clear then
+        if pcall(cooldown.Clear, cooldown) then return true end
+        -- A failed clear revokes the replacement. Still try the supported reset
+        -- so the previously displayed countdown does not remain behind it.
+        if cooldown.SetCooldown then pcall(cooldown.SetCooldown, cooldown, 0, 0) end
+        return false
+    elseif cooldown.SetCooldown then
+        return pcall(cooldown.SetCooldown, cooldown, 0, 0)
     end
-    frame:Hide()
+    return false
 end
 
-local function showReadableAura(frame, aura, spellID)
-    if not frame or not aura then return false end
+local function setReadableAuraCooldown(cooldown, unit, aura)
+    if not cooldown then return false end
+
+    -- Transport the current winner's native duration without reading its
+    -- timing components or retaining it across aura/unit assignments.
+    if C_UnitAuras and C_UnitAuras.GetAuraDuration and cooldown.SetCooldownFromDurationObject then
+        local auraInstanceID, instanceReadable = R.ReadAuraField(aura, "auraInstanceID")
+        if instanceReadable and type(auraInstanceID) == "number" then
+            local ok, durationObject = pcall(C_UnitAuras.GetAuraDuration, unit, auraInstanceID)
+            if ok and R.CanAccess(durationObject) and durationObject ~= nil
+                -- Each presentation assigns the current winner. A zero object
+                -- must clear a previous timed aura, including same-ID refreshes.
+                and pcall(cooldown.SetCooldownFromDurationObject, cooldown, durationObject, true)
+            then
+                return true
+            end
+        end
+    end
+
+    local duration, durationReadable = R.ReadAuraField(aura, "duration")
+    if not durationReadable or type(duration) ~= "number" then return false end
+    if duration == 0 then return clearReadableCooldown(cooldown) end
+
+    local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
+    local timeMod, timeModReadable = R.ReadAuraField(aura, "timeMod")
+    if duration > 0 and expirationReadable and type(expirationTime) == "number" and timeModReadable then
+        -- Missing timeMod uses the native default. A supplied unreadable or
+        -- invalid modifier cannot authorize an inaccurate owned countdown.
+        if timeMod == nil then timeMod = 1 end
+        if type(timeMod) == "number" and timeMod > 0 and timeMod < math.huge then
+            return cooldown.SetCooldown and pcall(
+                cooldown.SetCooldown, cooldown, expirationTime - duration, duration, timeMod
+            ) or false
+        end
+    end
+    -- Unknown timing is not a permanent-aura witness. Relinquish presentation
+    -- so a successful clear alone cannot suppress the native tier.
+    return false
+end
+
+local function hideReadableExact(frame)
+    if not frame then return end
+    clearReadableCooldown(frame.cooldown)
+    if frame.icon and frame.icon.SetTexture then
+        pcall(frame.icon.SetTexture, frame.icon, nil)
+    end
+    if frame.Hide then pcall(frame.Hide, frame) end
+end
+
+local function setReadableSpellIcon(frame, spellID)
+    if not frame or not frame.icon or not frame.icon.SetTexture then
+        hideReadableExact(frame)
+        return false
+    end
 
     local texture
     if C_Spell and C_Spell.GetSpellTexture then
@@ -619,58 +582,68 @@ local function showReadableAura(frame, aura, spellID)
         local ok, value = pcall(GetSpellTexture, spellID)
         if ok and R.CanAccess(value) then texture = value end
     end
-    if not texture then
+    local usable = (type(texture) == "number" and texture > 0)
+        or (type(texture) == "string" and texture ~= "")
+    if not usable then
         hideReadableExact(frame)
         return false
     end
-    pcall(frame.icon.SetTexture, frame.icon, texture)
+    -- SetTexture reports a boolean success independently of pcall succeeding.
+    local ok, success = pcall(frame.icon.SetTexture, frame.icon, texture)
+    if not ok or not R.CanAccess(success) or success ~= true then
+        hideReadableExact(frame)
+        return false
+    end
+    return true
+end
 
-    local duration, durationReadable = R.ReadAuraField(aura, "duration")
-    local expirationTime, expirationReadable = R.ReadAuraField(aura, "expirationTime")
-    if frame.cooldown then
-        if durationReadable and expirationReadable
-            and type(duration) == "number" and type(expirationTime) == "number"
-            and duration > 0 and frame.cooldown.SetCooldown
-        then
-            pcall(frame.cooldown.SetCooldown, frame.cooldown, expirationTime - duration, duration)
-        elseif frame.cooldown.Clear then
-            pcall(frame.cooldown.Clear, frame.cooldown)
-        elseif frame.cooldown.SetCooldown then
-            pcall(frame.cooldown.SetCooldown, frame.cooldown, 0, 0)
-        end
+local function showReadableAura(frame, aura, spellID, unit)
+    if not R.CanAccess(aura) or aura == nil then
+        hideReadableExact(frame)
+        return false
+    end
+    if not setReadableSpellIcon(frame, spellID) then return false end
+
+    if not setReadableAuraCooldown(frame.cooldown, unit, aura) then
+        hideReadableExact(frame)
+        return false
     end
 
-    frame:Show()
+    if not frame.Show or not pcall(frame.Show, frame) then
+        hideReadableExact(frame)
+        return false
+    end
     return true
 end
 
 local function showStaticSpell(frame, spellID)
-    if not frame then return false end
-
-    local texture
-    if C_Spell and C_Spell.GetSpellTexture then
-        local ok, value = pcall(C_Spell.GetSpellTexture, spellID)
-        if ok and R.CanAccess(value) then texture = value end
-    elseif GetSpellTexture then
-        local ok, value = pcall(GetSpellTexture, spellID)
-        if ok and R.CanAccess(value) then texture = value end
-    end
-
-    if not texture then
+    if not setReadableSpellIcon(frame, spellID) then return false end
+    if not clearReadableCooldown(frame.cooldown) then
         hideReadableExact(frame)
         return false
     end
 
-    pcall(frame.icon.SetTexture, frame.icon, texture)
-    if frame.cooldown then
-        if frame.cooldown.Clear then
-            pcall(frame.cooldown.Clear, frame.cooldown)
-        elseif frame.cooldown.SetCooldown then
-            pcall(frame.cooldown.SetCooldown, frame.cooldown, 0, 0)
-        end
+    if not frame.Show or not pcall(frame.Show, frame) then
+        hideReadableExact(frame)
+        return false
     end
+    return true
+end
 
-    frame:Show()
+local function showReadableTier(host, frameKey, candidate, complete)
+    local frame = host[frameKey]
+    if not frame or not frame.SetFrameLevel or not pcall(
+        frame.SetFrameLevel, frame,
+        (host.smallBaseLevel or 0) + (candidate.tier.level or 1) + 1
+    ) then
+        hideReadableExact(frame)
+        return false
+    end
+    if not showReadableAura(frame, candidate.aura, candidate.spellID, host.unit) then return false end
+    host._readableTierOwners[candidate.tier.key] = {
+        frame = frame, frameKey = frameKey, cooldown = frame.cooldown,
+        complete = complete and true or false,
+    }
     return true
 end
 
@@ -698,64 +671,58 @@ local function updateGhostState(host, baseEnabled)
     end
 end
 
-local function clearReadableSlows(host)
-    local frame = host and host.readableSlowsFrame
+local function clearReadableHarmfulTier(host, frameKey, prefix)
+    local frame = host and host[frameKey]
     if frame then hideReadableExact(frame) end
     if host then
-        host._slowsReadable = false
-        host._slowsElectionReadable = false
-        host._slowsSpellID = nil
-        host._slowsActive = false
+        host[prefix .. "Readable"] = false
+        host[prefix .. "ElectionReadable"] = false
+        host[prefix .. "SpellID"] = nil
+        host[prefix .. "Active"] = false
     end
 end
 
-local function updateReadableSlows(host, baseEnabled)
+local function updateReadableHarmfulTier(host, baseEnabled, tierKey, frameKey, prefix)
     if not host or not baseEnabled or R.testMode or R.SMALL_UNITS[host.unit] then
-        clearReadableSlows(host)
+        clearReadableHarmfulTier(host, frameKey, prefix)
         return
     end
 
-    local tier = findTierByKey("Slows")
+    local tier = findTierByKey(tierKey)
     if not tier then
-        clearReadableSlows(host)
+        clearReadableHarmfulTier(host, frameKey, prefix)
         return
     end
 
     -- If the secure exact harmful filter is legal for this relation, leave the
     -- secure AuraContainer fully authoritative.
     if R.ExactFilterAllowed(host.unit, false, tier.spellIDs, tier.allowNeverSecret) then
-        clearReadableSlows(host)
+        clearReadableHarmfulTier(host, frameKey, prefix)
         return
     end
 
     local best, complete, electionReadable = scanLatestReadableExactTierAura(
-        host.unit, "Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY"
+        host.unit, tierKey, tier.filter
     )
-    host._slowsReadable = complete
-    host._slowsElectionReadable = electionReadable
-    host._slowsSpellID = best and best.spellID or nil
+    host[prefix .. "Readable"] = complete
+    host[prefix .. "ElectionReadable"] = electionReadable
+    host[prefix .. "SpellID"] = best and best.spellID or nil
 
     if not complete or not electionReadable or not best then
-        hideReadableExact(host.readableSlowsFrame)
-        host._slowsActive = false
+        hideReadableExact(host[frameKey])
+        host[prefix .. "Active"] = false
         return
     end
 
-    if host.readableSlowsFrame and host.readableSlowsFrame.SetFrameLevel then
-        host.readableSlowsFrame:SetFrameLevel(
-            (host.smallBaseLevel or 0) + (tier.level or 220) + 2
-        )
-    end
-    host._slowsActive = showReadableAura(
-        host.readableSlowsFrame, best.aura, best.spellID
-    )
+    host[prefix .. "Active"] = showReadableTier(host, frameKey, best, true)
 end
 
 local function clearReadableHostile(host)
+    if not host then return end
     local frame = host and host.readableHostileFrame
-    if not frame then return end
     hideReadableExact(frame)
     host._hostileReadable = false
+    host._hostileActive = false
     host._hostileElectionReadable = false
     host._hostileAuraListComplete = false
     host._hostileCount = 0
@@ -777,51 +744,22 @@ local function updateReadableHostile(host, baseEnabled)
     host._hostileCount = count
     host._hostileSpellID = best and best.spellID or nil
     host._hostileTierKey = best and best.tier and best.tier.key or nil
+    host._hostileActive = false
 
     local frame = host.readableHostileFrame
     if not frame or not best then
-        if frame then hideReadableExact(frame) end
-        return authoritative
-    end
-
-    local texture
-    if C_Spell and C_Spell.GetSpellTexture then
-        local ok, value = pcall(C_Spell.GetSpellTexture, best.spellID)
-        if ok and R.CanAccess(value) then texture = value end
-    elseif GetSpellTexture then
-        local ok, value = pcall(GetSpellTexture, best.spellID)
-        if ok and R.CanAccess(value) then texture = value end
-    end
-    if not texture then
-        -- A new exact winner without a readable texture must revoke the old
-        -- presentation. Never let a previous winner's icon masquerade as the
-        -- current aura.
         hideReadableExact(frame)
-        return authoritative
+        return false
     end
-    pcall(frame.icon.SetTexture, frame.icon, texture)
-
-    -- +2 puts the readable exact witness above the secure button for the same
-    -- priority lane, while higher-priority secure lanes still outrank it.
-    if frame.SetFrameLevel then pcall(frame.SetFrameLevel, frame, (host.smallBaseLevel or 0) + (best.tier.level or 1) + 2) end
-
-    local duration, durationReadable = R.ReadAuraField(best.aura, "duration")
-    local expirationTime, expirationReadable = R.ReadAuraField(best.aura, "expirationTime")
-    if frame.cooldown then
-        if durationReadable and expirationReadable
-            and type(duration) == "number" and type(expirationTime) == "number"
-            and duration > 0 and frame.cooldown.SetCooldown
-        then
-            pcall(frame.cooldown.SetCooldown, frame.cooldown, expirationTime - duration, duration)
-        elseif frame.cooldown.Clear then
-            pcall(frame.cooldown.Clear, frame.cooldown)
-        elseif frame.cooldown.SetCooldown then
-            pcall(frame.cooldown.SetCooldown, frame.cooldown, 0, 0)
-        end
+    -- A partial readable witness is useful only when it cannot compete with an
+    -- eligible native owner of the same tier. It never suppresses that owner.
+    if not authoritative and R.NativeExactContainerAllowed(host.unit, best.tier) then
+        hideReadableExact(frame)
+        return false
     end
 
-    frame:Show()
-    return authoritative
+    host._hostileActive = showReadableTier(host, "readableHostileFrame", best, authoritative)
+    return authoritative and host._hostileActive
 end
 
 local function updateReadableDivineProtection(host, baseEnabled, hostileUnit, secureAllowed)
@@ -832,14 +770,16 @@ local function updateReadableDivineProtection(host, baseEnabled, hostileUnit, se
     host._divineProtectionSpellID = nil
 
     local frame = host.readableDivineProtectionFrame
-    if not frame or not baseEnabled or R.testMode or not hostileUnit or secureAllowed or not tier then
+    if not frame or not baseEnabled or R.testMode or not hostileUnit or secureAllowed or not tier
+        or host._readableTierOwners.DivineProtection
+        or R.NativeExactContainerAllowed(host.unit, tier)
+    then
         if frame then hideReadableExact(frame) end
         return
     end
 
-    -- Some clients omit hostile buffs from the nameplate-visible subset while
-    -- still exposing their ordinary helpful-aura stream. Accept only the exact
-    -- tracked Divine Protection IDs from a positively hostile unit.
+    -- Retain a directly readable exact witness only where a native owner cannot
+    -- run and the general hostile presenter did not already claim this tier.
     local aura, spellID, readable = scanReadableExactAuraSet(
         host.unit, "HELPFUL", tier.spellIDs
     )
@@ -850,64 +790,55 @@ local function updateReadableDivineProtection(host, baseEnabled, hostileUnit, se
         return
     end
 
-    -- updateReadableHostile already draws the same exact witness when it is in
-    -- the nameplate-visible subset. Avoid stacking a duplicate icon over it.
-    local hostileFrame = host.readableHostileFrame
-    local hostileFrameShown = false
-    if hostileFrame and hostileFrame.IsShown then
-        local shownOK, shown = pcall(hostileFrame.IsShown, hostileFrame)
-        hostileFrameShown = shownOK and shown == true
-    end
-    if hostileFrameShown and host._hostileSpellID == spellID then
-        hideReadableExact(frame)
-        host._divineProtectionActive = true
-        return
-    end
-
-    host._divineProtectionActive = showReadableAura(frame, aura, spellID)
+    host._divineProtectionActive = showReadableTier(host, "readableDivineProtectionFrame",
+        { aura = aura, spellID = spellID, tier = tier }, false)
 end
 
-local function clearReadableBaseline(host)
-    local frame = host and host.readableBaselineFrame
+local function clearReadableRecency(host, frameKey, prefix)
+    local frame = host and host[frameKey]
     if frame then hideReadableExact(frame) end
     if host then
-        host._baselineReadable = false
-        host._baselineElectionReadable = false
-        host._baselineSpellID = nil
-        host._baselineTimingReadable = false
-        host._baselineTimingSource = nil
-        host._baselineAppliedAt = nil
+        host[prefix .. "Readable"] = false
+        host[prefix .. "ElectionReadable"] = false
+        host[prefix .. "SpellID"] = nil
+        host[prefix .. "TimingReadable"] = false
+        host[prefix .. "TimingSource"] = nil
+        host[prefix .. "AppliedAt"] = nil
+        host[prefix .. "Active"] = false
     end
 end
 
-local function updateReadableBaseline(host, baseEnabled)
-    if not host or not baseEnabled or R.testMode then
-        clearReadableBaseline(host)
+local function updateReadableRecency(host, baseEnabled, tierKey, frameKey, prefix)
+    if not host or not baseEnabled or R.testMode or host._readableTierOwners[tierKey] then
+        clearReadableRecency(host, frameKey, prefix)
         return
     end
 
-    local tier = findTierByKey("BaselineClass")
+    local tier = findTierByKey(tierKey)
     if not tier or not R.ExactFilterAllowed(
         host.unit, true, tier.spellIDs, tier.allowNeverSecret
     ) then
-        clearReadableBaseline(host)
+        clearReadableRecency(host, frameKey, prefix)
         return
     end
 
-    local best, complete, electionReadable = scanLatestReadableBaselineAura(host.unit)
-    host._baselineReadable = complete
-    host._baselineElectionReadable = electionReadable
-    host._baselineSpellID = best and best.spellID or nil
-    host._baselineTimingReadable = best and best.timingReadable or false
-    host._baselineTimingSource = best and best.timingSource or nil
-    host._baselineAppliedAt = best and best.appliedAt or nil
+    local best, complete, electionReadable = scanLatestReadableExactTierAura(
+        host.unit, tierKey, "HELPFUL|INCLUDE_NAME_PLATE_ONLY"
+    )
+    host[prefix .. "Readable"] = complete
+    host[prefix .. "ElectionReadable"] = electionReadable
+    host[prefix .. "SpellID"] = best and best.spellID or nil
+    host[prefix .. "TimingReadable"] = best and best.timingReadable or false
+    host[prefix .. "TimingSource"] = best and best.timingSource or nil
+    host[prefix .. "AppliedAt"] = best and best.appliedAt or nil
+    host[prefix .. "Active"] = false
 
     if not complete or not electionReadable or not best then
-        hideReadableExact(host.readableBaselineFrame)
+        hideReadableExact(host[frameKey])
         return
     end
 
-    showReadableAura(host.readableBaselineFrame, best.aura, best.spellID)
+    host[prefix .. "Active"] = showReadableTier(host, frameKey, best, true)
 end
 
 local function clearReadableWelcomingCampfire(host)
@@ -927,7 +858,7 @@ local function clearReadableWelcomingCampfire(host)
 end
 
 local function updateReadableWelcomingCampfire(host, baseEnabled)
-    if not host or not baseEnabled or R.testMode then
+    if not host or not baseEnabled or R.testMode or host._readableTierOwners.Utility then
         clearReadableWelcomingCampfire(host)
         return
     end
@@ -952,8 +883,8 @@ local function updateReadableWelcomingCampfire(host, baseEnabled)
         return
     end
 
-    host._welcomingCampfireActive = showReadableAura(
-        host.readableWelcomingCampfireFrame, best.aura, best.spellID
+    host._welcomingCampfireActive = showReadableTier(
+        host, "readableWelcomingCampfireFrame", best, true
     )
 end
 
@@ -970,6 +901,7 @@ local function createTestFrame(host)
     local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
     configureCooldown(cooldown, host.unit)
     frame.cooldown = cooldown
+    host.cooldowns[#host.cooldowns + 1] = cooldown
     frame:Hide()
     return frame
 end
@@ -978,6 +910,14 @@ local function hostStillCurrent(host)
     if not host then return false end
     local portrait, _, unitFrame = R.GetPortrait(host.unit)
     return portrait == host.portrait and unitFrame == host.unitFrame
+end
+
+local function hostHasSupportedBinding(host)
+    if host.unit ~= "player" then return true end
+    -- The native PlayerFrame can temporarily display a vehicle. Missing or
+    -- inaccessible bindings also leave that native portrait in control.
+    local binding = host.unitFrame and host.unitFrame.unit
+    return R.CanAccess(binding) and binding == "player"
 end
 
 local function disableContainers(host)
@@ -1005,11 +945,17 @@ function R.DestroyHost(unit)
         return false
     end
     disableContainers(host)
+    for _, owner in pairs(host._readableTierOwners or {}) do hideReadableExact(owner.frame) end
+    host._readableTierOwners = {}
     if host.testFrame then host.testFrame:Hide() end
     if host.readableHostileFrame then host.readableHostileFrame:Hide() end
     if host.readableBaselineFrame then host.readableBaselineFrame:Hide() end
+    if host.readableHealingFrame then hideReadableExact(host.readableHealingFrame) end
     if host.readableSlowsFrame then host.readableSlowsFrame:Hide() end
+    if host.readableForbearanceFrame then hideReadableExact(host.readableForbearanceFrame) end
     if host.readableResSicknessFrame then host.readableResSicknessFrame:Hide() end
+    if host.readableStatusEffectsFrame then hideReadableExact(host.readableStatusEffectsFrame) end
+    if host.readableOffensiveHarmfulFrame then hideReadableExact(host.readableOffensiveHarmfulFrame) end
     if host.readableRecentlyBandagedFrame then host.readableRecentlyBandagedFrame:Hide() end
     if host.readableGhostFrame then host.readableGhostFrame:Hide() end
     if host.readableWelcomingCampfireFrame then host.readableWelcomingCampfireFrame:Hide() end
@@ -1056,7 +1002,14 @@ function R.CreateHost(unit)
     -- and the secure aura occupy the same addon-owned layer one strata below
     -- the native frame artwork.  The native ring/chrome therefore frames both
     -- naturally.  Small-frame offsets tune only aura placement, not ownership.
-    local parentStrata = originalParent.GetFrameStrata and originalParent:GetFrameStrata() or "MEDIUM"
+    local parentStrata = "MEDIUM"
+    if originalParent.GetFrameStrata then
+        local ok, value = pcall(originalParent.GetFrameStrata, originalParent)
+        -- Native frame strata can be secret. Wait for a readable value before
+        -- constructing or moving anything; an existing refresh can retry.
+        if not ok or not R.CanAccess(value) or type(value) ~= "string" then return nil end
+        parentStrata = value
+    end
     strata = STRATA_BELOW[parentStrata] or "BACKGROUND"
 
     layer = CreateFrame("Frame", nil, originalParent)
@@ -1120,25 +1073,15 @@ function R.CreateHost(unit)
     host.readableBaselineFrame = createReadableExactFrame(
         host, baselineTier and baselineTier.level or 90
     )
-    if host.readableBaselineFrame and host.readableBaselineFrame.SetFrameLevel then
-        host.readableBaselineFrame:SetFrameLevel(
-            (host.smallBaseLevel or 0) + (baselineTier and baselineTier.level or 90) + 2
-        )
-    end
+    local healingTier = findTierByKey("Healing")
+    host.readableHealingFrame = createReadableExactFrame(
+        host, healingTier and healingTier.level or 255
+    )
 
     local utilityTier = findTierByKey("Utility")
     host.readableWelcomingCampfireFrame = createReadableExactFrame(
         host, utilityTier and utilityTier.level or 270
     )
-    -- Campfire's readable witness is a fallback presentation for the merged
-    -- Utility lane, not a second priority lane. Keep it on the exact 270 surface.
-    if host.readableWelcomingCampfireFrame
-        and host.readableWelcomingCampfireFrame.SetFrameLevel
-    then
-        host.readableWelcomingCampfireFrame:SetFrameLevel(
-            (host.smallBaseLevel or 0) + (utilityTier and utilityTier.level or 270)
-        )
-    end
 
     -- Keep derived Blizzard target frames structurally identical to v0.1.1.
     -- They are lifecycle-sensitive; do not attach the ordinary readable
@@ -1146,14 +1089,29 @@ function R.CreateHost(unit)
     if not R.SMALL_UNITS[unit] then
         local boostedRestTier = findTierByKey("BoostedRest")
         host.readableBoostedRestFrame = createReadableExactFrame(
-            host, boostedRestTier and boostedRestTier.level or 20
+            host, boostedRestTier and boostedRestTier.level or 1
         )
 
         local slowsTier = findTierByKey("Slows")
         host.readableSlowsFrame = createReadableExactFrame(host, slowsTier and slowsTier.level or 220)
 
+        local forbearanceTier = findTierByKey("Forbearance")
+        host.readableForbearanceFrame = createReadableExactFrame(
+            host, forbearanceTier and forbearanceTier.level or 240
+        )
+
         local resTier = findTierByKey("ResSickness")
         host.readableResSicknessFrame = createReadableExactFrame(host, resTier and resTier.level or 241)
+
+        local statusEffectsTier = findTierByKey("StatusEffects")
+        host.readableStatusEffectsFrame = createReadableExactFrame(
+            host, statusEffectsTier and statusEffectsTier.level or 279
+        )
+
+        local offensiveHarmfulTier = findTierByKey("OffensiveHarmful")
+        host.readableOffensiveHarmfulFrame = createReadableExactFrame(
+            host, offensiveHarmfulTier and offensiveHarmfulTier.level or 281
+        )
 
         local waitingTier = findTierByKey("WaitingToResurrect")
         host.readableWaitingToResurrectFrame = createReadableExactFrame(
@@ -1181,15 +1139,13 @@ function R.CreateHost(unit)
         host.readableDivineProtectionFrame = createReadableExactFrame(
             host, divineProtectionTier and divineProtectionTier.level or 331
         )
-        if host.readableDivineProtectionFrame
-            and host.readableDivineProtectionFrame.SetFrameLevel
-        then
-            host.readableDivineProtectionFrame:SetFrameLevel(
-                (host.smallBaseLevel or 0) + (divineProtectionTier and divineProtectionTier.level or 331) + 2
-            )
-        end
     end
 
+    -- A delayed host can be created by an aura-only refresh. Initialize its
+    -- independent foundation once; existing hosts keep their scoped pet events.
+    if unit ~= "player" and R.UpdateObservedPetPortrait then
+        R.UpdateObservedPetPortrait(unit)
+    end
     return host
 end
 
@@ -1215,9 +1171,19 @@ end
 
 function R.UpdateHost(host, forceContainerRefresh)
     if not host then return end
+    local owners = host._readableTierOwners or {}
+    for key, owner in pairs(owners) do
+        -- A missing/replaced addon frame must revoke its previous presentation.
+        if host[owner.frameKey] ~= owner.frame or owner.frame.cooldown ~= owner.cooldown then
+            clearReadableCooldown(owner.cooldown)
+            hideReadableExact(owner.frame)
+        end
+        owners[key] = nil
+    end
+    host._readableTierOwners = owners
     local unitExists, existsReadable = R.UnitExistsState(host.unit)
     local present = not UnitExists or (existsReadable and unitExists)
-    local base = R.IsUnitEnabled(host.unit) and not R.testMode and present
+    local base = R.IsUnitEnabled(host.unit) and not R.testMode and present and hostHasSupportedBinding(host)
     host._unitExists = present and true or false
     host._unitExistsReadable = existsReadable
     local hostileUnit, hostileRelationReadable = R.HostileUnitState(host.unit)
@@ -1252,9 +1218,14 @@ function R.UpdateHost(host, forceContainerRefresh)
         host, base, hostileUnit, divineProtectionSecureAllowed
     )
 
-    -- Friendly/self exact harmful spell-ID filters can be relation-restricted.
-    -- Directly readable Slows therefore get a narrow exact fallback.
-    updateReadableSlows(host, base)
+    -- These friendly/self harmful lanes can be relation-restricted. Use only
+    -- complete, directly readable same-tier elections; partial/secret lists
+    -- cannot replace a permitted native owner or invent an aura's identity.
+    updateReadableHarmfulTier(host, base, "Slows", "readableSlowsFrame", "_slows")
+    updateReadableHarmfulTier(host, base, "Forbearance", "readableForbearanceFrame", "_forbearance")
+    updateReadableHarmfulTier(host, base, "ResSickness", "readableResSicknessFrame", "_resSickness")
+    updateReadableHarmfulTier(host, base, "StatusEffects", "readableStatusEffectsFrame", "_statusEffects")
+    updateReadableHarmfulTier(host, base, "OffensiveHarmful", "readableOffensiveHarmfulFrame", "_offensiveHarmful")
 
     -- Boosted Rest is a harmful camping cooldown that can be directly readable
     -- on friendly/self units even when exact harmful-ID AuraContainer filtering
@@ -1273,38 +1244,13 @@ function R.UpdateHost(host, forceContainerRefresh)
         host._boostedRestReadable = readable
         if aura then
             host._boostedRestActive = showReadableAura(
-                host.readableBoostedRestFrame, aura, BOOSTED_REST_SPELL_ID
+                host.readableBoostedRestFrame, aura, BOOSTED_REST_SPELL_ID, host.unit
             )
         else
             hideReadableExact(host.readableBoostedRestFrame)
         end
     elseif host.readableBoostedRestFrame then
         hideReadableExact(host.readableBoostedRestFrame)
-    end
-
-    -- Resurrection Sickness is a harmful aura commonly observed on self/friendly
-    -- units, where exact harmful-ID AuraContainer filters may be relation-gated.
-    -- If the secure exact lane is legal, it remains authoritative. Otherwise we
-    -- render only a directly readable exact 15007 witness and make no inference
-    -- when the aura stream or spell identity is inaccessible.
-    local resTier = findTierByKey("ResSickness")
-    local resSecureAllowed = resTier and R.ExactFilterAllowed(
-        host.unit, false, resTier.spellIDs, resTier.allowNeverSecret
-    ) or false
-    host._resSicknessReadable = false
-    host._resSicknessActive = false
-    if not R.SMALL_UNITS[host.unit] and base and resTier and not resSecureAllowed then
-        local aura, readable = scanReadableExactAura(host.unit, "HARMFUL", RES_SICKNESS_SPELL_ID)
-        host._resSicknessReadable = readable
-        if aura then
-            host._resSicknessActive = showReadableAura(
-                host.readableResSicknessFrame, aura, RES_SICKNESS_SPELL_ID
-            )
-        else
-            hideReadableExact(host.readableResSicknessFrame)
-        end
-    elseif host.readableResSicknessFrame then
-        hideReadableExact(host.readableResSicknessFrame)
     end
 
     -- Waiting to Resurrect is a helpful aura on ghosted units. Keep its secure
@@ -1318,15 +1264,19 @@ function R.UpdateHost(host, forceContainerRefresh)
     host._waitingToResurrectReadable = false
     host._waitingToResurrectActive = false
     host._waitingToResurrectSpellID = nil
-    if not R.SMALL_UNITS[host.unit] and base and waitingTier and not waitingSecureAllowed then
+    if not R.SMALL_UNITS[host.unit] and base and waitingTier and not waitingSecureAllowed
+        and not host._readableTierOwners.WaitingToResurrect
+        and not R.NativeExactContainerAllowed(host.unit, waitingTier)
+    then
         local aura, spellID, readable = scanReadableExactAuraSet(
             host.unit, "HELPFUL", waitingTier.spellIDs
         )
         host._waitingToResurrectReadable = readable
         if aura then
             host._waitingToResurrectSpellID = spellID
-            host._waitingToResurrectActive = showReadableAura(
-                host.readableWaitingToResurrectFrame, aura, spellID
+            host._waitingToResurrectActive = showReadableTier(
+                host, "readableWaitingToResurrectFrame",
+                { aura = aura, spellID = spellID, tier = waitingTier }, false
             )
         else
             hideReadableExact(host.readableWaitingToResurrectFrame)
@@ -1353,7 +1303,7 @@ function R.UpdateHost(host, forceContainerRefresh)
         host._recentlyBandagedReadable = readable
         if aura then
             host._recentlyBandagedActive = showReadableAura(
-                host.readableRecentlyBandagedFrame, aura, RECENTLY_BANDAGED_SPELL_ID
+                host.readableRecentlyBandagedFrame, aura, RECENTLY_BANDAGED_SPELL_ID, host.unit
             )
         else
             hideReadableExact(host.readableRecentlyBandagedFrame)
@@ -1366,8 +1316,9 @@ function R.UpdateHost(host, forceContainerRefresh)
     -- self/friendly units where exact harmful aura identity may be unavailable.
     updateGhostState(host, base)
 
-    -- BaselineClass keeps its own priority-90 recency election.
-    updateReadableBaseline(host, base)
+    -- BaselineClass and Healing share application-time evidence and election.
+    updateReadableRecency(host, base, "BaselineClass", "readableBaselineFrame", "_baseline")
+    updateReadableRecency(host, base, "Healing", "readableHealingFrame", "_healing")
 
     -- Welcoming Campfire is a Utility-tier state at 270. Its separate readable
     -- witness exists only for Forever visibility and stays on the same visual
@@ -1412,34 +1363,25 @@ function R.UpdateHost(host, forceContainerRefresh)
                 and R.SMALL_UNITS[host.unit]
                 and not exactHarmfulAllowed
             host._smallHarmfulEnabled = enabled and true or false
-        elseif tier.key == "Utility" and host._welcomingCampfireActive then
-            -- The readable Campfire witness is already rendering the exact
-            -- priority-270 winner. Suppress the merged secure Utility slot so
-            -- its cooldown text cannot stack underneath the readable cooldown.
-            enabled = false
         elseif tier.key == "ChilledSignature" then
             -- Chilled's semantic signature is the last resort: exact secure
             -- identity first, then the readable exact Slows witness, then shape.
-            enabled = enabled and not slowsSecureAllowed and not host._slowsReadable
+            enabled = enabled and not slowsSecureAllowed and not host._slowsActive
         elseif tier.key == "WeakenedSoulFallback" then
             -- Do not run the broad short-harmful approximation where exact
             -- Weakened Soul identity filtering is already legal.
             enabled = enabled and not weakenedSoulSecureAllowed
         elseif tier.exact then
-            if tier.key == "ImmunityHarmful" and host._ghostActive then
+            local owner = host._readableTierOwners[tier.key]
+            if (owner and owner.complete) or (tier.key == "ImmunityHarmful" and host._ghostActive) then
+                -- Only a complete, successfully presented same-tier election
+                -- replaces a native exact owner. Ghost keeps its state rule.
                 enabled = false
-            elseif tier.key == "ResSickness" then
-                enabled = enabled and resSecureAllowed
-            elseif tier.key == "RecentlyBandaged" then
-                enabled = enabled and recentlyBandagedSecureAllowed
             else
-                -- ExactFilterAllowed owns the complete relation rule. In
-                -- particular, an allowNeverSecret lane may legally cross the
-                -- usual helpful/harmful relation boundary when every candidate
-                -- ID in that lane is explicitly NeverSecret.
-                enabled = enabled and R.ExactFilterAllowed(
-                    host.unit, tier.helpful, tier.spellIDs, tier.allowNeverSecret
-                )
+                -- Native filtering checks permission per aura. A mixed opted-in
+                -- set may run for its NeverSecret members without authorizing
+                -- Lua to treat the whole set as readable.
+                enabled = enabled and R.NativeExactContainerAllowed(host.unit, tier)
             end
         end
 
@@ -1466,9 +1408,9 @@ end
 
 function R.Refresh(unit, forceContainerRefresh)
     local host = R.hosts[unit]
-    if not R.db or not R.db.enabled then
+    if not R.IsUnitEnabled(unit) then
         -- A stale host may still await combat-safe restoration. Hide its
-        -- presentation without entering the replacement/construction path.
+        -- disabled presentation before any replacement/construction path.
         if host then
             if host.testFrame then host.testFrame:Hide() end
             R.UpdateHost(host)
@@ -1486,7 +1428,7 @@ function R.Refresh(unit, forceContainerRefresh)
     host = host or R.CreateHost(unit)
     if not host then return end
 
-    if R.testMode and R.IsUnitEnabled(unit) then
+    if R.testMode and R.IsUnitEnabled(unit) and hostHasSupportedBinding(host) then
         R.UpdateHost(host, forceContainerRefresh)
         showTest(host)
     else
@@ -1502,6 +1444,8 @@ end
 function R.BuildAll()
     if InCombatLockdown and InCombatLockdown() then
         R.buildQueued = true
+        -- Existing hosts can reconcile presentation while structural work waits.
+        R.RefreshAll()
         return
     end
     if not R.db or not R.db.enabled then

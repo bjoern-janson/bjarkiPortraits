@@ -61,10 +61,23 @@ local function installUnitStateEvents(unitA, unitB)
     register("UNIT_FACTION")
     register("UNIT_FLAGS")
     register("UNIT_CONNECTION")
-    frame:SetScript("OnEvent", function(_, event, unit, updateInfo)
+    register("UNIT_PORTRAIT_UPDATE")
+    register("UNIT_NAME_UPDATE")
+    frame:SetScript("OnEvent", function(_, event, unit)
         if not unit then return end
-        if event == "UNIT_AURA" then
-            R.RecordAuraUpdate(unit, updateInfo)
+        if event == "UNIT_PORTRAIT_UPDATE" or event == "UNIT_NAME_UPDATE" then
+            -- Family or localized summon-name data can arrive after targeting.
+            -- Existing hosts update only the independent pet foundation.
+            -- A recovered missing host also initializes its normal aura state.
+            if unit ~= "player" then R.UpdateObservedPetPortrait(unit) end
+            return
+        end
+        if unit == "player" and (event == "UNIT_FACTION" or event == "UNIT_FLAGS") then
+            -- Every host's exact filter permission depends on the player's
+            -- relation, so these player events invalidate all five hosts.
+            R.RefreshAll(true)
+            R.UpdateObservedPetPortraits()
+        elseif event == "UNIT_AURA" then
             R.Refresh(unit)
         else
             R.Refresh(unit, true)
@@ -104,6 +117,19 @@ end)
 -- Only the player's pet can affect the local PetFrame foundation.
 local unitPetEvents = CreateFrame("Frame")
 unitPetEvents:RegisterUnitEvent("UNIT_PET", "player")
+unitPetEvents:RegisterUnitEvent("UNIT_PORTRAIT_UPDATE", "pet")
 unitPetEvents:SetScript("OnEvent", function()
     R.UpdateLocalPetPortrait()
 end)
+
+-- Native vehicle art reuses PlayerFrame and PetFrame for different units.
+-- Reconcile only these owned layers after the native binding and repaint.
+if hooksecurefunc and type(UnitFrame_SetUnit) == "function" then
+    hooksecurefunc("UnitFrame_SetUnit", function(frame)
+        if frame == _G.PlayerFrame then
+            R.Refresh("player", true)
+        elseif frame == _G.PetFrame then
+            R.UpdateLocalPetPortrait()
+        end
+    end)
+end

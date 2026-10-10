@@ -3,16 +3,156 @@ local R = assert(BP.Runtime, "Core.lua must load first")
 
 local function setToggle(key, value)
     R.db[key] = value
+    if not value then R.Refresh(key) end
     R.BuildAll()
     R.UpdatePetPortraits()
+end
+
+local function inspectBool(object, key)
+    local value, readable = R.ReadAuraField(object, key)
+    return readable and type(value) == "boolean" and tostring(value) or "unknown"
+end
+
+local function inspectAuraLookup(getter, expectedID, ...)
+    if type(getter) ~= "function" then return "api-unavailable" end
+    local ok, aura = pcall(getter, ...)
+    if not ok then return "api-error" end -- Error objects may themselves be secret.
+    if not R.CanAccess(aura) then return "inaccessible-aura" end
+    if aura == nil then return "no-values(absent/invisible/restricted)" end
+    local id, readable = R.ReadAuraField(aura, "spellId")
+    if not readable then return "inaccessible-spellId" end
+    if type(id) ~= "number" or id <= 0 or id % 1 ~= 0 then return "invalid-spellId" end
+    return (expectedID and id ~= expectedID and "readable-other:" or "readable:") .. tostring(id)
+end
+
+local function inspectAuras(option)
+    local unit = ({ player="player", target="target", focus="focus",
+        tot="targettarget", targettarget="targettarget",
+        fot="focustarget", focustarget="focustarget" })[option == "" and "target" or option]
+    if not unit then R.Print("usage: /bp inspect [player|target|focus|tot|fot]"); return end
+    local host = R.hosts[unit]
+    R.Print("inspect " .. unit .. " version=" .. R.VERSION .. " host=" .. tostring(host ~= nil)
+        .. " exactHelpful=" .. tostring(R.ExactFilterAllowed(unit, true, nil, false))
+        .. " exactHarmful=" .. tostring(R.ExactFilterAllowed(unit, false, nil, false))
+        .. " readableWinner=" .. tostring(host and host._hostileTierKey or "none")
+        .. " active=" .. tostring(host and host._hostileActive == true or false))
+
+    -- Report only public numeric IDs. Inspecting must not refresh presentation,
+    -- construct hosts, or infer identities from native protected widgets.
+    local getter = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
+    for _, filter in ipairs({ "HELPFUL", "HARMFUL" }) do
+        local readable, restricted, ids = 0, 0, {}
+        local status, apiError = "unavailable", nil
+        if type(getter) == "function" then
+            status = "limit"
+            for index = 1, 80 do
+                local ok, aura = pcall(getter, unit, index, filter .. "|INCLUDE_NAME_PLATE_ONLY")
+                if not ok then
+                    status = "error"
+                    -- Keep access failures distinguishable from other API errors.
+                    -- Error objects can also be inaccessible; never stringify them.
+                    apiError = R.CanAccess(aura) and type(aura) == "string"
+                        and aura:gsub("[%c|]", " "):sub(1, 160) or "unavailable"
+                    break
+                end
+                if not R.CanAccess(aura) then
+                    restricted = restricted + 1
+                elseif aura == nil then
+                    status = "complete"; break
+                else
+                    local id, accessible = R.ReadAuraField(aura, "spellId")
+                    if accessible and type(id) == "number" and id > 0 and id % 1 == 0 then
+                        readable = readable + 1
+                        if #ids < 12 then
+                            local priority = "unlisted"
+                            for _, tier in ipairs(R.TIERS) do
+                                if tier.exact and tier.helpful == (filter == "HELPFUL") and tier.spellIDs[id] then
+                                    priority = tostring(tier.level); break
+                                end
+                            end
+                            ids[#ids + 1] = tostring(id) .. "@" .. priority
+                        end
+                    else
+                        restricted = restricted + 1
+                    end
+                end
+            end
+        end
+        R.Print(filter:lower() .. " readable=" .. readable .. " restricted=" .. restricted
+            .. " listed=" .. #ids .. "/" .. readable .. " scan=" .. status
+            .. " ids=" .. (#ids > 0 and table.concat(ids, ",") or "none")
+            .. (apiError and " error=" .. apiError or ""))
+    end
+
+    local policies = {}
+    for _, id in ipairs({ 6615, 2645, 1286304, 1229451, 5277, 1323184, 13810, 116 }) do
+        local state = "unknown"
+        if C_Secrets and type(C_Secrets.GetSpellAuraSecrecy) == "function" and Enum and Enum.SecrecyLevel then
+            local ok, value = pcall(C_Secrets.GetSpellAuraSecrecy, id)
+            if ok and R.CanAccess(value) and type(value) == "number" then
+                state = value == Enum.SecrecyLevel.NeverSecret and "yes" or "no"
+            end
+        end
+        policies[#policies + 1] = id .. "=" .. state
+    end
+    R.Print("neverSecret " .. table.concat(policies, " "))
+
+    -- Observe saved reader evidence. Native eligibility is the existing
+    -- permission check, not proof that a native container has an active aura.
+    for _, lane in ipairs({ { "Slows", "_slows" }, { "StatusEffects", "_statusEffects" } }) do
+        R.Print("lane " .. lane[1]
+            .. " readerComplete=" .. inspectBool(host, lane[2] .. "Readable")
+            .. " readerElection=" .. inspectBool(host, lane[2] .. "ElectionReadable")
+            .. " readerActive=" .. inspectBool(host, lane[2] .. "Active")
+            .. " nativeEligible=" .. tostring(R.NativeExactContainerAllowed(unit, R.TIER_BY_KEY[lane[1]])))
+    end
+
+    -- On-demand known-spell probes only. Nil is ambiguous; retain no aura,
+    -- identity, localized name, or timing evidence after this command returns.
+    local byID = C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID
+    local playerCompat = type(byID) ~= "function" and unit == "player"
+        and C_UnitAuras and type(C_UnitAuras.GetPlayerAuraBySpellID) == "function"
+    if playerCompat then byID = C_UnitAuras.GetPlayerAuraBySpellID end
+    for _, spell in ipairs({ { "SharkAttack", 1323184 }, { "FrostTrapArea", 13810 }, { "Frostbolt", 116 } }) do
+        local result
+        if playerCompat then result = inspectAuraLookup(byID, spell[2], spell[2])
+        else result = inspectAuraLookup(byID, spell[2], unit, spell[2]) end
+        local prediction = "unknown"
+        if C_Secrets and type(C_Secrets.ShouldSpellAuraBeSecret) == "function" then
+            local ok, value = pcall(C_Secrets.ShouldSpellAuraBeSecret, spell[2])
+            if ok and R.CanAccess(value) and type(value) == "boolean" then
+                prediction = value and "yes" or "no"
+            end
+        end
+        local line = "known " .. spell[1] .. " id=" .. spell[2] .. " byID=" .. result
+            .. (playerCompat and " source=player-compat" or "") .. " predictedSecret=" .. prediction
+        if spell[2] == 116 then
+            -- Resolve Frostbolt's localized name each time so an actual rank's
+            -- returned spellId can be reported without guessing rank identity.
+            local status = "name-api-unavailable"
+            if C_Spell and type(C_Spell.GetSpellName) == "function" then
+                local ok, name = pcall(C_Spell.GetSpellName, 116)
+                if not ok then status = "name-api-error"
+                elseif not R.CanAccess(name) then status = "inaccessible-name"
+                elseif name == nil then status = "name-no-values"
+                elseif type(name) ~= "string" or name == "" then status = "invalid-name"
+                else
+                    status = inspectAuraLookup(C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName,
+                        nil, unit, name, "HARMFUL|INCLUDE_NAME_PLATE_ONLY")
+                end
+            end
+            line = line .. " byName=" .. status
+        end
+        R.Print(line)
+    end
 end
 
 SLASH_BJARKIPORTRAITS1 = "/bp"
 SLASH_BJARKIPORTRAITS2 = "/bjarkiportraits"
 SlashCmdList.BJARKIPORTRAITS = function(message)
-    local command, option = (message or ""):lower():match("^%s*(%S*)%s*(%S*)")
+    local command, option, detail = (message or ""):lower():match("^%s*(%S*)%s*(%S*)%s*(%S*)")
     if command == "" or command == "help" then
-        R.Print("/bp or /bjarkiportraits test | on | off | player | target | focus | tot | fot | swipe | decimals | pets [status|on|off|debug] | debug | audit | reset")
+        R.Print("/bp or /bjarkiportraits test | on | off | player | target | focus | tot | fot | swipe | decimals | pets [status|on|off|debug [unit]] | inspect [unit] | debug | audit | reset")
     elseif command == "test" then
         R.testMode = not R.testMode
         R.RefreshAll()
@@ -41,12 +181,25 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
         R.Print("decimals " .. tostring(R.db.showDecimals))
     elseif command == "pets" then
         if option == "debug" then
-            R.UpdatePetPortraits()
+            local debugUnit = ({ pet="pet", target="target", focus="focus",
+                tot="targettarget", targettarget="targettarget",
+                fot="focustarget", focustarget="focustarget" })[detail]
+            if detail ~= "" and not debugUnit then
+                R.Print("usage: /bp pets debug [pet|target|focus|tot|fot]")
+                return
+            end
+            -- Observe the failure before a manual refresh can hide it.
             R.Print("pets debug version=" .. tostring(R.VERSION)
                 .. " enabled=" .. tostring(R.db and R.db.enabled == true)
                 .. " setting=" .. tostring(R.db and R.db.petPortraits == true))
-            for _, unit in ipairs({ "pet", "target", "focus", "targettarget", "focustarget" }) do
-                R.Print(R.GetPetPortraitDebug(unit))
+            if debugUnit then
+                local summary, access = R.GetPetPortraitDebug(debugUnit, true)
+                R.Print(summary)
+                R.Print(access)
+            else
+                for _, unit in ipairs({ "pet", "target", "focus", "targettarget", "focustarget" }) do
+                    R.Print(R.GetPetPortraitDebug(unit))
+                end
             end
         elseif option == "status" then
             R.Print("pet portraits " .. tostring(R.db.petPortraits))
@@ -59,6 +212,8 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
             R.UpdatePetPortraits()
             R.Print("pet portraits " .. tostring(R.db.petPortraits))
         end
+    elseif command == "inspect" then
+        inspectAuras(option)
     elseif command == "debug" then
         for _, unit in ipairs(R.TRACKED_UNITS) do
             local host = R.hosts[unit]
@@ -80,6 +235,7 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
                 .. " exactHarmful=" .. tostring(host and host._exactHarmfulAllowed or false)
                 .. " smallHarmful=" .. tostring(host and host._smallHarmfulEnabled or false)
                 .. " hostileReadable=" .. tostring(host and host._hostileReadable or false)
+                .. " hostileActive=" .. tostring(host and host._hostileActive or false)
                 .. " hostileElectionReadable=" .. tostring(host and host._hostileElectionReadable or false)
                 .. " hostileAuraListComplete=" .. tostring(host and host._hostileAuraListComplete or false)
                 .. " hostileCount=" .. tostring(host and host._hostileCount or 0)
@@ -97,6 +253,14 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
                 .. " baselineTiming=" .. tostring(host and host._baselineTimingReadable or false)
                 .. " baselineTimingSource=" .. tostring(host and host._baselineTimingSource or nil)
                 .. " baselineAppliedAt=" .. tostring(host and host._baselineAppliedAt or nil)
+                .. " baselineActive=" .. tostring(host and host._baselineActive or false)
+                .. " healingReadable=" .. tostring(host and host._healingReadable or false)
+                .. " healingElectionReadable=" .. tostring(host and host._healingElectionReadable or false)
+                .. " healingSpell=" .. tostring(host and host._healingSpellID or nil)
+                .. " healingTiming=" .. tostring(host and host._healingTimingReadable or false)
+                .. " healingTimingSource=" .. tostring(host and host._healingTimingSource or nil)
+                .. " healingAppliedAt=" .. tostring(host and host._healingAppliedAt or nil)
+                .. " healingActive=" .. tostring(host and host._healingActive or false)
                 .. " slowsReadable=" .. tostring(host and host._slowsReadable or false)
                 .. " slowsElectionReadable=" .. tostring(host and host._slowsElectionReadable or false)
                 .. " slowsSpell=" .. tostring(host and host._slowsSpellID or nil)
@@ -144,7 +308,13 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
                 .. " assistReadable=" .. tostring(host and host._assistReadable or false))
         end
     elseif command == "reset" then
-        BjarkiPortraitsDB = nil; R.ApplyDefaults(); R.DestroyAll(); R.BuildAll(); R.UpdatePetPortraits(); R.Print("reset")
+        BjarkiPortraitsDB = nil
+        R.ApplyDefaults()
+        R.DestroyAll()
+        R.BuildAll()
+        R.ApplyPresentation()
+        R.UpdatePetPortraits()
+        R.Print("reset")
     else
         R.Print("unknown command; /bp help")
     end
