@@ -1,8 +1,8 @@
 local addonName, BP = ...
 local R = assert(BP.Runtime, "Core.lua must load first")
 
--- This module is presentation-only. It has no AuraContainer access. Its texture
--- sits between the native portrait and secure aura buttons on target/focus and
+-- This module has no direct AuraContainer access. Its foundation texture sits
+-- between the native portrait and secure aura buttons on target/focus and
 -- the two derived target frames.
 local observed = setmetatable({}, { __mode = "k" })
 local presentationState = setmetatable({}, { __mode = "k" })
@@ -321,7 +321,14 @@ local OBSERVED_UNITS = { "target", "focus", "targettarget", "focustarget" }
 
 function R.UpdateObservedPetPortrait(unit)
     local host = R.hosts[unit]
-    if not host then return end
+    if not host then
+        if R.db and R.db.enabled and R.db.petPortraits then
+            -- CreateHost publishes the host before its foundation callback.
+            -- A successful build also needs normal aura/test initialization.
+            if R.CreateHost(unit) then R.Refresh(unit) end
+        end
+        return
+    end
 
     local texture = observed[host]
     local icon = R.db and R.db.enabled and R.db.petPortraits and foundationTexture(unit) or nil

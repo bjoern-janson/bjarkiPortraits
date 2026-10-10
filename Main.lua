@@ -67,7 +67,8 @@ local function installUnitStateEvents(unitA, unitB)
         if not unit then return end
         if event == "UNIT_PORTRAIT_UPDATE" or event == "UNIT_NAME_UPDATE" then
             -- Family or localized summon-name data can arrive after targeting.
-            -- These events belong only to the independent pet foundation.
+            -- Existing hosts update only the independent pet foundation.
+            -- A recovered missing host also initializes its normal aura state.
             if unit ~= "player" then R.UpdateObservedPetPortrait(unit) end
             return
         end

@@ -47,6 +47,7 @@ PT.categories = {
         [4068] = true,
         [15753] = true,
         [13237] = true,
+        [13238] = true,
         [18798] = true,
         [446391] = true,
         [605] = true,
@@ -151,6 +152,7 @@ PT.categories = {
         [4068] = true, -- Iron Grenade
         [15753] = true, -- Linken's Boomerang Stun
         [13237] = true, -- Goblin Mortar
+        [13238] = true, -- Goblin Mortar (separate self-area stun)
         [15269] = true, -- Blackout
         [18093] = true, -- Pyroclasm
         [853] = true, -- Hammer of Justice
@@ -658,7 +660,7 @@ PT.categories = {
     },
     debuffs_other = {
         [8139] = true, -- Fevered Fatigue (applied Intellect/Spirit Disease)
-        [8267] = true, -- Cursed Blood (open-world Intellect curse)
+        [8267] = true, -- Cursed Blood (applied Intellect curse, including the dungeon report)
         [770] = true, -- Faerie Fire Rank 1
         [778] = true, -- Faerie Fire Rank 2
         [9749] = true, -- Faerie Fire Rank 3
@@ -937,7 +939,7 @@ PT.categories = {
         [25780] = true, -- Righteous Fury (Paladin)
     },
     buffs_paladin_auras = {
-        -- Passive Paladin aura states share the PaladinAura priority lane.
+        -- Persistent party-support auras share the PaladinAura priority lane.
         [19746] = true, -- Concentration Aura
 
         [465] = true, -- Devotion Aura Rank 1
@@ -1008,7 +1010,9 @@ PT.categories = {
                 [10599] = true, -- Nature Resistance
                 [24853] = true, -- Mana Spring
                 [25362] = true, -- Strength of Earth
-                [1299346] = true, -- Trueshot Aura
+        [1299346] = true, -- Trueshot Aura
+        [17007] = true, -- Leader of the Pack (retained talent record)
+        [24932] = true, -- Leader of the Pack (applied party aura)
     },
     buffs_minor_world = {
         [1296202] = true, -- Rat Familiar (+2 Intellect)
@@ -1075,8 +1079,6 @@ PT.categories = {
         -- Regular class buffs: meaningful combat state, but deliberately below
         -- forms/stealth and active combat effects.
         [8733] = true, -- Blessing of Blackfathom (dungeon blessing)
-        [17007] = true, -- Leader of the Pack (talent aura)
-        [24932] = true, -- Leader of the Pack (party buff)
         [1243120] = true, -- Demonic Knowledge (Warlock pet-owner aura)
 
         -- Warrior: Battle Shout
@@ -1246,6 +1248,9 @@ PT.categories = {
         [1249926] = true, -- Forever Well Fed: Spirit
         [1294007] = true, -- Forever Well Fed: movement speed (Hyjal)
         [1302064] = true, -- Forever Well Fed: Strength variant
+    },
+    buffs_passive_speed = {
+        [1293199] = true, -- Agamaggan's Clutch (minor regional movement bonus)
     },
     buffs_plainsrunning = {
         [1299038] = true, -- Plainsrunning active aura (Forever Tauren)

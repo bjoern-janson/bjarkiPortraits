@@ -1,11 +1,126 @@
 # Known issues and validation
 
-Status recorded 2026-10-09 for **bjarkiPortraits 0.1.98-local**.
+Status recorded 2026-10-10 for **bjarkiPortraits 0.1.99-local**.
 
-This build corrects native scheduling for public slow-aura exceptions and
-extends on-demand inspection of Shark Attack and BG slows. The live Shark
-Attack failure and the full reported slow-visibility failure remain open until
-the affected unit's API state is captured. Earlier priority changes are retained.
+This build merges the requested Status Effects tier, lowers Leader of the Pack,
+adds the identified passive-speed and Mortar stun records, and repairs a
+conditional missing-host recovery gap. Dungeon pet rendering, meter secondary
+names and the earlier restricted-aura reports still require live evidence.
+
+## Dungeon batch in 0.1.99
+
+| Request | Implemented behavior or current status |
+| --- | --- |
+| Tiny passive speed buff | [Agamaggan's Clutch 1293199](https://www.wowhead.com/forever/spell=1293199/agamaggans-clutch) added at PassiveSpeed 9, immediately below Plainsrunning 10. |
+| Tiny dungeon curse | [Cursed Blood 8267](https://www.wowhead.com/forever/spell=8267/cursed-blood) already existed; it moves with the whole former Faerie Fire/curse tier to StatusEffects 279. No duplicate ID is added. |
+| Pet portraits in dungeons | Missing observed hosts now retry guarded construction from enabled foundation updates, including name/portrait events, and initialize ordinary aura/test state after successful construction. The reproduced recovery gap is repaired; the pictured Bat failure remains unconfirmed. |
+| Faerie Fire below Thunder Clap | The entire former LowDebuff tier merges with CombatDebuff into one StatusEffects 279 election, immediately below Offensive 280. |
+| Damage Meter secondary names | No new runtime cause or fix established in bjarkiUI 0.2.105. The new screenshot is documented in its issue list; capture `/bui names` while the affected rows/session remain visible. |
+| Leader of the Pack too prominent | Applied party aura 24932 and retained talent record 17007 move from BaselineClass 90 to PaladinAura 60, below ordinary class buffs and forms. |
+| Goblin Mortar and failure effect | Normal stun 13237 already existed; separate self-area stun 13238 is added to Stun 320. Reload Explode 13239 has no persistent aura and is excluded. |
+
+### Priority and record boundaries
+
+All **74** IDs from former LowDebuff 200 join all **44** IDs from former
+CombatDebuff 279. The resulting **118-ID StatusEffects** lane has one native
+owner per host and one complete-readable election on player/target/focus.
+Faerie Fire and Thunder Clap now use the same instance-order rule; neither has
+a separately stacked same-level frame. Curses, taunts and the other members of
+Faerie Fire's old tier move together. The Slows 220 and ChilledSignature 219
+behavior from 0.1.98 is retained, including per-aura native eligibility.
+
+Leader of the Pack's visible party record is
+[24932](https://www.wowhead.com/forever/spell=24932/leader-of-the-pack). The lower
+priority is a ranking adjustment: it previously shared class-buff recency and
+could displace an older class buff at that equal priority. Complete-readable
+tests now keep Mark of the Wild and forms above it. This does not establish a
+new dungeon-specific sorting defect or promise exact sorting when identities
+are restricted. The chosen persistent-party-aura tier is the conservative
+default for this report; it is not a claimed explicit numeric user selection.
+
+Agamaggan's Clutch describes a regional 3% speed bonus. Cursed Blood's Curse
+type, ten-minute duration, icon and embedded Intellect description match the
+report. The current Cursed Blood page has inconsistent amount fields (15 in
+the embedded description, 25 in its rendered tooltip); no cause is established.
+Dummy record 8268 remains excluded.
+
+[Goblin Mortar 13238](https://www.wowhead.com/forever/spell=13238/goblin-mortar)
+is a self-area Fire-damage and three-second stun record. Its attribution to the
+backfire path is inferred from the paired Mortar records; the server's failure
+branch is not published. The applied stun can be catalogued without inventing
+a persistent state for
+[Reload Explode 13239](https://www.wowhead.com/forever/spell=13239/reload-explode),
+which supplies damage and knockback only. Crafting and Learn Spell records do
+not enter aura priorities.
+
+### Pet recovery and remaining live report
+
+The new screenshot shows a target named Bat with native portrait artwork. Its
+target-of-target text is not an ownership witness, and no pet-family, host,
+texture or access-state diagnostic accompanies the image. The earlier
+Warlock-pet report lost its state when the user left that dungeon; this image
+is new evidence, not a reconstruction of that earlier failure.
+
+The reproduced recovery sequence begins with unavailable parent strata, so
+initial host construction correctly defers. After strata becomes readable,
+name/portrait events previously returned immediately because the host was
+still missing. The updater now retries CreateHost with the same guards, then
+runs one normal Refresh after successful construction. Publishing the host
+before its foundation callback bounds recursion and prevents duplicate
+construction. Existing-host events still perform no aura refresh or structure
+changes. Disabled addon/pet settings prevent the retry; per-unit aura disable
+retains independent pet art while aura/test presentation stays off. Combat
+queues the existing regen recovery without structural work.
+
+This fixes that conditional lifecycle gap. It does not prove that unavailable
+strata caused the pictured Bat failure, and it does not make restricted family
+data readable or infer pets from their names, models, colors or targets. If
+art still fails, retain all three lines from `/bp pets debug target` while the
+failing pet remains targeted. The diagnostic observes the missing presentation
+without repairing it first.
+
+### Verification for 0.1.99
+
+| Check on final integrated modules | Result |
+| --- | --- |
+| New catalogue, Status Effects election, Leader ranking and inspect cases | 19/19 |
+| Conditional pet recovery contract | 16/16 |
+| Additional pet recovery/initialization controls | 11/11 |
+| Retained current pet and native portrait-writer controls | 21/21 |
+| Retained command and pet lifecycle controls | 25/25 |
+| Retained slow scheduling, Chilled precedence and aura diagnostics | 54/54 |
+| Lua syntax and manifest consistency | Seven modules compile; matching Interface 16001 manifests and load order |
+| Catalogue integrity | 1,174 IDs, 76 categories, 51 exact and 10 semantic lanes, no exact-owner overlaps |
+| Source scope | Two new IDs, 74 IDs moved to 279, two Leader records moved to 60; other 1,096 existing numeric priorities unchanged |
+
+The six focused behavioral groups total **146/146** on the final seven-module
+snapshot. The source comparison also confirms unchanged bjarkiUI runtime,
+PartyOrder and manifests; its two documentation files record the still-open
+meter investigation. This is not a claim that every historical fixture passes.
+
+The frozen 0.1.98 sources reproduce the expected new aura failures (1/19
+passing), conditional recovery failures (13/16), and additional recovery
+failures (4/11). The failed-texture fixture supplies its NeverSecret policy
+before the first update so the cache does not make the result order-dependent.
+Retained aura fixtures change only the expected names `CombatDebuff` to
+`StatusEffects` and `combatDebuff` to `statusEffects`, in external derived
+copies; timing, election and boundary assertions are unchanged.
+
+The original 16-case pet fixture remains intact. On the private recovery
+candidate it is 14/16 because two old cases forbid any Refresh for a newly
+constructed host. The separately named revised fixture keeps their host/art
+assertions and requires the new host's ordinary aura to initialize; its
+existing-host no-refresh control remains unchanged. This is an explicit
+contract correction, not a claimed pass of the original fixture.
+
+The fresh native pin is Forever **1.60.1.70338**,
+[943764493e6b16d63ded3ab304150d1f05e58b57](https://github.com/Gethe/wow-ui-source/commit/943764493e6b16d63ded3ab304150d1f05e58b57).
+The comparison with 70291 changes only `version.txt`; inspected Lua/XML/API
+contracts are unchanged. Source tests execute actual addon/native Lua with
+modeled C APIs, widgets and secrecy. They do not certify the live protected
+execution engine, aura exposure or rendered pixels. The historical 29 a/b/c
+fixture mismatches documented under 0.1.98 were not rerun or relabeled as
+passing for this bounded change.
 
 ## Shark Attack and Battleground slows in 0.1.98
 

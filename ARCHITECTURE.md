@@ -1,7 +1,7 @@
 # bjarkiPortraits architecture
 
-Current architecture snapshot: **2026-10-09**, shipped runtime
-**bjarkiPortraits 0.1.98-local**, alongside **bjarkiUI 0.2.105-local**.
+Current architecture snapshot: **2026-10-10**, shipped runtime
+**bjarkiPortraits 0.1.99-local**, alongside **bjarkiUI 0.2.105-local**.
 This reference describes current source contracts, presentation ownership and
 evidence limits. Chronological changes, live reports and investigation history
 belong in [KNOWN_ISSUES.md](KNOWN_ISSUES.md). Source fixtures and isolated checks
@@ -44,8 +44,9 @@ those frames. Blizzard retains unit bindings and the native small aura lists.
 priority into one lane before native construction. Each exact ID has one lane
 owner; helpful and harmful dispositions remain separate. The derived
 `TIER_BY_KEY`, `HELPFUL_TIER_BY_SPELL` and `TIER_AUDIT` indexes are built once
-from these definitions. The current catalogue has **1,172 distinct IDs,
-51 disjoint exact lanes, no exact-owner overlaps, and 10 semantic lanes**.
+from these definitions. The current catalogue has **1,174 distinct IDs across
+76 source categories, 51 disjoint exact lanes, no exact-owner overlaps,
+and 10 semantic lanes**.
 
 Higher numeric priorities appear above lower ones. The number specifies
 presentation order; it does not measure spell strength, grant access, or prove
@@ -61,10 +62,11 @@ lanes unless the contents explicitly describe a union.
 | Tracking | 0 | Find Herbs and Find Minerals |
 | Cosmetic / BoostedRest | 1 | Helpful transformations, including Savory Deviate/Whimsyfin Delight; separate harmful camping cooldown |
 | CampfireNearby | 2 | Nearby-campfire background state |
+| PassiveSpeed | 9 | Agamaggan's Clutch, immediately below Plainsrunning |
 | Plainsrunning | 10 | Plainsrunning and Elemental Blessing |
 | TravelUtility | 50 | Water Breathing, Unending Breath, Water Walking, Aquatic Form and three applied Noggenfogger effects |
 | PassiveDebuff / RighteousFury | 59 | Harmful Deserter/item Martyrdom; separate helpful Righteous Fury |
-| PaladinAura | 60 | Paladin auras, Warlock armor, persistent support totem effects, Rat Familiar and Benevolence |
+| PaladinAura | 60 | Paladin auras, Warlock armor, persistent support totem effects, Leader of the Pack, Rat Familiar and Benevolence |
 | BloodPact | 70 | Blood Pact, four applied Furious Howl ranks, Vengeance, Iron Creed and Spirit Bond |
 | Scrolls | 80 | Scroll buffs |
 | BaselineClass | 90 | Baseline class buffs, Camp Benefits, Demonic Knowledge and Blessing of Blackfathom |
@@ -79,7 +81,6 @@ lanes unless the contents explicitly describe a union.
 | Demoralizing | 185 | Demoralizing Shout/Roar and four applied pet Demoralizing Screech ranks |
 | Consecration | 189 | Applied Forever damage-amplification aura, immediately below DoTs |
 | DoTs | 190 | Explicit damage-over-time effects, including Ironspine's Poison Cloud 3815 |
-| LowDebuff | 200 | Low debuffs, taunts, Cursed Blood, Fevered Fatigue, Viper Sting, Drain Soul and Shadowburn's death-item residual |
 | Seal | 210 | Paladin seals and Improved Stormstrike 1238931, one shared helpful election |
 | Slows | 220 | Slows, exact Chilled IDs, Frost Trap Aura, Highland Venom, Crippling Poison, Frost Shock 12548 and Curse of Exhaustion |
 | RecentlyBandaged | 229 | Separate harmful state |
@@ -92,7 +93,7 @@ lanes unless the contents explicitly describe a union.
 | FoodDrink | 260 | Food, Drink, Cannibalize, Evocation and Restoration |
 | Innervate | 261 | Innervate, Druid Enrage, Bloodrage, resource recovery and living Quick and the Dead variants |
 | Utility | 270 | Utility buffs and Welcoming Campfire, one shared election |
-| CombatDebuff | 279 | Casting/attack penalties, reduced healing received, Shark Attack and Muculent Rot, one shared harmful election |
+| StatusEffects | 279 | Faerie Fire's former low-debuff/taunt tier merged with casting/attack penalties, reduced healing received, Shark Attack and Muculent Rot; one shared harmful election |
 | Offensive | 280 | Offensive cooldowns, Clearcasting/Preparation, Victorious, Sprint/Dash, Satchel Speed, Cocoon speed, Swift Wind and Battleground Speed/Berserking |
 | OffensiveHarmful | 281 | Death Wish, above helpful offense and below defensive lanes |
 | Defensive | 290 | Defensive buffs |
@@ -101,7 +102,7 @@ lanes unless the contents explicitly describe a union.
 | RootImmunity | 305 | Root immunity, Free Action, Voice of Truth's casting immunity and Grounding redirection |
 | Control | 310 | Interrupts and non-stun crowd control; harmful Stun IDs excluded |
 | PhysicalImmunity | 315 | Three Blessing of Protection ranks |
-| Stun / HelpfulSelfStun | 320 | Separate harmful stuns and currently helpful Cocoon self-stun |
+| Stun / HelpfulSelfStun | 320 | Separate harmful stuns, including both Goblin Mortar stun records, and currently helpful Cocoon self-stun |
 | Immunity / ImmunityHarmful | 330 | Separate helpful and harmful immunity-priority lanes; helpful includes Reflection Field's spell reflection |
 | DivineProtection | 331 | Separate helpful Divine Protection lane |
 | WaitingToResurrect | 332 | Resurrection waiting and dead-only Quick and the Dead aura, above Ghost |
@@ -137,7 +138,18 @@ eligibility alone does not prove that the exact container has a candidate.
 
 ### Applied-record details and classification boundaries
 
-CombatDebuff 279 uses these applied-aura families in one instance-order election:
+StatusEffects 279 is the union of all 74 former LowDebuff IDs and all 44 former
+CombatDebuff IDs. The entire Faerie Fire/curse/taunt tier moves from 200 to 279;
+the old exact lanes are removed. These 118 IDs use one native container and one
+complete-readable instance-order election per supported host. Faerie Fire and
+Thunder Clap now compete within that same tier, just below Offensive 280.
+There is no independent same-level overlay that can bypass this election.
+
+The added part of that union includes Faerie Fire, ordinary Warlock curses,
+taunts, Cursed Blood, Fevered Fatigue, Viper Sting, Drain Soul and Shadowburn's
+death-item residual. Source categories remain separate for maintenance; they
+do not construct independent priority owners. Selected applied-aura families
+from the former combat-penalty lane are listed below:
 
 | Family | Applied IDs |
 | --- | --- |
@@ -161,7 +173,7 @@ Hex and Dismember use percentage reduction. Veil of Shadow 7068/17820/460755
 are matching 75% healing-reduction Curses with 15-second source durations.
 Shark's direct-damage trigger, poison coatings, training spells and Carve Mind's
 hidden proc wrapper do not identify applied target auras in this lane.
-CombatDebuff opts into per-aura NeverSecret scheduling, preserving eligibility
+StatusEffects opts into per-aura NeverSecret scheduling, preserving eligibility
 for Shark where the client positively allows it, including small hosts. This
 opt-in does not prove that any member is currently NeverSecret.
 
@@ -178,9 +190,41 @@ applied Paladin proc at BloodPact 70; its passive talent 20049 is excluded.
 [Demoralizing Screech](https://www.wowhead.com/forever/spell=24423/demoralizing-screech)
 24423/24577/24578/24579 shares Demoralizing 185 with Shout/Roar; the Learn Spell
 record 24424 is excluded. [Fevered Fatigue 8139](https://www.wowhead.com/forever/spell=8139/fevered-fatigue)
-is the applied Intellect/Spirit Disease at LowDebuff 200. Its current default
+is the applied Intellect/Spirit Disease at StatusEffects 279. Its current default
 tooltip says 6/6, while the screenshot says 11/11; no scaling or beta-change
 explanation has been established. Hidden proc drivers 11964/18847 are excluded.
+
+[Agamaggan's Clutch 1293199](https://www.wowhead.com/forever/spell=1293199/agamaggans-clutch)
+is PassiveSpeed 9, immediately below Plainsrunning 10. Its item-granted helpful
+aura describes a 3% movement bonus in the Barrens, Thousand Needles, Razorfen
+Kraul and Razorfen Downs. This minor passive does not join the active speed
+cooldowns in Offensive 280.
+
+[Cursed Blood 8267](https://www.wowhead.com/forever/spell=8267/cursed-blood)
+was already catalogued and moves with the whole merged tier to StatusEffects
+279. Its Curse disposition, ten-minute duration, icon and embedded Intellect
+description match the dungeon report. The current page has conflicting amount
+fields (the embedded description says 15; its rendered tooltip says 25), so no
+scaling or beta-change explanation is claimed. The dummy record 8268 is excluded.
+
+[Leader of the Pack 24932](https://www.wowhead.com/forever/spell=24932/leader-of-the-pack)
+is the applied party aura; the retained passive talent record is 17007. Both
+share PaladinAura 60, below BaselineClass 90 and forms in SelfState 150.
+Previously, Leader shared BaselineClass's recency election with ordinary class
+buffs. The new priority makes a complete readable Mark of the Wild or form
+outrank it regardless of application order. This ranking choice does not prove
+that every restricted dungeon/BG identity can use exact priorities.
+
+Harmful Stun 320 includes the existing normal
+[Goblin Mortar 13237](https://www.wowhead.com/forever/spell=13237/goblin-mortar)
+and the separate self-area
+[Goblin Mortar 13238](https://www.wowhead.com/forever/spell=13238/goblin-mortar).
+Both records apply a three-second stun. The self-area record is the supported
+backfire candidate; its connection to the server's failure branch is an
+inference from the paired records, not a published server execution trace.
+[Reload Explode 13239](https://www.wowhead.com/forever/spell=13239/reload-explode)
+has damage and knockback without a persistent aura, so it is not added as a
+portrait state. Crafting and Learn Spell records are also excluded.
 
 [Reflection Field 1303458](https://www.wowhead.com/forever/spell=1303458/reflection-field)
 shares helpful Immunity 330 for its spell-reflection protection. The current
@@ -251,7 +295,7 @@ Slows now opts into this same per-aura scheduling rule. A public Frostbolt or
 Frost Trap aura can therefore reach the native lane on self/friendly units
 when its own current client policy is positively NeverSecret. The opt-in does
 not change the lane's membership, priority 220, or native identity predicate.
-CombatDebuff already has this opt-in, including Shark Attack at priority 279.
+StatusEffects retains this opt-in, including Shark Attack at priority 279.
 No actual secrecy classification for those pictured auras was captured.
 
 The opt-in also bounds the existing partial-readable ownership rule. A tier
@@ -263,12 +307,14 @@ Native per-aura admission is not evidence of an active candidate or a complete e
 No native child icon, visibility, cooldown value or rendered winner is read
 to infer an aura's identity.
 
-The current reverified native source pin is Forever **1.60.1, build 70291**,
-commit [9465cb273b5513495d8ecc12fbb19930dd6b8957](https://github.com/Gethe/wow-ui-source/commit/9465cb273b5513495d8ecc12fbb19930dd6b8957).
-Its [candidate-filter implementation](https://github.com/Gethe/wow-ui-source/blob/9465cb273b5513495d8ecc12fbb19930dd6b8957/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerUtil.lua)
-retains the earlier candidate helper's permission behavior. Native source
-contracts support the design; they do not establish which protected values
-were supplied in an unrecorded live state.
+The current reverified native source pin is Forever **1.60.1, build 70338**,
+commit [943764493e6b16d63ded3ab304150d1f05e58b57](https://github.com/Gethe/wow-ui-source/commit/943764493e6b16d63ded3ab304150d1f05e58b57).
+Its [candidate-filter implementation](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerUtil.lua)
+retains the earlier candidate helper's permission behavior. The fresh
+[comparison from build 70291](https://github.com/Gethe/wow-ui-source/compare/9465cb273b5513495d8ecc12fbb19930dd6b8957...943764493e6b16d63ded3ab304150d1f05e58b57)
+changes only `version.txt`; the inspected Lua, XML and generated API bodies
+are unchanged. Native source contracts support the design; they do not
+establish which protected values were supplied in an unrecorded live state.
 
 ## Readable election and recency
 
@@ -303,12 +349,13 @@ The hostile scanner chooses the highest category before applying within-tier
 ordering. A refreshed Healing aura cannot outrank Power Word: Shield.
 HELPFUL|INCLUDE_NAME_PLATE_ONLY includes ordinary helpful auras plus
 nameplate-only auras, so ordinary Drink remains in the hostile scan.
-The native [aura filter and sort definitions](https://github.com/Gethe/wow-ui-source/blob/9465cb273b5513495d8ecc12fbb19930dd6b8957/Interface/AddOns/Blizzard_FrameXMLUtil/AuraUtil.lua)
+The native [aura filter and sort definitions](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_FrameXMLUtil/AuraUtil.lua)
 define this inclusion flag and instance ordering.
 
 On player/target/focus, the complete-readable harmful-tier helper serves
-Slows, Forbearance/Dazed, Resurrection Sickness, CombatDebuff
-(casting/attack/healing penalties and serious world debuffs), and harmful Death Wish.
+Slows, Forbearance/Dazed, Resurrection Sickness, StatusEffects
+(Faerie Fire, curses, taunts, casting/attack/healing penalties and serious world debuffs),
+and harmful Death Wish.
 It is used only when the conservative exact native filter is unavailable.
 Each reader scans that lane's actual filter and membership, requires a complete
 election, and produces at most one readable owner. Partial or inaccessible
@@ -341,7 +388,7 @@ is recorded only after a usable texture is obtained, SetTexture reports
 readable success, the cooldown updates or clears successfully, and the frame
 shows. Hiding clears the old texture and cooldown; a failed cooldown clear also
 attempts the supported zero-duration reset while relinquishing ownership.
-The [texture API contract](https://github.com/Gethe/wow-ui-source/blob/9465cb273b5513495d8ecc12fbb19930dd6b8957/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleTextureBaseAPIDocumentation.lua)
+The [texture API contract](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleTextureBaseAPIDocumentation.lua)
 defines SetTexture's separate boolean success result.
 
 For an elected aura, the presenter requests GetAuraDuration with the current
@@ -358,8 +405,8 @@ positive finite timeMod to SetCooldown; an absent modifier uses the native
 default of 1. A readable zero duration permits clearing. Unknown timing or a
 supplied inaccessible/invalid modifier cannot authorize a timerless or
 incorrect countdown, so the readable presentation relinquishes ownership.
-The pinned [cooldown API](https://github.com/Gethe/wow-ui-source/blob/9465cb273b5513495d8ecc12fbb19930dd6b8957/Interface/AddOns/Blizzard_APIDocumentationGenerated/FrameAPICooldownDocumentation.lua)
-and [native aura renderer](https://github.com/Gethe/wow-ui-source/blob/9465cb273b5513495d8ecc12fbb19930dd6b8957/Interface/AddOns/Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua)
+The pinned [cooldown API](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_APIDocumentationGenerated/FrameAPICooldownDocumentation.lua)
+and [native aura renderer](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua)
 define these presentation methods; getter access and live execution remain
 client-dependent.
 
@@ -376,9 +423,9 @@ exact Slows permission or an active readable Slows winner, not by an empty or
 failed scan.
 
 Here, a complete readable scan covers the public indexed aura stream. Native
-[managed containers](https://github.com/Gethe/wow-ui-source/blob/9465cb273b5513495d8ecc12fbb19930dd6b8957/Interface/AddOns/Blizzard_AuraContainer/Blizzard_ManagedAuraContainer.lua)
+[managed containers](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_AuraContainer/Blizzard_ManagedAuraContainer.lua)
 also support a separate
-[private source](https://github.com/Gethe/wow-ui-source/blob/9465cb273b5513495d8ecc12fbb19930dd6b8957/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerSources.lua), which does not
+[private source](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerSources.lua), which does not
 signal UNIT_AURA. The public election is therefore not proof of a complete
 native-source election. The current candidate API has no private-source
 selector; a readable owner can suppress a private same-tier competitor or the
@@ -400,13 +447,15 @@ anchors use that point and size, with only the small-frame offsets below;
 art uses full texture coordinates `(0, 1, 0, 1)`. Native portrait masks are
 reused where available; no second ring or synthetic mask is added.
 
-The pinned [frame contract](https://github.com/Gethe/wow-ui-source/blob/9465cb273b5513495d8ecc12fbb19930dd6b8957/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleFrameAPIDocumentation.lua)
+The pinned [frame contract](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleFrameAPIDocumentation.lua)
 permits secret native FrameStrata returns. Host creation
 checks the parent-strata read for call success, accessibility and string type
 before indexing the layer map or changing frame structure. Unavailable strata
-postpones construction until an existing aura/state/token refresh or explicit
-build can retry. This is a supported boundary, not evidence that the reported
-Warlock pet's portrait parent returned secret strata.
+postpones construction until an aura/state/token refresh, enabled foundation
+update or explicit build can retry. The default MEDIUM strata applies only
+when the method is absent, not when a return is secret or otherwise unusable.
+This is a supported boundary, not evidence that the reported dungeon pet's
+portrait parent returned secret strata.
 
 Countdown placement uses the same setup for native aura buttons, readable
 presenters and test frames:
@@ -464,11 +513,16 @@ events remain scoped. This relation invalidation
 does not change per-aura secrecy permission or establish live opposing-faction
 priority behavior.
 
-UNIT_PORTRAIT_UPDATE and UNIT_NAME_UPDATE refresh only the corresponding
-independent foundation, without scanning auras or constructing a missing host.
-The private candidate to retry missing-host construction from those events is
-not part of the shipped runtime. A successfully created late host initializes
-that foundation once; routine aura updates of an existing host do not classify pets.
+UNIT_PORTRAIT_UPDATE and UNIT_NAME_UPDATE update the corresponding independent
+foundation. Existing-host updates neither construct frames nor scan auras.
+When that host is missing and the addon and pet setting are enabled, the
+foundation updater retries the existing guarded CreateHost path. A successful
+creation publishes the host before its foundation callback, then receives one
+normal Refresh to initialize native scheduling, readable auras or test mode.
+The per-unit aura toggle still disables those aura/test owners independently
+from pet artwork. The callback therefore does not recursively create hosts.
+Combat requests queue the existing regen path; inaccessible strata still defers
+construction. Routine aura updates of an existing host do not classify pets.
 
 The native vehicle layout can reuse PlayerFrame and PetFrame without replacing
 the objects. Player aura/test presentation requires public PlayerFrame.unit
@@ -497,7 +551,7 @@ separate optimization question rather than a proven frame-rate regression.
 
 ## Pet and totem foundations
 
-[PetPortraits.lua](PetPortraits.lua) has no aura-container access. A positive
+[PetPortraits.lua](PetPortraits.lua) has no direct aura-container access. A positive
 local-pet match selects the player's readable Hunter or Warlock class path.
 For a local Hunter pet, artwork prefers a public family icon, then a local pet
 action texture, then Growl 2649. Missing family information does not block those
@@ -606,7 +660,7 @@ IDs 6615, 2645, 1286304, 1229451, Evasion 5277, Shark Attack 1323184,
 Frost Trap 13810 and Frostbolt 116. An ended public scan does not establish
 private-source coverage.
 
-Additional on-demand lines report the current Slows/CombatDebuff reader state,
+Additional on-demand lines report the current Slows/StatusEffects reader state,
 native scheduling eligibility, and known-spell query observations for those
 three reported effects. These queries are diagnostic only: no new per-ID sweep
 is added to UNIT_AURA or the rendering path. A positive direct lookup is not a
@@ -622,7 +676,7 @@ non-string errors are reported as unavailable without stringification.
 ## Live validation and open boundaries
 
 The pictured Shark Attack warning matches harmful 1323184, already owned by
-CombatDebuff 279. Frost Trap's applied slow 13810 and the ordinary Frostbolt
+StatusEffects 279. Frost Trap's applied slow 13810 and the ordinary Frostbolt
 ranks through rank 10 are also already catalogued. Slows' missing per-aura
 scheduling opt-in is corrected, but the screenshot does not establish each
 aura's live secrecy, native eligibility, timer access or competing portrait
@@ -645,13 +699,20 @@ supplied for that screenshot. `/bp inspect target` now includes 5277 in its
 on-demand policy line; this observation neither changes permission nor
 enables a new rendering fallback.
 
-Reported Warlock pet artwork remains **open**. The latest dungeon investigation
-has no actual failing-pet image or contemporaneous diagnostic snapshot. The user
-left the dungeon and reset the meter, so that historical state is unavailable.
-Secret strata, inaccessible families, missing-host retry and texture assignment
-are distinct possible boundaries; none is established as the cause by that
-missing evidence. The unshipped missing-host candidate is not a live fix, and
-normal combat construction already retries at regen.
+Reported dungeon pet artwork remains **open for live confirmation**. The
+October 10 screenshot shows a target named Bat with its native portrait and
+no accompanying API-state diagnostic. Its target-of-target text identifies
+what the Bat targets, not its owner. The earlier Warlock-pet report lost its
+live state when the user left the dungeon; this new image is separate evidence.
+
+The conditional missing-host recovery gap is repaired: if initial construction
+was deferred and a later name/portrait update has sufficient access, the updater
+now creates and initializes the host. Source fixtures reproduce that transition,
+but the screenshot does not establish that it occurred. Inaccessible family
+data, an unqualified pet witness and rejected texture operations remain distinct
+boundaries. The fix does not guess family, owner, strata or spell identity.
+If the portrait still fails, capture `/bp pets debug target` while that pet is
+targeted; its three lines distinguish these paths without refreshing first.
 
 Source contracts and isolated fixtures do not establish protected execution,
 actual Battleground aura exposure, readable refresh timing for every spell,

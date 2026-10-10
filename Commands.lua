@@ -99,7 +99,7 @@ local function inspectAuras(option)
 
     -- Observe saved reader evidence. Native eligibility is the existing
     -- permission check, not proof that a native container has an active aura.
-    for _, lane in ipairs({ { "Slows", "_slows" }, { "CombatDebuff", "_combatDebuff" } }) do
+    for _, lane in ipairs({ { "Slows", "_slows" }, { "StatusEffects", "_statusEffects" } }) do
         R.Print("lane " .. lane[1]
             .. " readerComplete=" .. inspectBool(host, lane[2] .. "Readable")
             .. " readerElection=" .. inspectBool(host, lane[2] .. "ElectionReadable")

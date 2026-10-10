@@ -33,6 +33,7 @@ end
 -- uses AuraInstanceID; BaselineClass and Healing can replace their native owner
 -- only with a complete readable application-time election.
 R.TIERS = {
+    exact("PassiveSpeed", "HELPFUL", 9, true, C.buffs_passive_speed, true),
     exact("Plainsrunning", "HELPFUL", 10, true, union("buffs_plainsrunning", "buffs_elemental_blessing"), true),
     exact("BoostedRest", "HARMFUL", 1, false, C.debuffs_boosted_rest, true),
     exact("CampfireNearby", "HELPFUL", 2, true, C.buffs_campfire_nearby),
@@ -85,9 +86,6 @@ R.TIERS = {
     exact("Demoralizing", "HARMFUL", 185, false, C.debuffs_demoralizing),
     exact("Consecration", "HARMFUL", 189, false, C.debuffs_consecration, true),
     exact("DoTs", "HARMFUL", 190, false, C.debuffs_dots),
-    -- Taunts and Faerie Fire share one election, including equal-tier recency.
-    exact("LowDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 200, false,
-        union("debuffs_other", "debuffs_taunts")),
     exact("Seal", "HELPFUL", 210, true, union("buffs_seals", "buffs_improved_stormstrike")),
     -- Schedule public per-aura exceptions on self/friendly units as well;
     -- Blizzard still rejects each identity that is not permitted for the unit.
@@ -134,11 +132,11 @@ R.TIERS = {
     -- fallback for otherwise unclassified important buffs; explicit categories
     -- and dedicated Big/External defensive lanes outrank it.
     semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 85),
-    -- Casting/attack/healing penalties and environmental danger share one election,
-    -- immediately below offensive cooldowns and above routine utility buffs.
+    -- Faerie Fire, curses, taunts, combat penalties and environmental danger
+    -- share one status-effect election immediately below offensive cooldowns.
     -- Preserve Shark Attack's existing per-aura NeverSecret eligibility.
-    exact("CombatDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 279, false,
-        union("debuffs_casting_penalty", "debuffs_attack_penalty",
+    exact("StatusEffects", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 279, false,
+        union("debuffs_other", "debuffs_taunts", "debuffs_casting_penalty", "debuffs_attack_penalty",
             "debuffs_healing_reduction", "debuffs_environmental_danger"), true),
     exact("Offensive", "HELPFUL", 280, true, C.buffs_offensive),
     -- Death Wish is harmful offensive state. One level above helpful offense
