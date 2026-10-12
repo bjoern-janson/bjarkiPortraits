@@ -29,16 +29,24 @@ local function semantic(key, filter, level, candidateFilters)
 end
 
 -- One container represents one actual priority lane. Categories that genuinely
--- share a lane are unioned before the secure engine sees them, so recency within
--- that lane is decided by AuraInstanceID rather than by sibling-frame accident.
+-- share a lane are unioned before the secure engine sees them. Native ordering
+-- uses AuraInstanceID; BaselineClass and Healing can replace their native owner
+-- only with a complete readable application-time election.
 R.TIERS = {
+    exact("PassiveSpeed", "HELPFUL", 9, true, C.buffs_passive_speed, true),
     exact("Plainsrunning", "HELPFUL", 10, true, union("buffs_plainsrunning", "buffs_elemental_blessing"), true),
     exact("BoostedRest", "HARMFUL", 1, false, C.debuffs_boosted_rest, true),
-    exact("CampfireNearby", "HELPFUL", 0, true, C.buffs_campfire_nearby),
+    exact("CampfireNearby", "HELPFUL", 2, true, C.buffs_campfire_nearby),
+    exact("Cosmetic", "HELPFUL", 1, true, C.buffs_cosmetic),
+    exact("Tracking", "HELPFUL", 0, true, C.buffs_tracking),
     exact("TravelUtility", "HELPFUL", 50, true, C.buffs_travel_utility),
+    -- Persistent item/queue status stays below passive class and totem buffs.
+    exact("PassiveDebuff", "HARMFUL", 59, false, C.debuffs_passive, true),
     exact("RighteousFury", "HELPFUL", 59, true, C.buffs_righteous_fury),
-    exact("PaladinAura", "HELPFUL", 60, true, union("buffs_paladin_auras", "buffs_warlock_armor")),
-    exact("BloodPact", "HELPFUL", 70, true, C.buffs_blood_pact),
+    exact("PaladinAura", "HELPFUL", 60, true,
+        union("buffs_paladin_auras", "buffs_warlock_armor", "buffs_minor_world")),
+    exact("BloodPact", "HELPFUL", 70, true,
+        union("buffs_blood_pact", "buffs_furious_howl", "buffs_minor_class")),
     exact("Scrolls", "HELPFUL", 80, true, C.buffs_scrolls),
     exact("BaselineClass", "HELPFUL", 90, true,
         union("buffs_class_baseline", "buffs_camp_benefits")),
@@ -46,6 +54,8 @@ R.TIERS = {
     exact("Thorns", "HELPFUL", 120, true, C.buffs_thorns),
     exact("ElementalShield", "HELPFUL", 130, true, C.buffs_lightning_shield),
     exact("SelfState", "HELPFUL", 150, true, union("buffs_other", "buffs_frost_armor")),
+    -- Carried objectives outrank forms and Inner Fire, below active Utility.
+    exact("BattlegroundFlag", "HELPFUL", 151, true, C.buffs_battleground_flag, true),
     -- Combat-safe hostile-NPC fallback for Frost Armor when spell identity is
     -- sealed. 12544 is a 30-minute Magic buff and is spellstealable from NPCs.
     -- This lane is enabled only for hostile NPCs when the readable exact path
@@ -60,31 +70,33 @@ R.TIERS = {
     -- Forever. This broad secure lane is only a visibility fallback when hostile
     -- aura identities are not readable to Lua. Keep it at the bottom so its
     -- arbitrary winner cannot mask any classified category above it.
-    semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 1),
+    semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 3),
 
     exact("Mobility", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 160, true,
-        union("buffs_ghostwolf", "buffs_ghostwolf_variants", "buffs_cheetah"), true),
+        union("buffs_ghostwolf", "buffs_ghostwolf_variants", "buffs_cheetah", "buffs_mobility"), true),
     exact("LoneWolf", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 170, true, C.buffs_lone_wolf, true),
     exact("HuntersMark", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 180, false, C.debuffs_hunters_mark),
 
     -- Small friendly derived frames (ToT/FoT) sit on the relation side where
     -- exact harmful spell-ID filtering can be unavailable. This broad secure
-    -- lane means only "some harmful state is present", so it is deliberately
-    -- the lowest-priority aura surface. Any known tracked state must outrank it.
-    semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 2),
+    -- lane means only "some harmful state is present". Keep it below tactical
+    -- categories and above the passive tracking/cosmetic/camping bottom band.
+    semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 4),
 
     exact("Demoralizing", "HARMFUL", 185, false, C.debuffs_demoralizing),
+    exact("Consecration", "HARMFUL", 189, false, C.debuffs_consecration, true),
     exact("DoTs", "HARMFUL", 190, false, C.debuffs_dots),
-    -- Taunts and Faerie Fire share one election, including equal-tier recency.
-    exact("LowDebuff", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 200, false,
-        union("debuffs_other", "debuffs_taunts")),
-    exact("Seal", "HELPFUL", 210, true, C.buffs_seals),
+    exact("Seal", "HELPFUL", 210, true, union("buffs_seals", "buffs_improved_stormstrike")),
+    -- Schedule public per-aura exceptions on self/friendly units as well;
+    -- Blizzard still rejects each identity that is not permitted for the unit.
     exact("Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 220, false,
-        union("slows", "slows_chilled")),
+        union("slows", "slows_chilled"), true),
     -- 12544 Frost Armor procs spell 6136 Chilled. In combat its identity is
     -- secret, but its safe metadata remains distinctive: harmful Magic,
     -- <=5 seconds, nameplate-personal, and not cast by the player/pet.
-    semantic("ChilledSignature", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 220, {
+    -- Keep the approximation below exact Slows when both native containers
+    -- are eligible; an absent public member must not hide this fallback.
+    semantic("ChilledSignature", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 219, {
         includeDispelTypes = { Magic = true },
         maxDuration = 5.1,
         nameplateShowPersonal = true,
@@ -120,7 +132,16 @@ R.TIERS = {
     -- fallback for otherwise unclassified important buffs; explicit categories
     -- and dedicated Big/External defensive lanes outrank it.
     semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 85),
+    -- Faerie Fire, curses, taunts, combat penalties and environmental danger
+    -- share one status-effect election immediately below offensive cooldowns.
+    -- Preserve Shark Attack's existing per-aura NeverSecret eligibility.
+    exact("StatusEffects", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 279, false,
+        union("debuffs_other", "debuffs_taunts", "debuffs_casting_penalty", "debuffs_attack_penalty",
+            "debuffs_healing_reduction", "debuffs_environmental_danger"), true),
     exact("Offensive", "HELPFUL", 280, true, C.buffs_offensive),
+    -- Death Wish is harmful offensive state. One level above helpful offense
+    -- gives simultaneous cooldowns a deterministic order within this band.
+    exact("OffensiveHarmful", "HARMFUL", 281, false, C.debuffs_offensive, true),
     semantic("ExternalDef", "HELPFUL|EXTERNAL_DEFENSIVE", 288),
     semantic("BigDef", "HELPFUL|BIG_DEFENSIVE", 289),
     exact("Defensive", "HELPFUL", 290, true, C.buffs_defensive),
@@ -129,20 +150,27 @@ R.TIERS = {
     -- for secure hostile filtering.
     exact("RacialDefensive", "HELPFUL", 291, true, C.buffs_racial_defensive, true),
     exact("Roots", "HARMFUL", 300, false, C.roots),
-    exact("RootImmunity", "HELPFUL", 305, true, C.immunities_root, true),
+    -- Movement/casting immunity and spell redirection share one protection lane.
+    exact("RootImmunity", "HELPFUL", 305, true,
+        union("immunities_root", "immunities_interrupt", "buffs_grounding"), true),
     semantic("CrowdControl", "HARMFUL|CROWD_CONTROL", 309),
-    -- Stuns are conceptually CC, but runtime exact lanes must be disjoint:
-    -- the dedicated 320 Stun lane owns every stun ID.
+    -- Harmful stuns are conceptually CC, but exact lanes must be disjoint:
+    -- the dedicated 320 Stun lane owns every harmful stun ID.
     exact("Control", "HARMFUL", 310, false, unionExcept("stuns", "interrupts", "cc")),
+    exact("PhysicalImmunity", "HELPFUL", 315, true, C.immunities_physical, true),
     exact("Stun", "HARMFUL", 320, false, C.stuns),
+    -- Cocoon's self-stun is currently HELPFUL in the client spell data.
+    exact("HelpfulSelfStun", "HELPFUL", 320, true, C.buffs_self_stun, true),
     exact("ImmunityHarmful", "HARMFUL", 330, false, C.immunities_harmful),
     exact("Immunity", "HELPFUL", 330, true, C.immunities),
     -- Keep Divine Protection independently eligible for safe hostile exact
     -- identity, above Forbearance and the ordinary Immunity lane.
     exact("DivineProtection", "HELPFUL", 331, true, C.buffs_divine_protection, true),
     -- Secure buttons use tier + 1; Ghost's state witness uses Immunity + 2.
-    -- Level 332 therefore makes Waiting to Resurrect visibly outrank Ghost.
-    exact("WaitingToResurrect", "HELPFUL", 332, true, C.buffs_waiting_to_resurrect, true),
+    -- Level 332 makes resurrection waiting and the dead-only speed aura
+    -- visibly outrank Ghost without inferring either aura from death state.
+    exact("WaitingToResurrect", "HELPFUL", 332, true,
+        union("buffs_waiting_to_resurrect", "buffs_ghost_speed"), true),
 }
 
 -- Immutable lookup indexes derived once from the frozen tier table. These do

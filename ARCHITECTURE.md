@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document describes the current implementation of **bjarkiPortraits 0.1.80-local** as it exists in the repository. It is a maintenance reference for the addon and does not claim undocumented guarantees about the WoW: Forever client.
+This document now tracks **bjarkiPortraits 0.1.105-local**. Sections 1–19 preserve historical architecture and experiment notes from earlier revisions (mostly 0.1.80-era); **section 20 records the current tested source and supersedes conflicting older observations**. This maintenance reference does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into seven Lua modules:
 
@@ -349,3 +349,27 @@ When investigating these reports, preserve the separation between readable
 identity/relation evidence, exact-filter authorization, native secure-lane
 candidate election, and visible presentation. Do not infer that one layer is
 working because another layer displays an icon.
+
+## 20. Current committed source: 0.1.105-local (2026-10-12)
+
+**Provenance:** Source is taken verbatim from `bjarkiPortraits-0.1.105-local.zip` (ZIP SHA-256 `662cf14dcf470d99557fd50eea3b4ae26d998807e8c1cb8d5159a814f4568cba`). Both matching manifests load exactly seven Lua modules: `Spells.lua`, `Core.lua`, `Priority.lua`, `AuraEngine.lua`, `PetPortraits.lua`, `Commands.lua`, and `Main.lua`. Old reports in `KNOWN_ISSUES.md` stay open until independently retested, regardless of whether newer source code changed the implicated path.
+
+### 20.1. Timer geometry and accepted visual calibration
+
+- Portrait hosts are `player`, `target`, `focus`, `targettarget` (ToT), and `focustarget` (ToF); a priority-selected aura or state is drawn over each portrait. The unit-frame geometry, including compact chrome, remains owned by Blizzard/bjarkiUI, not the timer engine.
+- The tested 1920×1080 countdown comparison found the Player timer text about one physical pixel high relative to Target, while the ToT/ToF compact countdowns were about one pixel low. Optical centering must be checked against visible glyph bounds, not just text-region coordinates.
+- `AuraEngine.lua` now uses the accepted **Player-only `offsetY = +0.5` UI units** relative to the large-frame timer path. Target and Focus keep their default timer placement. Compact ToT/ToF use `timerY = 0` (previously `-1`), with the compact `iconX = 1`, `iconY = 0`, and `timerX = 1` positions unchanged.
+- The live-calibration `/bp timery` facility from the intermediate 0.1.104 test build was **removed entirely**. No calibration cache, temporary command, or speculative UI-scale threshold remains in 0.1.105. The final offset was judged from matching countdowns and pixel-row comparison, not a promise of perfect rendering on every scale.
+
+### 20.2. Source ownership, privacy, and taint boundaries
+
+- `Spells.lua` owns spell-ID/category membership; `Priority.lua` handles priority election/ordering; `AuraEngine.lua` owns visible portrait updates, cooldown text, and secure/readable aura paths; `Core.lua` owns shared state and safe value helpers; `PetPortraits.lua` handles pet portrait art; `Commands.lua` exposes supported diagnostics; `Main.lua` wires refresh events.
+- Aura observation and display authorization are distinct: known spell IDs or readable information do not automatically authorize one to replace the native secure aura lane. The addon must preserve secure/protected client boundaries, treat secret results as UNKNOWN rather than false, and avoid inferring enemy class/pet identity from apparent artwork.
+- ToT/ToF are reusable frame surfaces. On retarget/rebind, both visual state and selected aura must be checked against the **current referent**, not a previous unit. The border/portrait clipping concerns recorded in older versions remain separately documented.
+- User feedback on conflicting spell priorities, missing opposing-faction auras, and pet rendering in Battlegrounds is not equivalent to a verified causal diagnosis. Keep category election, exact secure filter eligibility, relation/identity evidence, and native visibility separate when auditing.
+
+### 20.3. Verification and next checks
+
+- **Validated for this repository update:** nine ZIP members, matching `0.1.105-local` manifests, Lua parser success for all seven sources, absence of `/bp timery`, and exact Git blob hashes matching the packaged files.
+- **Live visual evidence:** large and compact portrait timer alignment was checked in user screenshots at a 1920×1080 configuration; this is a scoped optical result, not a universal pixel guarantee or exhaustive taint/combat/dungeon/Battleground test.
+- Preserve the verified timer geometry and spell priorities unless a new reproducible screenshot plus code-path observation warrants changing them. Prefer out-of-combat reversible experiments with one variable at a time; remove temporary calibration mechanisms before releasing an accepted build.
