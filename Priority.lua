@@ -38,7 +38,9 @@ R.TIERS = {
     exact("BoostedRest", "HARMFUL", 1, false, C.debuffs_boosted_rest, true),
     exact("CampfireNearby", "HELPFUL", 2, true, C.buffs_campfire_nearby),
     exact("Cosmetic", "HELPFUL", 1, true, C.buffs_cosmetic),
-    exact("Tracking", "HELPFUL", 0, true, C.buffs_tracking),
+    -- Tracking/scouting auras are deliberately absent from portrait display.
+    -- Keep their IDs in Spells.lua as exclusions for broad hostile fallbacks:
+    -- dropping this exact lane alone would leave an arbitrary tracking winner.
     exact("TravelUtility", "HELPFUL", 50, true, C.buffs_travel_utility),
     -- Persistent item/queue status stays below passive class and totem buffs.
     exact("PassiveDebuff", "HARMFUL", 59, false, C.debuffs_passive, true),
@@ -230,12 +232,22 @@ for _, tier in ipairs(R.TIERS) do
     end
 end
 
+-- Tracking is a known non-display category, even though it owns no visible
+-- tier. Exclude it from broad secure helpful fallbacks, not only from the
+-- readable exact-spell election. Otherwise a hostile player's public Track
+-- Humanoids can still occupy the portrait when its tactical buffs are sealed.
+for spellID in pairs(C.buffs_tracking or {}) do
+    helpfulExplicit[spellID] = true
+end
+
 function R.CandidateFilters(tier)
     if tier.exact then return { includeSpellIDs = tier.spellIDs } end
     local out = {}
     for key, value in pairs(tier.candidateFilters or {}) do out[key] = value end
     if tier.key == "Important" or tier.key == "ExternalDef" or tier.key == "BigDef" then
         out.excludeSpellIDs = helpfulExplicit
+    elseif tier.key == "HostileHelpful" then
+        out.excludeSpellIDs = C.buffs_tracking
     elseif tier.key == "CrowdControl" or tier.key == "PriorityDebuff" then
         out.excludeSpellIDs = harmfulExplicit
     end

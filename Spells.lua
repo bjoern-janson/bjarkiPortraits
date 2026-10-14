@@ -1010,7 +1010,14 @@ PT.categories = {
                 [10599] = true, -- Nature Resistance
                 [24853] = true, -- Mana Spring
                 [25362] = true, -- Strength of Earth
-        [1299346] = true, -- Trueshot Aura
+        -- All five WoW: Forever Trueshot Aura ranks share this class-aura tier.
+        -- Previously only rank 1 was known: higher-rank hunters fell through
+        -- to lower-priority public helpful fallbacks on hostile targets.
+        [1299346] = true, -- Trueshot Aura Rank 1 (level 25)
+        [1299348] = true, -- Trueshot Aura Rank 2 (level 32)
+        [19506] = true,   -- Trueshot Aura Rank 3 (level 40)
+        [20905] = true,   -- Trueshot Aura Rank 4 (level 50)
+        [20906] = true,   -- Trueshot Aura Rank 5 (level 60)
         [17007] = true, -- Leader of the Pack (retained talent record)
         [24932] = true, -- Leader of the Pack (applied party aura)
     },
@@ -1170,7 +1177,15 @@ PT.categories = {
                 [14752] = true, -- Divine Spirit
     },
     buffs_tracking = {
-        -- Pure information/scouting auras are the absolute bottom helpful tier.
+        -- Never display these tracking/scouting effects on portrait auras.
+        -- This category is retained solely as a *denylist* for secure broad
+        -- helpful fallbacks (especially hostile players), not as a tier.
+        [2481] = true, -- Find Treasure / treasure tracking
+        [5225] = true, -- Druid Track Humanoids (cat form)
+        [19878] = true, -- Track Demons
+        [19879] = true, -- Track Dragonkin
+        [19882] = true, -- Track Giants
+        [43308] = true, -- Find Fish
         [2383] = true, -- Find Herbs Rank 1
         [8387] = true, -- Find Herbs Rank 2
         [2580] = true, -- Find Minerals Rank 1

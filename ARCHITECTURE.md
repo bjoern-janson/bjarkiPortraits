@@ -373,3 +373,30 @@ working because another layer displays an icon.
 - **Validated for this repository update:** nine ZIP members, matching `0.1.105-local` manifests, Lua parser success for all seven sources, absence of `/bp timery`, and exact Git blob hashes matching the packaged files.
 - **Live visual evidence:** large and compact portrait timer alignment was checked in user screenshots at a 1920×1080 configuration; this is a scoped optical result, not a universal pixel guarantee or exhaustive taint/combat/dungeon/Battleground test.
 - Preserve the verified timer geometry and spell priorities unless a new reproducible screenshot plus code-path observation warrants changing them. Prefer out-of-combat reversible experiments with one variable at a time; remove temporary calibration mechanisms before releasing an accepted build.
+
+## 21. Current synchronized source: 0.1.106-local (2026-10-15)
+
+### 21.1 Provenance and exact source scope
+
+- Source: `bjarkiPortraits-0.1.106-local.zip`; archive SHA-256 `20f8c5465878fc6d9134ac79c7565b92f34aee5c2335abce6cd0a4f88484cc20`.
+- The manifests declare seven modules in the same order: `Spells.lua`, `Core.lua`, `Priority.lua`, `AuraEngine.lua`, `PetPortraits.lua`, `Commands.lua`, `Main.lua`.
+- Relative to `0.1.105-local`, only `Spells.lua`, `Core.lua`, `Priority.lua`, and the two manifests differ. The other four Lua modules are byte-identical to repository `main`. Treat this as a focused data/policy synchronization, not a new aura-engine release.
+
+### 21.2 Tracking is now non-display, including broad fallbacks
+
+- The `buffs_tracking` set remains a named spell-ID **denylist**, not a visible priority tier. `Priority.lua` removes its exact tracking/scouting lane.
+- The hostile-helpful broad semantic lane explicitly sets `excludeSpellIDs=C.buffs_tracking`. The tracking set also enters the helpful explicit exclusion index for `Important`, `ExternalDef`, and `BigDef` fallbacks. This matters on hostile players, where an exact categorized identity may not be readable even though a broad helpful aura is visible.
+- Covered examples include Track Humanoids, Track Beasts/Hidden/Undead/Elementals/Demons/Dragonkin/Giants, Find Herbs/Minerals/Treasure/Fish, Sense Demons/Undead, and other scouting/channel effects enumerated in `Spells.lua`.
+- This is a **portrait-selection** policy. It does not cancel gameplay tracking buffs, suppress Blizzard's own buff frames, or authorize guessing hidden aura identities.
+
+### 21.3 Hunter Trueshot Aura ranks and evidence discipline
+
+- The class-aura category recognizes Forever ranks `1299346`, `1299348`, `19506`, `20905`, and `20906`. Earlier rank-1-only recognition could leave an otherwise important Trueshot Aura unclassified in the finite spell-ID mapping.
+- The original field observation was a hostile Hunter portrait showing Track Humanoids over Trueshot Aura. Its cause could involve both insufficient exact rank coverage and a broad hostile-helpful fallback. The paired change addresses the explicit known mechanisms but **has not been exhaustively validated in an opposing-faction combat encounter**.
+- A secret, unavailable, or relation-restricted identity must remain UNKNOWN; a heuristic display fallback must not pretend to identify a specific aura. Maintain the existing secure-host/readable-evidence split and the last-applied-within-a-lane rule only when the full readable election permits it.
+
+### 21.4 Remaining verification
+
+- Test a hostile Hunter with every observed Trueshot rank and tracking aura under combat restrictions; confirm that excluded tracking does not occupy the portrait, and separately verify Trueshot when its identity is actually available to the runtime.
+- Check ToT/ToF recycled units, pet portraits in group content, safe combat event sequences, and timer/priority behavior without claiming a full taint proof from syntax checks or mocks.
+- The `KNOWN_ISSUES.md` Battleground reports remain independent open client observations until reproduced or resolved with concrete runtime evidence.
