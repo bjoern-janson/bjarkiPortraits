@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document now tracks **bjarkiPortraits 0.1.105-local**. Sections 1–19 preserve historical architecture and experiment notes from earlier revisions (mostly 0.1.80-era); **section 20 records the current tested source and supersedes conflicting older observations**. This maintenance reference does not claim undocumented guarantees about the WoW: Forever client.
+This document tracks **bjarkiPortraits 0.1.107-local**. Sections 1–21 retain historical architecture and experiment notes; **section 22 records the current 5-second portrait timer threshold** and supersedes older timing descriptions where they conflict. This maintenance reference does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into seven Lua modules:
 
@@ -400,3 +400,11 @@ working because another layer displays an icon.
 - Test a hostile Hunter with every observed Trueshot rank and tracking aura under combat restrictions; confirm that excluded tracking does not occupy the portrait, and separately verify Trueshot when its identity is actually available to the runtime.
 - Check ToT/ToF recycled units, pet portraits in group content, safe combat event sequences, and timer/priority behavior without claiming a full taint proof from syntax checks or mocks.
 - The `KNOWN_ISSUES.md` Battleground reports remain independent open client observations until reproduced or resolved with concrete runtime evidence.
+
+## 22. Portrait countdown decimals: 0.1.107-local (2026-10-15)
+
+This is a focused timer-only release. With the existing `/bp decimals` preference **on**, the portrait cooldown formatter displays one decimal below **5 seconds** (previously below 10), displays whole seconds from 5 through 60 seconds, and keeps its empty format above 60 seconds. With decimals **off**, all displayed countdowns remain whole seconds.
+
+`Core.lua` updates both `C_StringUtil.CreateNumericRuleFormatter():SetBreakpoints` from threshold 10 to threshold 5 and the `Cooldown:SetCountdownMillisecondsThreshold` compatibility fallback from 10 to 5. The 60.000001 hidden-timer breakpoint, timer geometry, user setting, spell priorities, event hooks, and secure aura-container selection remain unchanged.
+
+Both manifests now say `0.1.107-local`; the seven runtime modules and their load order are unchanged. The seven Lua sources passed Lua 5.4 syntax parsing, and a Lua mock test checked both formatter modes plus the 5-second/zero-threshold fallback. This is source-level validation, not in-game combat, visual, or taint certification.
