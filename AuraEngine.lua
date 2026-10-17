@@ -8,23 +8,95 @@ local STRATA_BELOW = {
 
 local AURA_SCAN_LIMIT = 80
 
-local SMALL_GEOMETRY = {
-    targettarget = { iconX = 1, iconY = 0, timerX = 1, timerY = 0 },
-    focustarget = { iconX = 1, iconY = 0, timerX = 1, timerY = 0 },
-}
-
--- Use Blizzard's portrait mask when exposed. Small derived frames without one
--- rely on the native artwork above the shared lower layer for circular framing.
 local function applyIconMask(host, icon)
-    -- Reuse Blizzard's real portrait mask when exposed.  For ToT/FoT, the
-    -- native frame artwork above the shared lower layer provides the visible
-    -- circular framing; do not synthesize a second mask or cloned ring.
-    if host.portraitMask and icon.AddMaskTexture then
-        pcall(icon.AddMaskTexture, icon, host.portraitMask)
+    R.ApplyPortraitIconCrop(icon, host)
+    local mask = host.imageMask or host.portraitMask
+    if mask and icon.AddMaskTexture then
+        pcall(icon.AddMaskTexture, icon, mask)
     end
 end
 
-local function configureCooldown(cooldown, unit)
+-- Wisdom text is calibrated separately from the icon's circles. The .120
+-- finishing pass changes only Target/Focus and ToF label X offsets.
+-- Keep the existing font sizes, native swipe rectangles and countdown values.
+-- The small residual ink correction still needs checking across other digits.
+local timerInkOffsets = {
+    player = { 1, -0.25 },
+    target = { 3, -0.75 },
+    focus = { 3, -0.75 },
+    targettarget = { 0.25, 1 },
+    focustarget = { 0.25, 1 },
+}
+local function timerOpticalOffset(text, unit)
+    local offset = timerInkOffsets[unit]
+    if not offset then return 0, 0 end
+    if not PixelUtil or type(PixelUtil.GetPixelToUIUnitFactor) ~= "function"
+        or type(text.GetEffectiveScale) ~= "function" then return 0, 0 end
+    local factorOK, factor = pcall(PixelUtil.GetPixelToUIUnitFactor)
+    local scaleOK, scale = pcall(text.GetEffectiveScale, text)
+    if not factorOK or not scaleOK or not R.CanAccess(factor) or not R.CanAccess(scale)
+        or type(factor) ~= "number" or type(scale) ~= "number"
+        or factor ~= factor or scale ~= scale or factor <= 0 or scale <= 0
+        or factor == math.huge or scale == math.huge then return 0, 0 end
+    return offset[1] * factor / scale, offset[2] * factor / scale
+end
+
+local function alignCountdown(cooldown, host)
+    -- Operate only on the addon-created countdown, never read its text/time.
+    -- Layout may be unavailable after secure initialization; retry at the next
+    -- existing out-of-combat lifecycle boundary rather than attaching scripts
+    -- to forbidden aura buttons or polling secret-valued geometry.
+    local combat, readable = R.SafeBool(InCombatLockdown)
+    if not readable or combat then
+        cooldown._bjarkiAlignmentState = "deferred"
+        return
+    end
+    local ok, text = false, nil
+    if type(cooldown.GetCountdownFontString) == "function" then
+        ok, text = pcall(cooldown.GetCountdownFontString, cooldown)
+    end
+    if not ok or not R.CanAccess(text) or not text then
+        cooldown._bjarkiAlignmentState = "label-unavailable"
+        return
+    end
+
+    if R.SMALL_UNITS[host.unit] and text.GetFont and text.SetFont then
+        local fontOK, file, size, flags = pcall(text.GetFont, text)
+        if fontOK and R.CanAccess(file) and R.CanAccess(size) and R.CanAccess(flags)
+            and type(file) == "string" and type(size) == "number"
+            and size == size and size > 2 and size < 100 then
+            local saved = cooldown._bjarkiCompactFont
+            if not saved or saved.text ~= text then
+                saved = {text=text, file=file, size=size, wanted=math.max(1, size-2), flags=flags or ""}
+                cooldown._bjarkiCompactFont = saved
+            end
+            if saved.file == file and (size == saved.size or size == saved.wanted) then
+                pcall(text.SetFont, text, saved.file, saved.wanted, saved.flags)
+            end
+        end
+    end
+
+    -- Keep the cooldown/swipe on its prior native reference. Only the label
+    -- gets this ink-centering correction; the image's separate clipping mask
+    -- never changes countdown values, formatting or swipe geometry.
+    local dx, dy = timerOpticalOffset(text, host.unit)
+    local centered = pcall(function()
+        cooldown:ClearAllPoints()
+        cooldown:SetAllPoints(host.portraitMask or host.portrait)
+        text:ClearAllPoints()
+        if dx == 0 and dy == 0 then
+            text:SetAllPoints(cooldown)
+        else
+            text:SetPoint("TOPLEFT", cooldown, "TOPLEFT", dx, dy)
+            text:SetPoint("BOTTOMRIGHT", cooldown, "BOTTOMRIGHT", dx, dy)
+        end
+        text:SetJustifyH("CENTER")
+        text:SetJustifyV("MIDDLE")
+    end)
+    cooldown._bjarkiAlignmentState = centered and "centered" or "layout-unavailable"
+end
+
+local function configureCooldown(cooldown, host)
     if cooldown.SetMinimumCountdownDuration then cooldown:SetMinimumCountdownDuration(0) end
     cooldown:SetAllPoints()
     if cooldown.SetUsingParentLevel then cooldown:SetUsingParentLevel(true) end
@@ -34,37 +106,7 @@ local function configureCooldown(cooldown, unit)
     if cooldown.SetDrawSwipe then cooldown:SetDrawSwipe(R.db and R.db.showSwipe or false) end
     R.ApplyCountdownFormat(cooldown)
     if cooldown.SetSwipeTexture then cooldown:SetSwipeTexture(R.SWIPE_TEXTURE) end
-
-    local geometry = SMALL_GEOMETRY[unit]
-    if cooldown.GetCountdownFontString then
-        local ok, text = pcall(cooldown.GetCountdownFontString, cooldown)
-        if ok and R.CanAccess(text) and text then
-            if geometry and not cooldown._bjarkiFontAdjusted and text.GetFont and text.SetFont then
-                local fontOK, font, size, flags = pcall(text.GetFont, text)
-                if fontOK and font and type(size) == "number" then
-                    pcall(text.SetFont, text, font, math.max(1, size - 2), flags or "")
-                    cooldown._bjarkiFontAdjusted = true
-                end
-            end
-            if geometry then
-                if text.ClearAllPoints and text.SetPoint then
-                    pcall(text.ClearAllPoints, text)
-                    pcall(text.SetPoint, text, "CENTER", cooldown, "CENTER", geometry.timerX, geometry.timerY)
-                end
-            elseif (unit == "player" or unit == "target" or unit == "focus")
-                and cooldown._bjarkiTimerOffsetText ~= text and text.AdjustPointsOffset
-            then
-                -- Preserve native large countdown anchors and shared X=1.
-                -- User-verified Player timer Y=+0.5 at 1920x1080; the
-                -- Target/Focus timer offsets remain unchanged. Apply once
-                -- per FontString to avoid cumulative drift on refresh.
-                local offsetY = unit == "player" and 0.5 or 0
-                if pcall(text.AdjustPointsOffset, text, 1, offsetY) then
-                    cooldown._bjarkiTimerOffsetText = text
-                end
-            end
-        end
-    end
+    alignCountdown(cooldown, host)
 end
 
 local function initializeButton(host, button, tier)
@@ -77,9 +119,10 @@ local function initializeButton(host, button, tier)
     applyIconMask(host, icon)
     button:SetIcon(icon)
 
-    local cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
-    configureCooldown(cooldown, host.unit)
+    local cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate," .. R.AURA_ANCHOR_TEMPLATE)
+    configureCooldown(cooldown, host)
     button:SetDurationCooldown(cooldown)
+    alignCountdown(cooldown, host)
     button:EnableMouse(false)
     host.cooldowns[#host.cooldowns + 1] = cooldown
 end
@@ -90,15 +133,7 @@ local function firstPoint(region)
 end
 
 local function placeAtPortrait(frame, host)
-    local point, relativeTo, relativePoint, x, y = firstPoint(host.portrait)
-    local geometry = SMALL_GEOMETRY[host.unit]
-    local ox, oy = geometry and geometry.iconX or 0, geometry and geometry.iconY or 0
-    if point then
-        frame:SetPoint(point, relativeTo or host.layer, relativePoint or point, (x or 0) + ox, (y or 0) + oy)
-    else
-        frame:SetPoint("CENTER", host.layer, "CENTER", ox, oy)
-    end
-    frame:SetSize(host.portrait:GetSize())
+    frame:SetAllPoints(host.anchor or host.portrait)
 end
 
 local function findHelpfulTierForSpell(spellID)
@@ -117,7 +152,6 @@ local function findHelpfulTierForSpell(spellID)
 end
 
 local BOOSTED_REST_SPELL_ID = 1229451
-local RECENTLY_BANDAGED_SPELL_ID = 11196
 local GHOST_SPELL_ID = 8326
 local WELCOMING_CAMPFIRE_SPELL_IDS = {
     [1229739] = true,
@@ -139,7 +173,7 @@ local function findTierByKey(key)
     end
 end
 
--- BaselineClass and Healing use application-time recency: a refreshed aura
+-- BaselineClass, Healing and StatusEffects use application-time recency: a refreshed aura
 -- should win within its tier even when Forever preserves its instance ID.
 -- auraInstanceID is an identity/deterministic sort key, not application time.
 --
@@ -171,7 +205,8 @@ local function readAuraStartTime(unit, aura, auraInstanceID)
 end
 
 local function usesApplicationTime(tier)
-    return tier and (tier.key == "BaselineClass" or tier.key == "Healing")
+    return tier and (tier.key == "BaselineClass" or tier.key == "Healing"
+        or tier.key == "StatusEffects")
 end
 
 local function readableCandidate(unit, aura, spellID, tier)
@@ -255,6 +290,33 @@ local function scanReadableExactAuraSet(unit, filter, spellIDs)
 
     -- The bounded scan did not reach a nil terminator, so absence is unproven.
     return nil, nil, false
+end
+
+-- A positive exact result is a witness, not proof that every other aura is
+-- absent. Direct getters can omit inaccessible auras. Never use their nil
+-- results to suppress a secure tier or infer the state of another unit.
+local function getDirectExactAura(unit, spellID)
+    if not C_UnitAuras then return nil end
+    local ok, aura
+    if type(C_UnitAuras.GetUnitAuraBySpellID) == "function" then
+        ok, aura = pcall(C_UnitAuras.GetUnitAuraBySpellID, unit, spellID)
+    end
+    if (not ok or not R.CanAccess(aura) or aura == nil)
+        and unit == "player" and type(C_UnitAuras.GetPlayerAuraBySpellID) == "function" then
+        ok, aura = pcall(C_UnitAuras.GetPlayerAuraBySpellID, spellID)
+    end
+    if not ok or not R.CanAccess(aura) or aura == nil then return nil end
+    local id, readable = R.ReadAuraField(aura, "spellId")
+    if readable and type(id) == "number" and id == spellID then return aura end
+end
+
+local function directTierWitness(unit, tier, spellIDs)
+    local candidates = {}
+    for id in pairs(spellIDs or {}) do
+        local aura = getDirectExactAura(unit, id)
+        if aura then candidates[#candidates + 1] = readableCandidate(unit, aura, id, tier) end
+    end
+    return electReadableCandidate(candidates, usesApplicationTime(tier))
 end
 
 local function getReadablePlayerAuraBySpellID(spellID)
@@ -489,7 +551,10 @@ local function scanReadableHostileHelpful(unit)
 end
 
 local function createReadableExactFrame(host, level)
-    local frame = CreateFrame("Frame", nil, host.layer)
+    host._buildStage = "readable-helper:" .. tostring(level)
+    -- These sibling frames anchor to host.anchor, which has forbidden layout
+    -- scripts. Opt in at creation; SetAllPoints cannot inherit that aspect.
+    local frame = CreateFrame("Frame", nil, host.layer, R.AURA_ANCHOR_TEMPLATE)
     placeAtPortrait(frame, host)
     frame:SetFrameStrata(host.strata)
     frame:SetFrameLevel((host.smallBaseLevel or 0) + (level or 1) + 1)
@@ -500,8 +565,8 @@ local function createReadableExactFrame(host, level)
     applyIconMask(host, icon)
     frame.icon = icon
 
-    local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
-    configureCooldown(cooldown, host.unit)
+    local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate," .. R.AURA_ANCHOR_TEMPLATE)
+    configureCooldown(cooldown, host)
     frame.cooldown = cooldown
     host.cooldowns[#host.cooldowns + 1] = cooldown
     frame:Hide()
@@ -571,17 +636,22 @@ local function hideReadableExact(frame)
     if frame.Hide then pcall(frame.Hide, frame) end
 end
 
-local function setReadableSpellIcon(frame, spellID)
+local function setReadableSpellIcon(frame, spellID, aura)
     if not frame or not frame.icon or not frame.icon.SetTexture then
         hideReadableExact(frame)
         return false
     end
 
     local texture
-    if C_Spell and C_Spell.GetSpellTexture then
+    if aura then
+        local value, readable = R.ReadAuraField(aura, "icon")
+        if readable and ((type(value) == "number" and value > 0 and value < math.huge)
+            or (type(value) == "string" and value ~= "")) then texture = value end
+    end
+    if texture == nil and C_Spell and C_Spell.GetSpellTexture then
         local ok, value = pcall(C_Spell.GetSpellTexture, spellID)
         if ok and R.CanAccess(value) then texture = value end
-    elseif GetSpellTexture then
+    elseif texture == nil and GetSpellTexture then
         local ok, value = pcall(GetSpellTexture, spellID)
         if ok and R.CanAccess(value) then texture = value end
     end
@@ -605,7 +675,7 @@ local function showReadableAura(frame, aura, spellID, unit)
         hideReadableExact(frame)
         return false
     end
-    if not setReadableSpellIcon(frame, spellID) then return false end
+    if not setReadableSpellIcon(frame, spellID, aura) then return false end
 
     if not setReadableAuraCooldown(frame.cooldown, unit, aura) then
         hideReadableExact(frame)
@@ -619,8 +689,8 @@ local function showReadableAura(frame, aura, spellID, unit)
     return true
 end
 
-local function showStaticSpell(frame, spellID)
-    if not setReadableSpellIcon(frame, spellID) then return false end
+local function showStaticSpell(frame, spellID, aura)
+    if not setReadableSpellIcon(frame, spellID, aura) then return false end
     if not clearReadableCooldown(frame.cooldown) then
         hideReadableExact(frame)
         return false
@@ -650,9 +720,74 @@ local function showReadableTier(host, frameKey, candidate, complete)
     return true
 end
 
+-- A positive, independent form-state witness for hostile *players* only.
+-- Opposite-faction HELPFUL identities can become inaccessible during CC,
+-- but unit class and active primary power may remain readable. These are
+-- public unit facts, not proof of a particular aura instance. Do not infer
+-- any form when the class, power or alive state is unknown; do not reopen the
+-- permanent-buff fallback (which would also admit Find Minerals).
+local function updateObservedDruidForm(host, baseEnabled, hostilePlayer, hostileReadable)
+    host._formStateActive = false
+    host._formStateSpellID = nil
+    host._formStateReason = "ineligible"
+    local frame = host and host.readableFormStateFrame
+    if not frame then return end
+    if not baseEnabled or R.testMode or not hostilePlayer or hostileReadable then
+        hideReadableExact(frame)
+        return
+    end
+    local dead, deadReadable = R.SafeBool(UnitIsDeadOrGhost, host.unit)
+    if not deadReadable or dead then
+        host._formStateReason = deadReadable and "dead" or "dead-unknown"
+        hideReadableExact(frame)
+        return
+    end
+    if type(UnitClass) ~= "function" then
+        host._formStateReason = "class-unavailable"
+        hideReadableExact(frame)
+        return
+    end
+    local classOK, _localized, classFile = pcall(UnitClass, host.unit)
+    if not classOK or not R.CanAccess(classFile) or type(classFile) ~= "string" then
+        host._formStateReason = "class-unreadable"
+        hideReadableExact(frame)
+        return
+    end
+    if classFile ~= "DRUID" then
+        host._formStateReason = "not-druid"
+        hideReadableExact(frame)
+        return
+    end
+    if type(UnitPowerType) ~= "function" then
+        host._formStateReason = "power-unavailable"
+        hideReadableExact(frame)
+        return
+    end
+    local powerOK, _powerID, token = pcall(UnitPowerType, host.unit)
+    if not powerOK or not R.CanAccess(token) or type(token) ~= "string" then
+        host._formStateReason = "power-unreadable"
+        hideReadableExact(frame)
+        return
+    end
+    -- Energy uniquely identifies a cat-form Druid's active resource; Rage
+    -- identifies the bear family (Bear/Dire Bear share an icon). Mana does
+    -- NOT identify Moonkin, Travel Form, or an ordinary caster and cannot
+    -- authorize a synthetic aura. The icon has no fabricated countdown.
+    local spellID = token == "ENERGY" and 768 or token == "RAGE" and 5487 or nil
+    if not spellID then
+        host._formStateReason = "no-form-witness"
+        hideReadableExact(frame)
+        return
+    end
+    host._formStateSpellID = spellID
+    host._formStateActive = showStaticSpell(frame, spellID)
+    host._formStateReason = host._formStateActive and "unit-power" or "presentation-failed"
+end
+
 local function updateGhostState(host, baseEnabled)
     host._ghostReadable = false
     host._ghostActive = false
+    host._ghostSource = "none"
 
     local frame = host and host.readableGhostFrame
     if not frame then return end
@@ -666,9 +801,21 @@ local function updateGhostState(host, baseEnabled)
     -- units. UNKNOWN remains UNKNOWN; do not infer Ghost from "dead".
     local isGhost, readable = R.SafeBool(UnitIsGhost, host.unit)
     host._ghostReadable = readable
+    -- A readable negative state wins; death alone is not a Ghost witness.
+    if readable and not isGhost then hideReadableExact(frame); return end
 
-    if readable and isGhost then
-        host._ghostActive = showStaticSpell(frame, GHOST_SPELL_ID)
+    local aura
+    for _, id in ipairs({8326, 9036, 1278162}) do
+        aura = getDirectExactAura(host.unit, id)
+        if aura then break end
+    end
+    if not aura then
+        aura = scanReadableExactAuraSet(host.unit, "HARMFUL|INCLUDE_NAME_PLATE_ONLY",
+            BP.categories and BP.categories.immunities_harmful)
+    end
+    if (readable and isGhost) or aura then
+        host._ghostSource = readable and "unit-state" or "aura"
+        host._ghostActive = showStaticSpell(frame, GHOST_SPELL_ID, aura)
     else
         hideReadableExact(frame)
     end
@@ -678,6 +825,7 @@ local function clearReadableHarmfulTier(host, frameKey, prefix)
     local frame = host and host[frameKey]
     if frame then hideReadableExact(frame) end
     if host then
+        host[prefix .. "DirectWitness"] = false
         host[prefix .. "Readable"] = false
         host[prefix .. "ElectionReadable"] = false
         host[prefix .. "SpellID"] = nil
@@ -686,7 +834,7 @@ local function clearReadableHarmfulTier(host, frameKey, prefix)
 end
 
 local function updateReadableHarmfulTier(host, baseEnabled, tierKey, frameKey, prefix)
-    if not host or not baseEnabled or R.testMode or R.SMALL_UNITS[host.unit] then
+    if not host or not baseEnabled or R.testMode or not host[frameKey] then
         clearReadableHarmfulTier(host, frameKey, prefix)
         return
     end
@@ -697,9 +845,11 @@ local function updateReadableHarmfulTier(host, baseEnabled, tierKey, frameKey, p
         return
     end
 
-    -- If the secure exact harmful filter is legal for this relation, leave the
-    -- secure AuraContainer fully authoritative.
-    if R.ExactFilterAllowed(host.unit, false, tier.spellIDs, tier.allowNeverSecret) then
+    -- Only a complete, ordered election can replace native selection. A tier's
+    -- explicit small direct-witness subset can preserve a known positive effect
+    -- on an incomplete read, below the native slot and without disabling it.
+    if not tier.directWitnessSpellIDs and not usesApplicationTime(tier)
+        and R.ExactFilterAllowed(host.unit, false, tier.spellIDs, tier.allowNeverSecret) then
         clearReadableHarmfulTier(host, frameKey, prefix)
         return
     end
@@ -707,17 +857,36 @@ local function updateReadableHarmfulTier(host, baseEnabled, tierKey, frameKey, p
     local best, complete, electionReadable = scanLatestReadableExactTierAura(
         host.unit, tierKey, tier.filter
     )
+    local direct = false
+    if tier.directWitnessSpellIDs and (not complete or not electionReadable or not best) then
+        best, electionReadable = directTierWitness(host.unit, tier, tier.directWitnessSpellIDs)
+        direct = best ~= nil and electionReadable == true
+        -- Positive member lookup is not an exhaustive aura election.
+        complete = false
+    end
+    host[prefix .. "DirectWitness"] = direct
     host[prefix .. "Readable"] = complete
     host[prefix .. "ElectionReadable"] = electionReadable
     host[prefix .. "SpellID"] = best and best.spellID or nil
 
-    if not complete or not electionReadable or not best then
+    if (not complete and not direct) or not electionReadable or not best then
         hideReadableExact(host[frameKey])
         host[prefix .. "Active"] = false
         return
     end
 
-    host[prefix .. "Active"] = showReadableTier(host, frameKey, best, true)
+    host[prefix .. "Active"] = showReadableTier(host, frameKey, best, not direct)
+    if direct and host[prefix .. "Active"] then
+        -- The known effect may beat lower bands, but a native winner in this
+        -- band must remain above it. Do not turn a partial lookup into authority.
+        local lowered = pcall(host[frameKey].SetFrameLevel, host[frameKey],
+            (host.smallBaseLevel or 0) + (tier.level or 1))
+        if not lowered then
+            hideReadableExact(host[frameKey])
+            host[prefix .. "Active"] = false
+            host._readableTierOwners[tierKey] = nil
+        end
+    end
 end
 
 local function clearReadableHostile(host)
@@ -892,7 +1061,8 @@ local function updateReadableWelcomingCampfire(host, baseEnabled)
 end
 
 local function createTestFrame(host)
-    local frame = CreateFrame("Frame", nil, host.layer)
+    host._buildStage = "test-helper"
+    local frame = CreateFrame("Frame", nil, host.layer, R.AURA_ANCHOR_TEMPLATE)
     placeAtPortrait(frame, host)
     frame:SetFrameStrata(host.strata)
     frame:SetFrameLevel((host.smallBaseLevel or 0) + 900)
@@ -901,8 +1071,8 @@ local function createTestFrame(host)
     icon:SetTexCoord(0, 1, 0, 1)
     applyIconMask(host, icon)
     frame.icon = icon
-    local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
-    configureCooldown(cooldown, host.unit)
+    local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate," .. R.AURA_ANCHOR_TEMPLATE)
+    configureCooldown(cooldown, host)
     frame.cooldown = cooldown
     host.cooldowns[#host.cooldowns + 1] = cooldown
     frame:Hide()
@@ -910,9 +1080,9 @@ local function createTestFrame(host)
 end
 
 local function hostStillCurrent(host)
-    if not host then return false end
-    local portrait, _, unitFrame = R.GetPortrait(host.unit)
-    return portrait == host.portrait and unitFrame == host.unitFrame
+    if not host or host._buildComplete ~= true then return false end
+    local portrait, mask, unitFrame = R.GetPortrait(host.unit)
+    return portrait == host.portrait and mask == host.portraitMask and unitFrame == host.unitFrame
 end
 
 local function hostHasSupportedBinding(host)
@@ -955,12 +1125,18 @@ function R.DestroyHost(unit)
     if host.readableBaselineFrame then host.readableBaselineFrame:Hide() end
     if host.readableHealingFrame then hideReadableExact(host.readableHealingFrame) end
     if host.readableSlowsFrame then host.readableSlowsFrame:Hide() end
+    if host.readableDoTsFrame then hideReadableExact(host.readableDoTsFrame) end
+    if host.readableDazedFrame then hideReadableExact(host.readableDazedFrame) end
     if host.readableForbearanceFrame then hideReadableExact(host.readableForbearanceFrame) end
-    if host.readableResSicknessFrame then host.readableResSicknessFrame:Hide() end
     if host.readableStatusEffectsFrame then hideReadableExact(host.readableStatusEffectsFrame) end
+    if host.readableResurrectionSicknessFrame then hideReadableExact(host.readableResurrectionSicknessFrame) end
+    if host.readableDemoralizingFrame then hideReadableExact(host.readableDemoralizingFrame) end
+    if host.readableBaselineHarmfulFrame then hideReadableExact(host.readableBaselineHarmfulFrame) end
+    if host.readableCampfireHarmfulFrame then hideReadableExact(host.readableCampfireHarmfulFrame) end
     if host.readableOffensiveHarmfulFrame then hideReadableExact(host.readableOffensiveHarmfulFrame) end
     if host.readableRecentlyBandagedFrame then host.readableRecentlyBandagedFrame:Hide() end
     if host.readableGhostFrame then host.readableGhostFrame:Hide() end
+    if host.readableFormStateFrame then host.readableFormStateFrame:Hide() end
     if host.readableWelcomingCampfireFrame then host.readableWelcomingCampfireFrame:Hide() end
     restorePortrait(host)
     if host.ownsLayer and host.layer then host.layer:Hide() end
@@ -978,12 +1154,18 @@ function R.DestroyAll()
     return true
 end
 
-function R.CreateHost(unit)
+-- An in-progress host is private to its constructor. Keep at most one build
+-- failure per unit; ordinary UNIT_AURA refreshes must not accumulate abandoned
+-- frame trees or spam errors. An explicit BuildAll (e.g. /bp on) retries.
+local hostBuildFailures, hostBuildInProgress = {}, {}
+
+local function buildHost(unit, host)
     -- Events and commands can reach this boundary without going through BuildAll.
     if not R.db or not R.db.enabled then return nil end
     local existing = R.hosts[unit]
     if existing and hostStillCurrent(existing) then return existing end
-    if InCombatLockdown and InCombatLockdown() then
+    local combat, combatReadable = R.SafeBool(InCombatLockdown)
+    if not combatReadable or combat then
         R.buildQueued = true
         return nil
     end
@@ -998,8 +1180,15 @@ function R.CreateHost(unit)
     local point, relativeTo, relativePoint, x, y = firstPoint(portrait)
     if not point then return nil end
 
-    local layer, strata, anchor, ownsLayer, reparented
+    local layer, strata, anchor
     local smallBaseLevel = 0
+    -- Save restoration state before the first owned-frame/native-parent write.
+    host.unitFrame = unitFrame
+    host.portrait = portrait
+    host.portraitMask = portraitMask
+    host.originalParent = originalParent
+    host.originalPoints = originalPoints
+    host.smallBaseLevel = smallBaseLevel
 
     -- Single visual primitive for every portrait: Blizzard's native portrait
     -- and the secure aura occupy the same addon-owned layer one strata below
@@ -1015,46 +1204,34 @@ function R.CreateHost(unit)
     end
     strata = STRATA_BELOW[parentStrata] or "BACKGROUND"
 
+    host._buildStage = "layer"
     layer = CreateFrame("Frame", nil, originalParent)
-    ownsLayer = true
+    host.layer, host.ownsLayer, host.strata = layer, true, strata
     layer:SetAllPoints(originalParent)
     layer:SetFrameStrata(strata)
     layer:SetFrameLevel(0)
 
+    host._buildStage = "portrait-parent"
+    host.reparented = true
     portrait:SetParent(layer)
     portrait:ClearAllPoints()
     portrait:SetPoint(point, relativeTo or layer, relativePoint or point, x or 0, y or 0)
-    reparented = true
 
+    host._buildStage = "anchor"
     anchor = CreateFrame("Frame", nil, layer, R.AURA_ANCHOR_TEMPLATE)
-    local geometry = SMALL_GEOMETRY[unit]
-    local ox, oy = geometry and geometry.iconX or 0, geometry and geometry.iconY or 0
-    anchor:SetPoint(point, relativeTo or layer, relativePoint or point, (x or 0) + ox, (y or 0) + oy)
-    anchor:SetSize(portrait:GetSize())
+    host.anchor = anchor
+    -- Only the addon image rectangle receives the measured translation.
+    -- Native masks and the independent cooldown/timer anchors remain unchanged.
+    R.ApplyPortraitImageLayout(anchor, host)
     anchor:SetFrameStrata(strata)
     anchor:SetFrameLevel(0)
-
-    local host = {
-        unit = unit,
-        unitFrame = unitFrame,
-        portrait = portrait,
-        portraitMask = portraitMask,
-        originalParent = originalParent,
-        originalPoints = originalPoints,
-        layer = layer,
-        ownsLayer = ownsLayer,
-        anchor = anchor,
-        strata = strata,
-        reparented = reparented,
-        smallBaseLevel = smallBaseLevel,
-        containers = {},
-        cooldowns = {},
-    }
-    R.hosts[unit] = host
-
+    R.CreatePortraitImageMask(host)
 
     for index, tier in ipairs(R.TIERS or {}) do
+        host._buildStage = "native-slot:" .. tostring(tier.key)
         local container = CreateFrame("AuraContainer", nil, anchor, "CustomAuraContainerTemplate")
+        -- Retain ownership immediately, including an AddAuraSlot failure.
+        host.containers[index] = container
         container:SetAllPoints(anchor)
         container:SetUnit(unit)
         container:SetFrameStrata(strata)
@@ -1067,7 +1244,6 @@ function R.CreateHost(unit)
             candidateFilters = R.CandidateFilters(tier),
             initializeFrame = function(button) initializeButton(host, button, tier) end,
         })
-        host.containers[index] = container
     end
 
     host.testFrame = createTestFrame(host)
@@ -1078,7 +1254,7 @@ function R.CreateHost(unit)
     )
     local healingTier = findTierByKey("Healing")
     host.readableHealingFrame = createReadableExactFrame(
-        host, healingTier and healingTier.level or 255
+        host, healingTier and healingTier.level or 251
     )
 
     local utilityTier = findTierByKey("Utility")
@@ -1086,29 +1262,57 @@ function R.CreateHost(unit)
         host, utilityTier and utilityTier.level or 270
     )
 
-    -- Keep derived Blizzard target frames structurally identical to v0.1.1.
-    -- They are lifecycle-sensitive; do not attach the ordinary readable
-    -- Resurrection Sickness helper surface to ToT/FoT.
+    -- Same-tier status recency applies on all five portrait hosts. These use
+    -- the existing portrait placement helper; no native frame geometry changes.
+    local statusEffectsTier = findTierByKey("StatusEffects")
+    host.readableStatusEffectsFrame = createReadableExactFrame(
+        host, statusEffectsTier and statusEffectsTier.level or 253
+    )
+    local resSicknessTier = findTierByKey("ResurrectionSickness")
+    host.readableResurrectionSicknessFrame = createReadableExactFrame(
+        host, resSicknessTier and resSicknessTier.level or 255
+    )
+
+    -- Moonfire/other DoTs and Dazed need the same checked readable path on
+    -- Player, self/friendly Target/Focus and compact derived portraits. Reuse
+    -- the restricted-anchor-safe constructor and the shared election logic.
+    local dotsTier = findTierByKey("DoTs")
+    host.readableDoTsFrame = createReadableExactFrame(host, dotsTier and dotsTier.level or 190)
+    local selfStateTier = findTierByKey("SelfState")
+    -- Exactly one level below the native SelfState slot. An actual permitted
+    -- Cat/Bear aura always wins over this independent observed-state fallback.
+    host.readableFormStateFrame = createReadableExactFrame(
+        host, (selfStateTier and selfStateTier.level or 150) - 1
+    )
+    local dazedTier = findTierByKey("Dazed")
+    host.readableDazedFrame = createReadableExactFrame(host, dazedTier and dazedTier.level or 279)
+
+    -- Other large-frame-only helpers retain their existing scope. Pox
+    -- remains inside StatusEffects, while actual Resurrection Sickness has an
+    -- independent higher lane on every host, with no shared candidate ID.
     if not R.SMALL_UNITS[unit] then
+        -- Only the requested low-world and NPC-demoralizing categories need
+        -- these additional readable helpers on the three primary portraits.
+        for _, spec in ipairs({
+            { "Demoralizing", "readableDemoralizingFrame" },
+            { "BaselineClassHarmful", "readableBaselineHarmfulFrame" },
+            { "CampfireNearbyHarmful", "readableCampfireHarmfulFrame" },
+        }) do
+            local tier = findTierByKey(spec[1])
+            if tier then host[spec[2]] = createReadableExactFrame(host, tier.level) end
+        end
+
         local boostedRestTier = findTierByKey("BoostedRest")
         host.readableBoostedRestFrame = createReadableExactFrame(
             host, boostedRestTier and boostedRestTier.level or 1
         )
 
         local slowsTier = findTierByKey("Slows")
-        host.readableSlowsFrame = createReadableExactFrame(host, slowsTier and slowsTier.level or 220)
+        host.readableSlowsFrame = createReadableExactFrame(host, slowsTier and slowsTier.level or 278)
 
         local forbearanceTier = findTierByKey("Forbearance")
         host.readableForbearanceFrame = createReadableExactFrame(
             host, forbearanceTier and forbearanceTier.level or 240
-        )
-
-        local resTier = findTierByKey("ResSickness")
-        host.readableResSicknessFrame = createReadableExactFrame(host, resTier and resTier.level or 241)
-
-        local statusEffectsTier = findTierByKey("StatusEffects")
-        host.readableStatusEffectsFrame = createReadableExactFrame(
-            host, statusEffectsTier and statusEffectsTier.level or 279
         )
 
         local offensiveHarmfulTier = findTierByKey("OffensiveHarmful")
@@ -1144,9 +1348,52 @@ function R.CreateHost(unit)
         )
     end
 
-    -- A delayed host can be created by an aura-only refresh. Initialize its
-    -- independent foundation once; existing hosts keep their scoped pet events.
-    if unit ~= "player" and R.UpdateObservedPetPortrait then
+    -- Publish only after every native slot and required helper exists.
+    host._buildStage, host._buildComplete = "ready", true
+    R.hosts[unit] = host
+    return host
+end
+
+local function abandonHost(host)
+    disableContainers(host)
+    -- Hiding the owned layer also hides any helper that threw before it could
+    -- be assigned to a host field. Never leave that partial tree rendering.
+    if host.layer then pcall(host.layer.Hide, host.layer) end
+    local restored = true
+    if host.reparented and host.portrait then
+        local parentOK = pcall(host.portrait.SetParent, host.portrait, host.originalParent)
+        local pointsOK = pcall(R.RestorePoints, host.portrait, host.originalPoints)
+        restored = parentOK and pointsOK
+        if restored then host.reparented = false end
+    end
+    return restored
+end
+
+function R.CreateHost(unit)
+    if not R.db or not R.db.enabled or hostBuildInProgress[unit]
+        or hostBuildFailures[unit] then return nil end
+    local pending = { unit = unit, containers = {}, cooldowns = {}, _buildStage = "preflight" }
+    hostBuildInProgress[unit] = true
+    local ok, host = pcall(buildHost, unit, pending)
+    if not ok then
+        local cleanOK, restored = pcall(abandonHost, pending)
+        local message = R.CanAccess(host) and type(host) == "string" and host or "unreadable construction error"
+        -- Keep the exact readable failure locally for /bp layout; never inspect
+        -- native aura data or stringify a secret error object.
+        hostBuildFailures[unit] = {
+            stage = pending._buildStage,
+            message = message,
+            restored = cleanOK and restored == true,
+        }
+        hostBuildInProgress[unit] = nil
+        pcall(R.Print, "host build failed for " .. tostring(unit) .. " at " .. pending._buildStage
+            .. "; /bp layout " .. tostring(unit) .. " reports the error")
+        return nil
+    end
+    hostBuildInProgress[unit] = nil
+    -- This callback needs a published host. Keep it outside the construction
+    -- transaction: pet-art refresh is not a prerequisite for aura helpers.
+    if host == pending and unit ~= "player" and R.UpdateObservedPetPortrait then
         R.UpdateObservedPetPortrait(unit)
     end
     return host
@@ -1158,22 +1405,24 @@ local function setContainer(container, shown, forceRefresh)
     local wasEnabled
     if forceRefresh and shown and container.IsEnabled then
         local ok, value = pcall(container.IsEnabled, container)
-        if ok and type(value) == "boolean" then wasEnabled = value end
+        if ok and R.CanAccess(value) and type(value) == "boolean" then wasEnabled = value end
     end
 
-    pcall(container.SetEnabled, container, shown)
-    pcall(container.SetShown, container, shown)
+    local enabledOK = pcall(container.SetEnabled, container, shown)
+    local shownOK = pcall(container.SetShown, container, shown)
+    local refreshedOK = true
 
     -- SetEnabled and Show/Hide already refresh when state changes. Only force a
     -- full refresh when the unit token's referent/relation changed underneath an
     -- already-enabled container (target/focus/derived-token lifecycle events).
     if forceRefresh and shown and wasEnabled == true and container.UpdateAllAuras then
-        pcall(container.UpdateAllAuras, container)
+        refreshedOK = pcall(container.UpdateAllAuras, container)
     end
+    return enabledOK and shownOK and refreshedOK
 end
 
 function R.UpdateHost(host, forceContainerRefresh)
-    if not host then return end
+    if not host or host._buildComplete ~= true then return end
     local owners = host._readableTierOwners or {}
     for key, owner in pairs(owners) do
         -- A missing/replaced addon frame must revoke its previous presentation.
@@ -1212,6 +1461,7 @@ function R.UpdateHost(host, forceContainerRefresh)
     else
         clearReadableHostile(host)
     end
+    updateObservedDruidForm(host, base, hostilePlayer, hostileReadable)
 
     local divineProtectionTier = findTierByKey("DivineProtection")
     local divineProtectionSecureAllowed = divineProtectionTier and R.ExactFilterAllowed(
@@ -1224,10 +1474,15 @@ function R.UpdateHost(host, forceContainerRefresh)
     -- These friendly/self harmful lanes can be relation-restricted. Use only
     -- complete, directly readable same-tier elections; partial/secret lists
     -- cannot replace a permitted native owner or invent an aura's identity.
+    updateReadableHarmfulTier(host, base, "Demoralizing", "readableDemoralizingFrame", "_demoralizing")
+    updateReadableHarmfulTier(host, base, "BaselineClassHarmful", "readableBaselineHarmfulFrame", "_baselineHarmful")
+    updateReadableHarmfulTier(host, base, "CampfireNearbyHarmful", "readableCampfireHarmfulFrame", "_campfireHarmful")
+    updateReadableHarmfulTier(host, base, "DoTs", "readableDoTsFrame", "_dots")
+    updateReadableHarmfulTier(host, base, "Dazed", "readableDazedFrame", "_dazed")
     updateReadableHarmfulTier(host, base, "Slows", "readableSlowsFrame", "_slows")
     updateReadableHarmfulTier(host, base, "Forbearance", "readableForbearanceFrame", "_forbearance")
-    updateReadableHarmfulTier(host, base, "ResSickness", "readableResSicknessFrame", "_resSickness")
     updateReadableHarmfulTier(host, base, "StatusEffects", "readableStatusEffectsFrame", "_statusEffects")
+    updateReadableHarmfulTier(host, base, "ResurrectionSickness", "readableResurrectionSicknessFrame", "_resurrectionSickness")
     updateReadableHarmfulTier(host, base, "OffensiveHarmful", "readableOffensiveHarmfulFrame", "_offensiveHarmful")
 
     -- Boosted Rest is a harmful camping cooldown that can be directly readable
@@ -1288,32 +1543,9 @@ function R.UpdateHost(host, forceContainerRefresh)
         hideReadableExact(host.readableWaitingToResurrectFrame)
     end
 
-    -- Recently Bandaged is a self/friendly harmful state and therefore needs
-    -- the same exact-readable escape hatch when harmful spell-ID filtering is
-    -- relation-gated. Keep the exact secure lane whenever Blizzard permits it.
-    local recentlyBandagedTier = findTierByKey("RecentlyBandaged")
-    local recentlyBandagedSecureAllowed = recentlyBandagedTier and R.ExactFilterAllowed(
-        host.unit, false, recentlyBandagedTier.spellIDs, recentlyBandagedTier.allowNeverSecret
-    ) or false
-    host._recentlyBandagedReadable = false
-    host._recentlyBandagedActive = false
-    if not R.SMALL_UNITS[host.unit] and base and recentlyBandagedTier
-        and not recentlyBandagedSecureAllowed
-    then
-        local aura, readable = scanReadableExactAura(
-            host.unit, "HARMFUL", RECENTLY_BANDAGED_SPELL_ID
-        )
-        host._recentlyBandagedReadable = readable
-        if aura then
-            host._recentlyBandagedActive = showReadableAura(
-                host.readableRecentlyBandagedFrame, aura, RECENTLY_BANDAGED_SPELL_ID, host.unit
-            )
-        else
-            hideReadableExact(host.readableRecentlyBandagedFrame)
-        end
-    elseif host.readableRecentlyBandagedFrame then
-        hideReadableExact(host.readableRecentlyBandagedFrame)
-    end
+    -- RecentlyBandaged now includes Wandering Plague. Elect over the entire
+    -- readable band instead of a singleton 11196 lookup that cannot see it.
+    updateReadableHarmfulTier(host, base, "RecentlyBandaged", "readableRecentlyBandagedFrame", "_recentlyBandaged")
 
     -- Ghost is a state-derived Immunity-tier witness. This is required on
     -- self/friendly units where exact harmful aura identity may be unavailable.
@@ -1339,6 +1571,7 @@ function R.UpdateHost(host, forceContainerRefresh)
     local exactHarmfulAllowed = R.ExactFilterAllowed(host.unit, false, nil, false)
     host._exactHarmfulAllowed = exactHarmfulAllowed
     host._smallHarmfulEnabled = false
+    host._containerWriteFailures = 0
 
     for index, tier in ipairs(R.TIERS or {}) do
         local enabled = base
@@ -1358,13 +1591,15 @@ function R.UpdateHost(host, forceContainerRefresh)
             -- for any positively established hostile unit, including totems.
             enabled = enabled and hostileUnit and not hostileReadable
         elseif tier.key == "SmallFriendlyHarmful" then
-            -- Small derived frames need a generic harmful-state surface when
-            -- exact harmful identity filtering is not authorized. The secure
-            -- HARMFUL stream itself is enough warrant for "some harmful aura";
-            -- do not require, or infer, a readable friendly relation.
-            enabled = enabled
-                and R.SMALL_UNITS[host.unit]
-                and not exactHarmfulAllowed
+            -- Preserve a low-priority, identity-blind native harmful stream for
+            -- hostile units too. Exact-ID filtering may be permitted on the
+            -- opponent while all *listed* CC tiers are empty or temporarily
+            -- unreadable after stun/DR transitions; an unrelated timed debuff
+            -- must not vanish solely because it has no classified owner.
+            -- On friendly/self units retain the relation-gated rule. Native
+            -- classified CC, StatusEffects, and DoTs all outrank this fallback.
+            -- Never identify or promote a generic aura based on its presence.
+            enabled = enabled and (hostileUnit or not exactHarmfulAllowed)
             host._smallHarmfulEnabled = enabled and true or false
         elseif tier.key == "ChilledSignature" then
             -- Chilled's semantic signature is the last resort: exact secure
@@ -1388,18 +1623,20 @@ function R.UpdateHost(host, forceContainerRefresh)
             end
         end
 
-        setContainer(host.containers[index], enabled, forceContainerRefresh)
+        if not setContainer(host.containers[index], enabled, forceContainerRefresh) then
+            host._containerWriteFailures = host._containerWriteFailures + 1
+        end
     end
 end
 
 local function showTest(host)
     if not host or not host.testFrame then return end
-    local texture = 132298
+    local texture = "Interface\\Icons\\Spell_Holy_SealOfWisdom"
     if C_Spell and C_Spell.GetSpellTexture then
-        local ok, value = pcall(C_Spell.GetSpellTexture, 408)
+        local ok, value = pcall(C_Spell.GetSpellTexture, 19742)
         if ok and R.CanAccess(value) and value ~= nil then texture = value end
     elseif GetSpellTexture then
-        local ok, value = pcall(GetSpellTexture, 408)
+        local ok, value = pcall(GetSpellTexture, 19742)
         if ok and R.CanAccess(value) and value ~= nil then texture = value end
     end
     host.testFrame.icon:SetTexture(texture)
@@ -1457,15 +1694,137 @@ function R.BuildAll()
         return
     end
     R.buildQueued = false
-    for _, unit in ipairs(R.TRACKED_UNITS) do R.CreateHost(unit) end
+    for _, unit in ipairs(R.TRACKED_UNITS) do
+        local failure = hostBuildFailures[unit]
+        -- Failed restoration requires a reload, not nested ownership on retry.
+        if failure and failure.restored then hostBuildFailures[unit] = nil end
+        R.CreateHost(unit)
+    end
     R.RefreshAll()
 end
 
-function R.ApplyPresentation()
-    for _, host in pairs(R.hosts) do
-        for _, cooldown in ipairs(host.cooldowns or {}) do
-            if cooldown.SetDrawSwipe then pcall(cooldown.SetDrawSwipe, cooldown, R.db.showSwipe) end
-            R.ApplyCountdownFormat(cooldown)
+function R.ApplyPresentation(unit)
+    for token, host in pairs(R.hosts) do
+        if not unit or token == unit then
+            for _, cooldown in ipairs(host.cooldowns or {}) do
+                if cooldown.SetDrawSwipe then pcall(cooldown.SetDrawSwipe, cooldown, R.db.showSwipe) end
+                R.ApplyCountdownFormat(cooldown)
+                alignCountdown(cooldown, host)
+            end
         end
     end
+end
+
+-- Read-only layout evidence. This inspects bounds of ONE sample cooldown, not
+-- its aura identity, time, visibility or text. A successful setter is not proof
+-- of visible glyph centering. Unknown/secret geometry remains unknown.
+function R.GetLayoutDebug(unit)
+    local host = R.hosts[unit]
+    if not host then
+        local failure = hostBuildFailures[unit]
+        if failure then
+            return unit .. " host=missing build=failed stage=" .. failure.stage
+                .. " restored=" .. tostring(failure.restored) .. " error=" .. failure.message
+        end
+        return unit .. " host=missing"
+    end
+    local function center(region)
+        if not R.CanAccess(region) or not region or type(region.GetCenter) ~= "function"
+            or type(region.GetEffectiveScale) ~= "function" then return nil end
+        local ok, x, y = pcall(region.GetCenter, region)
+        local scaleOK, scale = pcall(region.GetEffectiveScale, region)
+        if not ok or not scaleOK or not R.CanAccess(x) or not R.CanAccess(y)
+            or not R.CanAccess(scale) or type(x) ~= "number" or type(y) ~= "number"
+            or type(scale) ~= "number" or x ~= x or y ~= y or scale ~= scale
+            or math.abs(x) == math.huge or math.abs(y) == math.huge
+            or scale <= 0 or scale == math.huge then return nil end
+        return x * scale, y * scale
+    end
+    local parentState = "unknown"
+    if host.portrait and type(host.portrait.GetParent) == "function" then
+        local ok, parent = pcall(host.portrait.GetParent, host.portrait)
+        if ok and R.CanAccess(parent) then
+            parentState = parent == host.layer and "owned" or "native-or-other"
+        end
+    end
+    local function shownState(frame)
+        local shown, readable = R.SafeBool(frame and frame.IsShown, frame)
+        return readable and tostring(shown) or "unknown"
+    end
+    local binding = host.unitFrame and host.unitFrame.unit
+    local bindingState = R.CanAccess(binding) and type(binding) == "string" and binding or "unknown"
+    local sample = host.cooldowns and host.cooldowns[1]
+    local text
+    if sample and type(sample.GetCountdownFontString) == "function" then
+        local ok, value = pcall(sample.GetCountdownFontString, sample)
+        if ok and R.CanAccess(value) then text = value end
+    end
+    local x, y = center(host.portraitMask or host.portrait)
+    local tx, ty = center(text)
+    local delta = x and tx and string.format("%.3f,%.3f", tx-x, ty-y) or "unknown"
+    return unit .. " host=present enabled=" .. tostring(R.IsUnitEnabled(unit) == true)
+        .. " build=" .. (host._buildComplete and "ready" or "incomplete")
+        .. " ghostFrame=" .. tostring(host.readableGhostFrame ~= nil)
+        .. " statusFrame=" .. tostring(host.readableStatusEffectsFrame ~= nil)
+        .. " nativeShown=" .. shownState(host.unitFrame) .. " layerShown=" .. shownState(host.layer)
+        .. " binding=" .. bindingState .. " portraitParent=" .. parentState
+        .. " nativeRefresh=" .. tostring(host._nativeRefreshReason or "none")
+        .. " existsReadable=" .. tostring(host._unitExistsReadable)
+        .. " exists=" .. tostring(host._unitExists)
+        .. " assistReadable=" .. tostring(host._assistReadable)
+        .. " assist=" .. tostring(host._assistable)
+        .. " ghost=" .. tostring(host._ghostActive) .. ":" .. tostring(host._ghostSource or "none")
+        .. " form=" .. tostring(host._formStateActive) .. ":" .. tostring(host._formStateSpellID)
+        .. ":" .. tostring(host._formStateReason or "none")
+        .. " statusEffects=" .. tostring(host._statusEffectsActive)
+        .. " statusDirect=" .. tostring(host._statusEffectsDirectWitness or false)
+        .. " resSicknessFrame=" .. tostring(host.readableResurrectionSicknessFrame ~= nil)
+        .. " resSickness=" .. tostring(host._resurrectionSicknessActive)
+        .. " resSicknessDirect=" .. tostring(host._resurrectionSicknessDirectWitness or false)
+        .. " writeErrors=" .. tostring(host._containerWriteFailures or 0)
+        .. " sampleLayout=" .. tostring(sample and sample._bjarkiAlignmentState or "missing")
+        .. " timerDelta=" .. delta
+end
+
+-- Geometry evidence only: no presentation setter, aura query, or refresh.
+-- Distinguish the image's full source rectangle from the mask rectangle;
+-- neither the source artwork's optical center nor its alpha aperture can be
+-- inferred from SetAllPoints alone. Report actual pixels, including scale.
+function R.GetGeometryDebug(unit)
+    local host = R.hosts[unit]
+    if not host then return unit .. " host=missing" end
+    local function number(value)
+        return R.CanAccess(value) and type(value) == "number" and value == value
+            and math.abs(value) ~= math.huge
+    end
+    local factor
+    if PixelUtil and type(PixelUtil.GetPixelToUIUnitFactor) == "function" then
+        local ok, value = pcall(PixelUtil.GetPixelToUIUnitFactor)
+        if ok and number(value) and value > 0 then factor = value end
+    end
+    local function bounds(region)
+        if not factor or not R.CanAccess(region) or not region
+            or type(region.GetCenter) ~= "function" or type(region.GetSize) ~= "function"
+            or type(region.GetEffectiveScale) ~= "function" then return nil end
+        local ok, x, y = pcall(region.GetCenter, region)
+        local sized, w, h = pcall(region.GetSize, region)
+        local scaled, scale = pcall(region.GetEffectiveScale, region)
+        if not ok or not sized or not scaled or not number(x) or not number(y)
+            or not number(w) or not number(h) or not number(scale) or scale <= 0
+            or w <= 0 or h <= 0 then return nil end
+        local multiplier = scale / factor
+        return {x*multiplier, y*multiplier, w*multiplier, h*multiplier}
+    end
+    local function describe(rect)
+        if not rect then return "unknown" end
+        return string.format("(%.2f,%.2f)%.2fx%.2f", rect[1], rect[2], rect[3], rect[4])
+    end
+    local quad, mask, image = bounds(host.portrait), bounds(host.portraitMask), bounds(host.anchor)
+    local delta = image and mask and string.format("%.2f,%.2f", image[1]-mask[1], image[2]-mask[2]) or "unknown"
+    local clip = bounds(host.imageMask or host.portraitMask)
+    local clipDelta = image and clip and string.format("%.2f,%.2f", image[1]-clip[1], image[2]-clip[2]) or "unknown"
+    return unit .. " quad=" .. describe(quad) .. " mask=" .. describe(mask)
+        .. " image=" .. describe(image) .. " image-mask=" .. delta
+        .. " clipKind=" .. tostring(host.imageClipKind or "native")
+        .. " clip=" .. describe(clip) .. " image-clip=" .. clipDelta
 end

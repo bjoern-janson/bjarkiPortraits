@@ -285,10 +285,13 @@ end
 
 local function createHostTexture(host)
     local texture = host.layer:CreateTexture(nil, "ARTWORK", nil, 1)
-    texture:SetAllPoints(host.portrait)
-    texture:SetTexCoord(0, 1, 0, 1)
-    if host.portraitMask and texture.AddMaskTexture then
-        pcall(texture.AddMaskTexture, texture, host.portraitMask)
+    -- Family/totem artwork must use the same rectangle and edge treatment as
+    -- the aura which can later cover it; do not keep a separate untrimmed path.
+    R.ApplyPortraitImageLayout(texture, host)
+    R.ApplyPortraitIconCrop(texture, host)
+    local mask = host.imageMask or host.portraitMask
+    if mask and texture.AddMaskTexture then
+        pcall(texture.AddMaskTexture, texture, mask)
     end
     texture:Hide()
     return texture
@@ -499,8 +502,8 @@ local function ensureLocalPetTexture()
     -- family foundation above the native BACKGROUND portrait but below that
     -- chrome so the addon does not paint over the ring.
     local texture = parent:CreateTexture(nil, "BACKGROUND", nil, 1)
-    texture:SetAllPoints(portrait)
-    texture:SetTexCoord(0, 1, 0, 1)
+    R.ApplyPortraitImageLayout(texture, { unit = "pet", portrait = portrait, portraitMask = mask })
+    R.ApplyPortraitIconCrop(texture)
     if mask and texture.AddMaskTexture then pcall(texture.AddMaskTexture, texture, mask) end
     texture:Hide()
     localPet = texture

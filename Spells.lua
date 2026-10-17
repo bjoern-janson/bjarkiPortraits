@@ -228,6 +228,9 @@ PT.categories = {
         [1280353] = true, -- Consecration (Forever applied damage-amplification aura)
     },
     debuffs_dots = {
+        -- Drain Soul's damage-channel auras belong with periodic damage,
+        -- not armor/casting/healing penalties. All four player ranks.
+        [1120] = true, [8288] = true, [8289] = true, [11675] = true,
         [3815] = true, -- Poison Cloud (Ironspine, periodic Poison)
         -- Mage residual/periodic damage
         [133] = true, [143] = true, [145] = true, [3140] = true,
@@ -291,6 +294,9 @@ PT.categories = {
         [1265066] = true, -- Savage Rend
     },
     slows = {
+        [8058] = true, -- Frost Shock Rank 2
+        [10472] = true, -- Frost Shock Rank 3
+        [10473] = true, -- Frost Shock Rank 4
         [1316489] = true, -- Highland Venom (dungeon Disease, movement slow)
         [116] = true, -- Frostbolt Rank 1
         [205] = true, -- Frostbolt Rank 2
@@ -329,6 +335,11 @@ PT.categories = {
         [11201] = true, -- Crippling Poison (movement slow)
         [12548] = true, -- Frost Shock (movement slow)
         [18223] = true, -- Curse of Exhaustion (movement slow)
+    },
+    slows_dazed = {
+        [1604] = true, -- Dazed (applied movement slow)
+        [13496] = true, -- Dazed (item-effect movement slow)
+        [15571] = true, -- Dazed (formerly misclassified with Forbearance)
     },
     slows_chilled = {
         [6136] = true, -- Chilled (Frost Armor)
@@ -512,6 +523,13 @@ PT.categories = {
                 [18708] = true, -- Fel Domination
     },
     buffs_offensive = {
+        [1248808] = true, -- Revelation (Mage active enchant proc)
+        [1323377] = true, -- Revelation (Priest active enchant proc)
+        [1323392] = true, -- Revelation (Warlock active enchant proc)
+        [1323400] = true, -- Revelation (Druid active enchant proc)
+        [1323410] = true, -- Revelation (Hunter active enchant proc)
+        [1323418] = true, -- Revelation (Shaman active enchant proc)
+        [1323419] = true, -- Revelation (Paladin active enchant proc)
         [402975] = true, -- Victorious (applied Victory Rush state)
         [8385] = true, -- Swift Wind (movement and attack speed)
         [24378] = true, -- Berserking (battleground damage buff)
@@ -593,6 +611,10 @@ PT.categories = {
     },
     -- Applied player/pet attack-power rank families, not training spells.
     debuffs_demoralizing = {
+        [13730] = true, -- Demoralizing Shout (NPC applied variant)
+        [16244] = true, -- Demoralizing Shout (NPC applied variant)
+        [19778] = true, -- Demoralizing Shout (NPC applied variant)
+        [27579] = true, -- Demoralizing Shout (NPC applied variant)
         [1160] = true,  -- Demoralizing Shout Rank 1
         [6190] = true,  -- Demoralizing Shout Rank 2
         [11554] = true, -- Demoralizing Shout Rank 3
@@ -608,9 +630,10 @@ PT.categories = {
         [24578] = true, -- Demoralizing Screech Rank 3 (Hunter pet)
         [24579] = true, -- Demoralizing Screech Rank 4 (Hunter pet)
     },
-    -- Applied casting, attack and healing penalties share priority 279.
+    -- Applied casting, attack and healing penalties share the StatusEffects band.
     -- Rank families verified against current Forever 1.60.1 records.
     debuffs_casting_penalty = {
+        [8272] = true, -- Mind Tremor (NPC casting-speed penalty)
         [1714] = true, -- Curse of Tongues Rank 1
         [11719] = true, -- Curse of Tongues Rank 2
         [5760] = true, -- Mind-numbing Poison Rank 1
@@ -659,6 +682,7 @@ PT.categories = {
         [1264933] = true, -- Dismember Rank 5
     },
     debuffs_other = {
+        [6016] = true, -- Pierce Armor (NPC 50% armor reduction)
         [8139] = true, -- Fevered Fatigue (applied Intellect/Spirit Disease)
         [8267] = true, -- Cursed Blood (applied Intellect curse, including the dungeon report)
         [770] = true, -- Faerie Fire Rank 1
@@ -681,7 +705,9 @@ PT.categories = {
         [704] = true, -- Curse of Recklessness
         [709] = true, -- Drain Life
         [1515] = true, -- Tame Beast
-        [2908] = true, -- Soothe Animal
+        [2908] = true, -- Soothe Animal Rank 1
+        [8955] = true, -- Soothe Animal Rank 2
+        [9901] = true, -- Soothe Animal Rank 3
         [3043] = true, -- Scorpid Sting
         [5138] = true, -- Drain Mana
         [7386] = true, -- Sunder Armor
@@ -702,8 +728,6 @@ PT.categories = {
         [3034] = true, -- Viper Sting (mana drain)
         [14279] = true, -- Viper Sting (mana drain)
         [14280] = true, -- Viper Sting (mana drain)
-        [1120] = true, -- Drain Soul (damage channel)
-        [8288] = true, -- Drain Soul (damage channel)
         [17877] = true, -- Shadowburn (create-item-on-death aura)
         [18867] = true, -- Shadowburn (create-item-on-death aura)
     },
@@ -713,10 +737,14 @@ PT.categories = {
     },
     debuffs_priority = {
         [25771] = true, -- Forbearance (Paladin)
-                [15571] = true, -- Dazed
     },
+    -- Pox remains an ordinary StatusEffect; it never inherits the top
+    -- priority reserved for the actual post-resurrection penalty.
     debuffs_res_sickness = {
-        [15007] = true, -- Resurrection Sickness
+        [8137] = true, -- Silithid Pox (ordinary StatusEffects)
+    },
+    debuffs_resurrection_sickness = {
+        [15007] = true, -- Resurrection Sickness (highest StatusEffect)
     },
     debuffs_environmental_danger = {
         [1323184] = true, -- Shark Attack (Darkspear Islands water hazard)
@@ -741,6 +769,8 @@ PT.categories = {
         [6788] = true, -- Weakened Soul (Priest)
     },
     debuffs_recently_bandaged = {
+        [3436] = true, -- Wandering Plague (initial applied Disease)
+        [3439] = true, -- Wandering Plague (spread Disease)
         [11196] = true, -- Recently Bandaged
     },
     buffs_improved_stormstrike = {
@@ -854,6 +884,7 @@ PT.categories = {
         [22734] = true, -- Drink
     },
     buffs_hots = {
+        [18956] = true, -- Restore Life (Orb of Soran'ruk on-use periodic heal)
         [17767] = true, -- Consume Shadows
         [136] = true, -- Mend Pet
         [139] = true, -- Renew
@@ -897,6 +928,9 @@ PT.categories = {
         [24414] = true, -- Arathi Basin Runecloth Bandage
     },
 
+    buffs_minor_regen = {
+        [1261483] = true, -- Thrill of Adventure (active 10s recovery proc, not passive 1225472)
+    },
     buffs_innervate = {
         [29166] = true, -- Innervate (Druid)
         -- The Quick and the Dead: visible resource-cost buffs after resurrection.
@@ -1044,6 +1078,49 @@ PT.categories = {
         [24529] = true, -- Spirit Bond (5 sec pet regeneration aura)
         [1310725] = true, -- Spirit Bond (10 sec pet regeneration variant)
     },
+    buffs_elixirs = {
+        -- Audited applied item-aura IDs, including Forever-specific variants.
+        -- Not a claim of exhaustive beta data coverage; no recipe/cast IDs.
+        -- Persistent elixir regeneration belongs here, not in WellFed/HoTs.
+        [673] = true, -- Elixir of Minor Defense
+        [3166] = true, -- Elixir of Wisdom / Lesser Intellect
+        [3219] = true, -- Minor Troll's Blood Elixir
+        [3220] = true, -- Elixir of Lesser Defense / Armor
+        [3222] = true, -- Lesser Troll's Blood Elixir
+        [3223] = true, -- Troll's Blood Elixir
+        [11328] = true, -- Elixir of Agility / Agility
+        [11334] = true, -- Elixir of Greater Agility / Greater Agility
+        [11405] = true, -- Elixir of the Giants
+        [17535] = true, -- Elixir of the Sages
+        [17537] = true, -- Elixir of Brute Force
+        [17538] = true, -- Elixir of the Mongoose
+        [17539] = true, -- Greater Arcane Elixir
+        [24361] = true, -- Major Troll's Blood Elixir
+        [439959] = true, -- Lesser Arcane Elixir (legacy variant)
+        [1213904] = true, -- Elixir of the Honey Badger
+        [1213914] = true, -- Elixir of the Mage-Lord
+        [1213917] = true, -- Elixir of the Ironside (armor/defense)
+        [1245244] = true, -- Minor Arcane Elixir
+        [1250918] = true, -- Elixir of Cunning
+        [1250920] = true, -- Elixir of the Phalanx
+        [1250922] = true, -- Minor Cleric's Elixir
+        [1250928] = true, -- Elixir of Fortitude
+        [1250931] = true, -- Elixir of Greater Fortitude
+        [1250932] = true, -- Elixir of Wicked Regeneration
+        [1250940] = true, -- Elixir of the Owl
+        [1250941] = true, -- Elixir of Sages
+        [1250942] = true, -- Minor Mageblood Elixir
+        [1250944] = true, -- Lesser Mageblood Elixir
+        [1250971] = true, -- Lesser Arcane Elixir
+        [1250972] = true, -- Elixir of Nature Power
+        [1250978] = true, -- Elixir of Spirit
+        [1250981] = true, -- Elixir of the Whale
+        [1250984] = true, -- Elixir of Strength
+        [1250985] = true, -- Elixir of Ferocity
+        [1250986] = true, -- Elixir of the Grizzly
+        [1250988] = true, -- Elixir of Lesser Intellect
+        [1250989] = true, -- Elixir of Intellect
+    },
     buffs_scrolls = {
         -- Vanilla stat/armor scroll buffs. Kept below maintained class buffs.
         -- Protection / Armor
@@ -1082,10 +1159,16 @@ PT.categories = {
         [8120] = true,
         [12179] = true,
     },
+    -- Beneficial stats do not change this aura's harmful filter polarity.
+    debuffs_class_baseline = {
+        [8733] = true, -- Blessing of Blackfathom (harmful class-buff band)
+    },
+    debuffs_campfire_nearby = {
+        [1299099] = true, -- Quitter (Air Rifle lockout; harmful camp-nearby band)
+    },
     buffs_class_baseline = {
         -- Regular class buffs: meaningful combat state, but deliberately below
         -- forms/stealth and active combat effects.
-        [8733] = true, -- Blessing of Blackfathom (dungeon blessing)
         [1243120] = true, -- Demonic Knowledge (Warlock pet-owner aura)
 
         -- Warrior: Battle Shout
@@ -1215,6 +1298,7 @@ PT.categories = {
         [20594] = true, -- Stoneform
     },
     debuffs_offensive = {
+        [400573] = true, -- Arcane Blast (applied Intellect/spell-damage and mana-cost stacks)
         [12328] = true, -- Death Wish (offensive cooldown, applied as a debuff)
     },
     buffs_mobility = {
@@ -1238,7 +1322,6 @@ PT.categories = {
     },
     buffs_well_fed = {
         [6114] = true, -- Raptor Punch: persistent 5-minute stat aura, not item 5342
-        [3219] = true, -- Minor Troll's Blood Elixir
         -- Visible Well Fed auras, including profession-oriented variants.
         [19705] = true, -- Well Fed: +2 Stamina/Spirit
         [19706] = true, -- Well Fed: +4 Stamina/Spirit
@@ -1278,6 +1361,8 @@ PT.categories = {
         [1229451] = true, -- Boosted Rest camping cooldown debuff (Forever)
     },
     buffs_campfire_nearby = {
+        [12627] = true, -- Disease Cloud (persistent emitter aura, not the damage trigger)
+        [1321936] = true, -- Disease Cloud (Forever persistent emitter; observed unit ID pending)
         [1283391] = true, -- Campfire Nearby (Forever)
     },
     buffs_welcoming_campfire = {

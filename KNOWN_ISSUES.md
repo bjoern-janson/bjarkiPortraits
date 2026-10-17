@@ -1,6 +1,6 @@
 # Known issues and bugs
 
-Status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**.
+Historical status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**. Current synchronized source is **0.1.130-form-state-test** (2026-10-17); historical items below are not automatically closed by that update.
 
 The items below reflect reports and screenshots from Battleground sessions.
 They remain open until checked in the live client against this build. A report
@@ -57,3 +57,12 @@ No live WoW test has confirmed these reports fixed in 0.1.80-local. See
 [`ARCHITECTURE.md`](ARCHITECTURE.md) for implementation boundaries and the
 reported BG findings. Class-colored unit-frame failures are tracked in the
 [bjarkiUI issue list](https://github.com/bjoern-janson/bjarkiUI/blob/main/KNOWN_ISSUES.md).
+
+## Current post-patch follow-up (0.1.130, 2026-10-17)
+
+- The Ghost/Resurrection Sickness helper construction failure was observed and its repaired display confirmed in game. This does not establish that every aura reader behaves correctly through all client secrecy transitions.
+- Enemy Moonfire on Player/self Target was reported working with the identity-blind native harmful fallback. During restricted reads, this fallback cannot identify the exact harmful spell or guarantee its category-specific priority.
+- Opposite-faction stun / full-DR aura lockouts may temporarily make helpful aura indexing unavailable. A live probe observed readable DRUID + ENERGY/RAGE and led to the independent, guarded form-state presenter in 0.1.130. The user reported that candidate looked good. Extended CC transitions, temporary relationship restrictions, and other classes/forms still need coverage.
+- Opposing-faction tracking suppression remains intentional. Permanent helpful buffs on hostile units are excluded from the broad fallback so tracking effects (e.g. Find Minerals) do not mask important auras; only verified current unit-state witnesses may present a form.
+- The post-patch portrait geometry and timer centering were visually calibrated in normal client screenshots. Remaining image-specific clipping under unusual pet icons, BG pet portrait binding, and Focus recycled-unit behavior merit further live checks.
+- The current countdown formatter truncates whole seconds rather than rounding nearest to match Blizzard's display at examples 29.8 and 22.8. The actual timing engine is unchanged.

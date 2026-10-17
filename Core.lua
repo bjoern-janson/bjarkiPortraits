@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.107-local"
+R.VERSION = "0.1.130-form-state-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
@@ -117,6 +117,86 @@ function R.GetPortrait(unit)
             or (unit == "focustarget" and _G.FocusFrameToTPortraitMask)
         return portrait, mask, frame
     end
+end
+
+-- The Wisdom fixture separates source-art centering from the native aperture.
+-- Player's source ring was slightly larger relative to its bezel; halving its
+-- old 1/64 trim matches the other apertures without adding zoom anywhere.
+function R.ApplyPortraitIconCrop(icon, host)
+    if icon.SetTexCoord then
+        local inset = host and host.unit == "player" and 1 / 128 or 1 / 64
+        pcall(icon.SetTexCoord, icon, inset, 1 - inset, inset, 1 - inset)
+    end
+end
+
+-- Physical-pixel source-image offsets: .119 Wisdom calibration, then the
+-- approved .120 horizontal finishing pass. Y offsets and crop stay fixed.
+-- These adjust the image, NOT the circular opening or native frame artwork.
+-- Quarter-pixel values limit the correction to what the raster supports.
+local portraitImageOffsets = {
+    player = { -1, -1.25 },
+    target = { 2, -1 },
+    focus = { 2, -1 },
+    targettarget = { -0.75, 1 },
+    focustarget = { -1.25, 1 },
+}
+
+local function portraitLayoutOffset(region, unit, aperture)
+    local x, y = 0, 0
+    if aperture then
+        -- Keep the accepted .118 clipping circles stationary inside the rings.
+        -- Translating a source image does not authorize translating its clip.
+        if unit == "target" or unit == "focus" then x = 3
+        elseif R.SMALL_UNITS[unit] then y = 2 end
+    else
+        local offset = portraitImageOffsets[unit]
+        if offset then x, y = offset[1], offset[2] end
+    end
+    if x == 0 and y == 0 then return 0, 0 end
+    if not PixelUtil or type(PixelUtil.GetPixelToUIUnitFactor) ~= "function"
+        or type(region.GetEffectiveScale) ~= "function" then return 0, 0 end
+    local factorOK, factor = pcall(PixelUtil.GetPixelToUIUnitFactor)
+    local scaleOK, scale = pcall(region.GetEffectiveScale, region)
+    if not factorOK or not scaleOK or not R.CanAccess(factor) or not R.CanAccess(scale)
+        or type(factor) ~= "number" or type(scale) ~= "number"
+        or factor ~= factor or scale ~= scale or factor <= 0 or scale <= 0
+        or factor == math.huge or scale == math.huge then return 0, 0 end
+    return x * factor / scale, y * factor / scale
+end
+
+local function applyPortraitLayout(region, host, aperture)
+    local reference = ((host.unit == "target" or host.unit == "focus")
+        and host.portraitMask) or host.portrait
+    local dx, dy = portraitLayoutOffset(region, host.unit, aperture)
+    region:ClearAllPoints()
+    if dx == 0 and dy == 0 then
+        region:SetAllPoints(reference)
+    else
+        region:SetPoint("TOPLEFT", reference, "TOPLEFT", dx, dy)
+        region:SetPoint("BOTTOMRIGHT", reference, "BOTTOMRIGHT", dx, dy)
+    end
+end
+
+function R.ApplyPortraitImageLayout(region, host)
+    applyPortraitLayout(region, host, false)
+end
+
+function R.CreatePortraitImageMask(host)
+    -- Native masks are never edited. Only the four existing owned apertures
+    -- are reused by aura/test/helper/pet textures; no extra per-tier masks.
+    local moved = host.unit == "target" or host.unit == "focus" or R.SMALL_UNITS[host.unit]
+    if not moved or not host.portraitMask or not host.layer
+        or type(host.layer.CreateMaskTexture) ~= "function" then
+        host.imageMask = host.portraitMask
+        host.imageClipKind = "native"
+        return
+    end
+    host._buildStage = "image-mask"
+    local mask = host.layer:CreateMaskTexture(nil, "BACKGROUND")
+    mask:SetAtlas("CircleMask", false)
+    applyPortraitLayout(mask, host, true)
+    host.imageMask = mask
+    host.imageClipKind = "owned"
 end
 
 function R.CapturePoints(region)
@@ -264,16 +344,17 @@ function R.GetCountdownFormatter()
     local formatter = C_StringUtil.CreateNumericRuleFormatter()
     if not formatter or not formatter.SetBreakpoints then return nil end
 
-    -- Use one decimal only below 5 seconds; preserve whole seconds above.
+    -- Match native aura whole seconds by truncating, not rounding to nearest.
+    -- Keep the sub-5-second decimal rule and expiration data unchanged.
     if key == 1 then
         formatter:SetBreakpoints({
             { threshold = 0, format = "%.1f" },
-            { threshold = 5, format = "%.0f" },
+            { threshold = 5, step = 1, rounding = Enum.NumericRuleFormatRounding.Down, format = "%.0f" },
             { threshold = 60.000001, format = "" },
         })
     else
         formatter:SetBreakpoints({
-            { threshold = 0, format = "%.0f" },
+            { threshold = 0, step = 1, rounding = Enum.NumericRuleFormatRounding.Down, format = "%.0f" },
             { threshold = 60.000001, format = "" },
         })
     end

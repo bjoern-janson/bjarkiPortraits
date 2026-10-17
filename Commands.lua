@@ -99,7 +99,9 @@ local function inspectAuras(option)
 
     -- Observe saved reader evidence. Native eligibility is the existing
     -- permission check, not proof that a native container has an active aura.
-    for _, lane in ipairs({ { "Slows", "_slows" }, { "StatusEffects", "_statusEffects" } }) do
+    for _, lane in ipairs({ { "Slows", "_slows" }, { "Dazed", "_dazed" },
+        { "DoTs", "_dots" }, { "StatusEffects", "_statusEffects" },
+        { "ResurrectionSickness", "_resurrectionSickness" } }) do
         R.Print("lane " .. lane[1]
             .. " readerComplete=" .. inspectBool(host, lane[2] .. "Readable")
             .. " readerElection=" .. inspectBool(host, lane[2] .. "ElectionReadable")
@@ -152,7 +154,7 @@ SLASH_BJARKIPORTRAITS2 = "/bjarkiportraits"
 SlashCmdList.BJARKIPORTRAITS = function(message)
     local command, option, detail = (message or ""):lower():match("^%s*(%S*)%s*(%S*)%s*(%S*)")
     if command == "" or command == "help" then
-        R.Print("/bp or /bjarkiportraits test | on | off | player | target | focus | tot | fot | swipe | decimals | pets [status|on|off|debug [unit]] | inspect [unit] | debug | audit | reset")
+        R.Print("/bp or /bjarkiportraits test | on | off | player | target | focus | tot | fot | swipe | decimals | pets [status|on|off|debug [unit]] | geometry [unit] | layout [unit] | inspect [unit] | debug | audit | reset")
     elseif command == "test" then
         R.testMode = not R.testMode
         R.RefreshAll()
@@ -212,6 +214,29 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
             R.UpdatePetPortraits()
             R.Print("pet portraits " .. tostring(R.db.petPortraits))
         end
+    elseif command == "geometry" then
+        local names = {player="player", target="target", focus="focus", tot="targettarget",
+            targettarget="targettarget", tof="focustarget", fot="focustarget", focustarget="focustarget"}
+        if option ~= "" and not names[option] then
+            R.Print("usage: /bp geometry [player|target|focus|tot|tof]")
+        else
+            R.Print("geometry " .. tostring(R.VERSION) .. " physical pixels; centers; bottom-left origin; no refresh")
+            for _, token in ipairs(option ~= "" and {names[option]} or R.TRACKED_UNITS) do
+                R.Print(R.GetGeometryDebug(token))
+            end
+        end
+    elseif command == "layout" then
+        local names = {player="player", target="target", focus="focus",
+            tot="targettarget", targettarget="targettarget", tof="focustarget",
+            fot="focustarget", focustarget="focustarget"}
+        if option ~= "" and not names[option] then
+            R.Print("usage: /bp layout [player|target|focus|tot|tof]")
+        else
+            R.Print("layout version=" .. tostring(R.VERSION) .. " (sample bounds; no refresh)")
+            for _, token in ipairs(option ~= "" and {names[option]} or R.TRACKED_UNITS) do
+                R.Print(R.GetLayoutDebug(token))
+            end
+        end
     elseif command == "inspect" then
         inspectAuras(option)
     elseif command == "debug" then
@@ -233,7 +258,7 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
                 .. " assistable=" .. tostring(host and host._assistable)
                 .. " exactHelpful=" .. tostring(exactHelpful)
                 .. " exactHarmful=" .. tostring(host and host._exactHarmfulAllowed or false)
-                .. " smallHarmful=" .. tostring(host and host._smallHarmfulEnabled or false)
+                .. " harmfulFallback=" .. tostring(host and host._smallHarmfulEnabled or false)
                 .. " hostileReadable=" .. tostring(host and host._hostileReadable or false)
                 .. " hostileActive=" .. tostring(host and host._hostileActive or false)
                 .. " hostileElectionReadable=" .. tostring(host and host._hostileElectionReadable or false)
@@ -265,8 +290,10 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
                 .. " slowsElectionReadable=" .. tostring(host and host._slowsElectionReadable or false)
                 .. " slowsSpell=" .. tostring(host and host._slowsSpellID or nil)
                 .. " slowsActive=" .. tostring(host and host._slowsActive or false)
-                .. " resSicknessReadable=" .. tostring(host and host._resSicknessReadable or false)
-                .. " resSicknessActive=" .. tostring(host and host._resSicknessActive or false)
+                .. " statusReadable=" .. tostring(host and host._statusEffectsReadable or false)
+                .. " statusActive=" .. tostring(host and host._statusEffectsActive or false)
+                .. " resSicknessReadable=" .. tostring(host and host._resurrectionSicknessReadable or false)
+                .. " resSicknessActive=" .. tostring(host and host._resurrectionSicknessActive or false)
                 .. " waitingSecureAllowed=" .. tostring(host and host._waitingToResurrectSecureAllowed or false)
                 .. " waitingReadable=" .. tostring(host and host._waitingToResurrectReadable or false)
                 .. " waitingActive=" .. tostring(host and host._waitingToResurrectActive or false)
@@ -306,6 +333,19 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
                 .. " unitExistsReadable=" .. tostring(host and host._unitExistsReadable or false)
                 .. " playerReadable=" .. tostring(host and host._playerReadable or false)
                 .. " assistReadable=" .. tostring(host and host._assistReadable or false))
+            if host then
+                -- Read-only maintenance evidence; never refresh before capturing a failure.
+                R.Print(unit .. " statusSpell=" .. tostring(host._statusEffectsSpellID)
+                    .. " statusComplete=" .. tostring(host._statusEffectsReadable)
+                    .. " statusOrdered=" .. tostring(host._statusEffectsElectionReadable)
+                    .. " statusActive=" .. tostring(host._statusEffectsActive)
+                    .. " resSicknessSpell=" .. tostring(host._resurrectionSicknessSpellID)
+                    .. " resSicknessActive=" .. tostring(host._resurrectionSicknessActive)
+                    .. " recentlyBandagedSpell=" .. tostring(host._recentlyBandagedSpellID)
+                    .. " demoralizingSpell=" .. tostring(host._demoralizingSpellID)
+                    .. " classHarmfulSpell=" .. tostring(host._baselineHarmfulSpellID)
+                    .. " campHarmfulSpell=" .. tostring(host._campfireHarmfulSpellID))
+            end
         end
     elseif command == "reset" then
         BjarkiPortraitsDB = nil

@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This document tracks **bjarkiPortraits 0.1.107-local**. Sections 1–21 retain historical architecture and experiment notes; **section 22 records the current 5-second portrait timer threshold** and supersedes older timing descriptions where they conflict. This maintenance reference does not claim undocumented guarantees about the WoW: Forever client.
+This document tracks **bjarkiPortraits 0.1.130-form-state-test** (synchronized to GitHub 2026-10-17). Sections 1–22 are historical architecture and experiment notes; **section 23 describes the current post-patch system** and supersedes conflicting earlier behavior. This reference does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into seven Lua modules:
 
@@ -408,3 +408,35 @@ This is a focused timer-only release. With the existing `/bp decimals` preferenc
 `Core.lua` updates both `C_StringUtil.CreateNumericRuleFormatter():SetBreakpoints` from threshold 10 to threshold 5 and the `Cooldown:SetCountdownMillisecondsThreshold` compatibility fallback from 10 to 5. The 60.000001 hidden-timer breakpoint, timer geometry, user setting, spell priorities, event hooks, and secure aura-container selection remain unchanged.
 
 Both manifests now say `0.1.107-local`; the seven runtime modules and their load order are unchanged. The seven Lua sources passed Lua 5.4 syntax parsing, and a Lua mock test checked both formatter modes plus the 5-second/zero-threshold fallback. This is source-level validation, not in-game combat, visual, or taint certification.
+
+## 23. Post-patch source synchronization: 0.1.130-form-state-test (2026-10-17)
+
+This commit advances GitHub `main` directly from `0.1.107-local` to the **exact tested 0.1.130 ZIP source**, incorporating intermediate experimental revisions 0.1.108–0.1.129. There is no attempt to reconstruct the intermediate local-only commits. The 7 Lua modules and 2 TOCs match the accepted ZIP byte-for-byte. `bjarkiUI` is a separate repository and is not modified by this sync.
+
+### 23.1 Secure selection, read permissions and lifecycle
+
+- The five hosts remain Player, Target, Focus, Target-of-Target, and Focus-of-Target, using native CustomAuraContainer slots plus narrowly authorized readable presenters. Native aura access restrictions are not bypassed. Missing, secret, and erroring aura scans are distinct states; absent readable evidence must never be presented as a definite spell identification.
+- Host construction now registers **only completed hosts**, and helper frames opt into the necessary addon layout restrictions. The partial-build error observed with Ghost and Silithid Pox was reproduced and repaired. Ghost and the sickness helpers returned in the live client; this does not certify every combat transition.
+- Live opposite-faction investigations established that aura indexing can raise "Auras cannot be accessed when secret while tainted", while native containers continue their own guarded presentation. Unclassified harmful auras use a lower-priority **identity-blind** native fallback; they are not labelled Moonfire/CC without readable identification. A Moonfire-on-self omission was confirmed resolved by the user after moving that fallback above forms, without changing spell identities or permissions.
+- A `UNIT_DISPLAYPOWER`-scoped independent hostile-player **Druid form-state presenter** handles times when permanent helpful auras are unidentifiable. It requires readable hostile-player identity, Druid class, alive state, and current power type: Energy -> Cat Form icon; Rage -> Bear-family icon; other/unknown -> no inferred icon. It has no fabricated duration and yields to higher-priority classified effects. It does not retain stale evidence across unit changes.
+- Unidentified **permanent hostile helpful buffs** remain excluded from the generic fallback so that Find Minerals / tracking does not reappear by allowing unfiltered permanent buffs. This is independent of the Druid form-state witness.
+
+### 23.2 Presenters, categories and priority contracts
+
+- Exact and semantic categories are combined through `Priority.lua` with the latest `Spells.lua` membership, including completed rank families, elixir buffs above scrolls, and classified offensive cooldowns, DoTs and slows. Class and non-class spell identity is never inferred from an unavailable aura list.
+- **Resurrection Sickness** is a distinct top-of-StatusEffects lane below Power Word: Shield; Silithid Pox and Pierce Armor are ordinary StatusEffects. **Dazed** has its own top-of-Slows lane below higher combat priorities. Existing roots, CC and immunities retain their stronger positions.
+- **StatusEffects** remains above HoTs and below Power Word: Shield. Where a complete readable election is permitted, application-time recency elects the newest effect within a shared tier. Partial or restricted data fall back to Blizzard native display without inventing recency.
+- Readable DoT presentation and an identity-blind hostile harmful fallback are available on large and compact frames. In restricted states the fallback cannot guarantee exact spell-specific priority; that is a security/data-availability boundary, not authorization to guess.
+
+### 23.3 Presentation, timing and performance
+
+- Post-patch portrait artwork, addon-owned circular masking, compact images and optical countdown placement were calibrated against a concentric-circle test icon on real screenshots; the native rings, unit-frame health/resource bars and UI Edit Mode coordinates remain owned by Blizzard or `bjarkiUI`.
+- The `/bp test` command uses Blessing of Wisdom artwork as a visual alignment reference. The permanent production calibration is unchanged by toggling the test mode.
+- Countdown display uses **whole seconds rounded DOWN** from 5 through 60 seconds, one decimal below 5 seconds when enabled, and hides portrait countdowns above 60 seconds. Actual aura expiration/duration is not shifted or truncated. Five-second decimals and the existing /bp toggle persist.
+- Existing event-driven updates and scoped next-tick reconciliation remain; there is no permanent aura poller, cached hostile form identity, or DR-duration guess.
+
+### 23.4 Verification and remaining limits
+
+- The promotion payload consists of the 7 Lua modules and both manifest files from `bjarkiPortraits-0.1.130-form-state-test.zip`; each has a matching Git blob SHA. Local source testing reported **526 offline checks in 30 suites** and all 7 Lua modules passing syntax checks.
+- The user's immediate live feedback for the form-state test was positive, but that does not demonstrate exhaustive Battleground, duel, pet, Focus, or taint correctness. Retain open historical observations in `KNOWN_ISSUES.md` until verified under the current client.
+- Avoid retroactively claiming intermediate GitHub releases for local-only test builds. The exact source snapshot and this historical handoff are the provenance for `main`.
