@@ -66,3 +66,8 @@ reported BG findings. Class-colored unit-frame failures are tracked in the
 - Opposing-faction tracking suppression remains intentional. Permanent helpful buffs on hostile units are excluded from the broad fallback so tracking effects (e.g. Find Minerals) do not mask important auras; only verified current unit-state witnesses may present a form.
 - The post-patch portrait geometry and timer centering were visually calibrated in normal client screenshots. Remaining image-specific clipping under unusual pet icons, BG pet portrait binding, and Focus recycled-unit behavior merit further live checks.
 - The current countdown formatter truncates whole seconds rather than rounding nearest to match Blizzard's display at examples 29.8 and 22.8. The actual timing engine is unchanged.
+
+## 0.1.131 potion debuff follow-up (2026-10-17)
+
+- Rapid Poison (`1231579`) and Foul Disease (`1231580`) were added to the existing DoTs category for the Greater Discolored Healing Potion. Confirm both applied auras and their priority against overlapping status effects under actual Forever combat; offline checks do not establish active-aura readability or native-frame presentation in every PvP context.
+- Retain earlier open Battleground, hostile secrecy, pet frame, and recycled Focus investigations. This scope does not constitute a live regression audit.

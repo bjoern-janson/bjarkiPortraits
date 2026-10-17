@@ -440,3 +440,11 @@ This commit advances GitHub `main` directly from `0.1.107-local` to the **exact 
 - The promotion payload consists of the 7 Lua modules and both manifest files from `bjarkiPortraits-0.1.130-form-state-test.zip`; each has a matching Git blob SHA. Local source testing reported **526 offline checks in 30 suites** and all 7 Lua modules passing syntax checks.
 - The user's immediate live feedback for the form-state test was positive, but that does not demonstrate exhaustive Battleground, duel, pet, Focus, or taint correctness. Retain open historical observations in `KNOWN_ISSUES.md` until verified under the current client.
 - Avoid retroactively claiming intermediate GitHub releases for local-only test builds. The exact source snapshot and this historical handoff are the provenance for `main`.
+
+## 24. Potion-origin periodic damage coverage: 0.1.131-potion-dots-test (2026-10-17)
+
+This synchronized release retains the exact nine runtime/manifest files of the distributed `bjarkiPortraits-0.1.131-potion-dots-test.zip`. It builds on the verified 0.1.130 form-state snapshot; no other aura selection, runtime geometry or timing logic was changed during this repository sync.
+
+The Greater Discolored Healing Potion's applied **Rapid Poison (`1231579`)** and **Foul Disease (`1231580`)** belong to the ordinary **DoTs** lane at existing priority 190. They are periodic-damage debuffs; neither the potion's use effect nor its healing component is added as an aura candidate. Known higher-priority effects retain precedence and same-tier DoT election remains unchanged. No changes were made to icon placement, masks, crop, timer anchoring, five-second decimal threshold, whole-second truncation, native filters, the Ghost/Resurrection Sickness construction repair, or the guarded Druid form-state helper.
+
+The local candidate passed the new focused checks and retained form-state tests and compiled as seven Lua modules. The larger historical test suite contains baseline-failing expectations on both the original .130 and candidate .131 sources; it must **not** be reported as fully passing. Live effects/priority, protected aura access and taint safety remain separately unverified. These two debuff IDs and local candidate lineage are now available on `main` with exact Git-blob parity.

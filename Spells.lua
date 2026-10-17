@@ -232,6 +232,11 @@ PT.categories = {
         -- not armor/casting/healing penalties. All four player ranks.
         [1120] = true, [8288] = true, [8289] = true, [11675] = true,
         [3815] = true, -- Poison Cloud (Ironspine, periodic Poison)
+        -- Discolored Healing Potion family: applied delayed-damage effects.
+        -- These shared auras also result from Greater Discolored Healing Potion;
+        -- 1244866 is the instantaneous heal/use spell, NOT the DoT.
+        [1231579] = true, -- Rapid Poison (Nature, 6 sec)
+        [1231580] = true, -- Foul Disease (Shadow, 12 sec)
         -- Mage residual/periodic damage
         [133] = true, [143] = true, [145] = true, [3140] = true,
         [8400] = true, [8401] = true, [8402] = true,
