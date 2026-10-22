@@ -1,6 +1,8 @@
 # Known issues and bugs
 
-Historical status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**. Current synchronized source is **0.1.149-foundation-v15-fixes-test** (2026-10-22); historical items below are not automatically closed by that update.
+**v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
+
+Historical status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**. Current synchronized source is **0.1.150-foundation-v16-fixes-test** (2026-10-22); historical items below are not automatically closed by that update.
 
 The items below reflect reports and screenshots from Battleground sessions.
 They remain open until checked in the live client against this build. A report

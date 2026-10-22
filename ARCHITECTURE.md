@@ -1,6 +1,8 @@
 # bjarkiPortraits architecture
 
-This document tracks **bjarkiPortraits 0.1.149-foundation-v15-fixes-test** (2026-10-22). Sections 1–24 are historical architecture and experiment notes; **section 25 describes the current source** and supersedes conflicting earlier behavior. This reference does not claim undocumented guarantees about the WoW: Forever client.
+**v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
+
+This document tracks **bjarkiPortraits 0.1.150-foundation-v16-fixes-test** (2026-10-22). Sections 1–24 are historical architecture and experiment notes; **section 25 describes the current source** and supersedes conflicting earlier behavior. This reference does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into nine Lua modules, loaded in this order:
 
