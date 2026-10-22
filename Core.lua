@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.131-potion-dots-test"
+R.VERSION = "0.1.149-foundation-v15-fixes-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
@@ -117,6 +117,67 @@ function R.GetPortrait(unit)
             or (unit == "focustarget" and _G.FocusFrameToTPortraitMask)
         return portrait, mask, frame
     end
+end
+
+-- Classic character-create sprite sheet: EIGHT columns, four gender/race rows.
+-- Each face occupies 1/8 texture width. Using 1/4 incorrectly displayed two
+-- adjacent faces within each ring (reported in the 0.1.133 screenshots).
+-- Race portraits are an addon-owned FOUNDATION only, never an inferred aura.
+local CLASSIC_RACE_TILE = {
+    Human={0,0}, Dwarf={1,0}, Gnome={2,0}, NightElf={3,0},
+    Tauren={0,1}, Scourge={1,1}, Undead={1,1}, Troll={2,1}, Orc={3,1},
+    BloodElf={4,1},
+}
+local CLASSIC_RACE_TEXTURE = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Races"
+
+-- Forever ships native Skyborne race icons. Never substitute Blood Elf for
+-- Skyborne. The raceicon naming matches the client character-creation atlas
+-- convention; where the local player exposes its authoritative atlas, prefer
+-- that. If an atlas is not available, leave Blizzard's portrait visible.
+local function validatedRaceAtlas(atlas)
+    if type(atlas) ~= "string" or atlas == "" or not R.CanAccess(atlas) then return nil end
+    local getInfo = C_Texture and C_Texture.GetAtlasInfo or GetAtlasInfo
+    if type(getInfo) ~= "function" then return nil end
+    local ok, info = pcall(getInfo, atlas)
+    if ok and R.CanAccess(info) and type(info) == "table" then return atlas end
+    return nil
+end
+
+local function skyborneRaceAtlas(unit, sex)
+    if unit == "player" and C_PlayerInfo and type(C_PlayerInfo.GetPlayerCharacterData) == "function" then
+        local ok, data = pcall(C_PlayerInfo.GetPlayerCharacterData)
+        if ok and R.CanAccess(data) and type(data) == "table" then
+            local got, art = pcall(function() return data.createScreenIconAtlas end)
+            if got then
+                local verified = validatedRaceAtlas(art)
+                if verified then return verified end
+            end
+        end
+    end
+    return validatedRaceAtlas("raceicon-skyborne-" .. (sex == 2 and "male" or "female"))
+end
+function R.ResolveRaceBaselineAtlas(unit, confirmedPlayer)
+    if confirmedPlayer ~= true then return nil, "not-player" end
+    if type(UnitRace) ~= "function" or type(UnitSex) ~= "function" then
+        return nil, "race-api-unavailable"
+    end
+    local ok, _, race = pcall(UnitRace, unit)
+    if not ok or not R.CanAccess(race) or type(race) ~= "string" then
+        return nil, "race-unavailable"
+    end
+    local tile=CLASSIC_RACE_TILE[race]
+    if not tile and race ~= "Skyborne" then return nil, "no-classic-art" end
+    local sexOK, sex=pcall(UnitSex, unit)
+    if not sexOK or not R.CanAccess(sex) or (sex ~= 2 and sex ~= 3) then
+        return nil, "sex-unavailable"
+    end
+    if race == "Skyborne" then
+        local atlas=skyborneRaceAtlas(unit, sex)
+        if not atlas then return nil, "skyborne-atlas-unavailable" end
+        return atlas, nil, true
+    end
+    local row=tile[2]+(sex==3 and 2 or 0)
+    return CLASSIC_RACE_TEXTURE, {tile[1]/8,(tile[1]+1)/8,row/4,(row+1)/4}
 end
 
 -- The Wisdom fixture separates source-art centering from the native aperture.
@@ -345,11 +406,12 @@ function R.GetCountdownFormatter()
     if not formatter or not formatter.SetBreakpoints then return nil end
 
     -- Match native aura whole seconds by truncating, not rounding to nearest.
-    -- Keep the sub-5-second decimal rule and expiration data unchanged.
+    -- Show decimals strictly below 3 seconds; preserve the native whole-second
+    -- rounding and 60-second hide boundary.
     if key == 1 then
         formatter:SetBreakpoints({
             { threshold = 0, format = "%.1f" },
-            { threshold = 5, step = 1, rounding = Enum.NumericRuleFormatRounding.Down, format = "%.0f" },
+            { threshold = 3, step = 1, rounding = Enum.NumericRuleFormatRounding.Down, format = "%.0f" },
             { threshold = 60.000001, format = "" },
         })
     else
@@ -381,7 +443,7 @@ function R.ApplyCountdownFormat(cooldown)
         pcall(
             cooldown.SetCountdownMillisecondsThreshold,
             cooldown,
-            R.db and R.db.showDecimals and 5 or 0
+            R.db and R.db.showDecimals and 3 or 0
         )
     end
 end

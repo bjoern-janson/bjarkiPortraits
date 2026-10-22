@@ -161,6 +161,7 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
         R.Print("test " .. (R.testMode and "on" or "off"))
     elseif command == "on" then
         R.db.enabled = true; R.BuildAll(); R.UpdatePetPortraits(); R.Print("on")
+        if R.QueueDerivedSnapshots then R.QueueDerivedSnapshots() end
     elseif command == "off" then
         R.db.enabled = false
         -- In combat, hide presentation now and let the queued cleanup restore
@@ -270,8 +271,6 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
                 .. " divineReadable=" .. tostring(host and host._divineProtectionReadable or false)
                 .. " divineActive=" .. tostring(host and host._divineProtectionActive or false)
                 .. " divineSpell=" .. tostring(host and host._divineProtectionSpellID or nil)
-                .. " boostedRestReadable=" .. tostring(host and host._boostedRestReadable or false)
-                .. " boostedRestActive=" .. tostring(host and host._boostedRestActive or false)
                 .. " baselineReadable=" .. tostring(host and host._baselineReadable or false)
                 .. " baselineElectionReadable=" .. tostring(host and host._baselineElectionReadable or false)
                 .. " baselineSpell=" .. tostring(host and host._baselineSpellID or nil)
@@ -318,6 +317,18 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
             .. " distinctSpellIDs=" .. tostring(audit.distinctExactSpellIDs or 0)
             .. " overlaps=" .. tostring(audit.overlapCount or 0))
 
+        -- Positive-only shared evidence is observable without enabling CC.
+        -- These counters contain no hidden spell identities or model guesses.
+        local shared = R.evidenceStats or {}
+        local bus = BP.EvidenceBus
+        local bridge = bus and bus.Status and bus:Status()
+        R.Print("shared evidence schema=" .. tostring(bus and bus.schema or "none")
+            .. " protocol=" .. tostring(bridge and bridge.protocol or BP.EvidenceStatus or "unavailable")
+            .. " published=" .. tostring(shared.published or 0)
+            .. " auraEvents=" .. tostring(shared.events or 0)
+            .. " derivedSnapshots=" .. tostring(shared.snapshots or 0)
+            .. " busErrors=" .. tostring(bridge and bridge.errors or 0)
+            .. " busOverflows=" .. tostring(bridge and bridge.overflows or 0))
         for _, overlap in ipairs(audit.overlaps or {}) do
             R.Print("WARNING overlap spell=" .. tostring(overlap.spellID)
                 .. " first=" .. tostring(overlap.first)
@@ -354,6 +365,7 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
         R.BuildAll()
         R.ApplyPresentation()
         R.UpdatePetPortraits()
+        if R.QueueDerivedSnapshots then R.QueueDerivedSnapshots() end
         R.Print("reset")
     else
         R.Print("unknown command; /bp help")

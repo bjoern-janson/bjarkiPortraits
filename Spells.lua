@@ -1292,9 +1292,23 @@ PT.categories = {
                 [19884] = true, -- Track Undead
                 [19885] = true, -- Track Hidden
     },
+    -- Exclusion-only categories: these must never OWN a portrait aura slot.
+    -- Exact IDs are preferred over names; cosmetic spell variants do not imply
+    -- that temporary CC, movement, underwater breathing, or stat auras are cosmetic.
     buffs_cosmetic = {
-        [8213] = true, -- Savory Deviate Delight (transformation aura)
-        [1252576] = true, -- Savory Whimsyfin Delight (transformation aura)
+        [8213] = true, -- Savory Deviate Delight (visual transformation)
+        [1252576] = true, -- Savory Whimsyfin Delight (visual transformation)
+        [8219] = true, -- Savory Deviate Delight: Flip Out, male
+        [8220] = true, -- Savory Deviate Delight: Flip Out, female
+        [8221] = true, -- Savory Deviate Delight: Yaaarrrr, male
+        [8222] = true, -- Savory Deviate Delight: Yaaarrrr, female
+    },
+    buffs_noncombat = {
+        [1280341] = true, -- Uncommon Fishing: Fishing Rack loot bonus
+        [1249521] = true, -- Profession-only Well Fed: Fishing Skill
+    },
+    debuffs_noncombat = {
+        [24755] = true, -- Tricked or Treated: Halloween interaction cooldown
     },
     buffs_racial_defensive = {
         -- Defensive racials share a high-priority PvP category, separate from
@@ -1345,7 +1359,6 @@ PT.categories = {
         [1248422] = true, -- Forever Well Fed: Strength
         [1249519] = true, -- Forever Well Fed: Attack Power
         [1249520] = true, -- Forever Well Fed: Spell Damage
-        [1249521] = true, -- Forever Well Fed: Fishing Skill
         [1249523] = true, -- Forever Well Fed: Critical Strike
         [1248688] = true, -- Forever Well Fed: movement speed (Westfall)
         [1249926] = true, -- Forever Well Fed: Spirit
@@ -1362,8 +1375,9 @@ PT.categories = {
         [1259688] = true, -- Elemental Blessing (Skysight, 30 sec)
         [1270893] = true, -- Elemental Blessing (Skysight, 15 min)
     },
+    -- Denylist only; this XP/camp eligibility cooldown has no PvP effect.
     debuffs_boosted_rest = {
-        [1229451] = true, -- Boosted Rest camping cooldown debuff (Forever)
+        [1229451] = true, -- Boosted Rest (Forever camp rest eligibility)
     },
     buffs_campfire_nearby = {
         [12627] = true, -- Disease Cloud (persistent emitter aura, not the damage trigger)
@@ -1375,6 +1389,8 @@ PT.categories = {
         [1289723] = true, -- Welcoming Campfire (Forever live variant)
     },
     buffs_travel_utility = {
+        [17775] = true, -- Air Bubbles: underwater breathing from bubble vents
+        [18733] = true, -- Air Bubbles: short alternate water-breathing aura
         [131] = true, -- Water Breathing
         [5697] = true, -- Unending Breath (Warlock)
         [546] = true,  -- Water Walking (Shaman)

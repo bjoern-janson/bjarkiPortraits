@@ -151,7 +151,6 @@ local function findHelpfulTierForSpell(spellID)
     return best
 end
 
-local BOOSTED_REST_SPELL_ID = 1229451
 local GHOST_SPELL_ID = 8326
 local WELCOMING_CAMPFIRE_SPELL_IDS = {
     [1229739] = true,
@@ -290,6 +289,29 @@ local function scanReadableExactAuraSet(unit, filter, spellIDs)
 
     -- The bounded scan did not reach a nil terminator, so absence is unproven.
     return nil, nil, false
+end
+
+-- The generic harmful fallback must not show only known cosmetic/camping
+-- debuffs. This is a conservative, short-circuiting read: a single unrelated,
+-- inaccessible or unterminated aura preserves the native fallback. Most
+-- refreshes read only the first harmful entry (or one nil terminator).
+local function onlyReadableExcludedHarmful(unit)
+    local excluded = R.NONCOMBAT_EXCLUDED_HARMFUL
+    if not excluded or not C_UnitAuras
+        or type(C_UnitAuras.GetAuraDataByIndex) ~= "function" then return false end
+    local sawExcluded = false
+    for index = 1, AURA_SCAN_LIMIT do
+        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
+            unit, index, "HARMFUL|INCLUDE_NAME_PLATE_ONLY")
+        if not ok or not R.CanAccess(aura) then return false end
+        if aura == nil then return sawExcluded end
+        local spellID, readable = R.ReadAuraField(aura, "spellId")
+        if not readable or type(spellID) ~= "number" or not excluded[spellID] then
+            return false
+        end
+        sawExcluded = true
+    end
+    return false
 end
 
 -- A positive exact result is a witness, not proof that every other aura is
@@ -1079,6 +1101,76 @@ local function createTestFrame(host)
     return frame
 end
 
+-- Race-face foundation on the existing portrait layer, above the native
+-- texture and below every addon aura/status frame. The atlas's own texcoords
+-- are authoritative; ApplyPortraitIconCrop must NOT overwrite atlas UVs.
+-- This creates no new frame, native hook, mask or update timer.
+local function createRaceBaseline(host)
+    host._buildStage = "race-baseline"
+    local ok, texture = pcall(host.layer.CreateTexture, host.layer, nil, "OVERLAY", nil, 2)
+    if not ok or not R.CanAccess(texture) or not texture then return end
+    local positioned = pcall(R.ApplyPortraitImageLayout, texture, host)
+    local mask = host.imageMask or host.portraitMask
+    if not positioned or not mask or type(texture.AddMaskTexture) ~= "function"
+        or not pcall(texture.AddMaskTexture, texture, mask) then
+        pcall(texture.Hide, texture)
+        return
+    end
+    pcall(texture.Hide, texture)
+    host.racePortrait = texture
+end
+
+local function updateRaceBaseline(host, permitted)
+    local texture = host and host.racePortrait
+    if not texture then return end
+    local previouslyActive = host._raceBaselineActive == true
+    host._raceBaselineActive = false
+    local art, coordsOrReason, isAtlas
+    if permitted then
+        art, coordsOrReason, isAtlas = R.ResolveRaceBaselineAtlas(host.unit, true)
+    else
+        coordsOrReason = "ineligible"
+    end
+    host._raceBaselineReason = art and "ready" or coordsOrReason
+    if art then
+        local key=(isAtlas and "atlas:" or "texture:") .. art
+            .. (coordsOrReason and (":" .. table.concat(coordsOrReason, ",")) or "")
+        if previouslyActive and host._raceBaselineAtlas == key then
+            host._raceBaselineActive = true
+            return
+        end
+        if host._raceBaselineAtlas ~= key then
+            local ok, result
+            if isAtlas then
+                -- SetAtlas sets the atlas sub-rectangle: a subsequent
+                -- SetTexCoord(0,1,0,1) would incorrectly show the whole sheet.
+                ok, result = pcall(texture.SetAtlas, texture, art)
+            else
+                ok, result = pcall(texture.SetTexture, texture, art)
+                if ok and result ~= false then
+                    ok = pcall(texture.SetTexCoord, texture, unpack(coordsOrReason))
+                end
+            end
+            ok = ok and result ~= false
+            if not ok then
+                host._raceBaselineReason = "atlas-set-error"
+                pcall(texture.Hide, texture)
+                return
+            end
+            host._raceBaselineAtlas = key
+        end
+        local ok = pcall(texture.Show, texture)
+        if ok then
+            host._raceBaselineActive = true
+            return
+        end
+        host._raceBaselineReason = "show-error"
+    end
+    -- Recycled targets must never retain the old race portrait, including
+    -- during secret-unit, nonplayer, vehicle and missing-atlas transitions.
+    if previouslyActive then pcall(texture.Hide, texture) end
+end
+
 local function hostStillCurrent(host)
     if not host or host._buildComplete ~= true then return false end
     local portrait, mask, unitFrame = R.GetPortrait(host.unit)
@@ -1121,6 +1213,7 @@ function R.DestroyHost(unit)
     for _, owner in pairs(host._readableTierOwners or {}) do hideReadableExact(owner.frame) end
     host._readableTierOwners = {}
     if host.testFrame then host.testFrame:Hide() end
+    if host.racePortrait then host.racePortrait:Hide() end
     if host.readableHostileFrame then host.readableHostileFrame:Hide() end
     if host.readableBaselineFrame then host.readableBaselineFrame:Hide() end
     if host.readableHealingFrame then hideReadableExact(host.readableHealingFrame) end
@@ -1226,6 +1319,7 @@ local function buildHost(unit, host)
     anchor:SetFrameStrata(strata)
     anchor:SetFrameLevel(0)
     R.CreatePortraitImageMask(host)
+    createRaceBaseline(host)
 
     for index, tier in ipairs(R.TIERS or {}) do
         host._buildStage = "native-slot:" .. tostring(tier.key)
@@ -1301,11 +1395,6 @@ local function buildHost(unit, host)
             local tier = findTierByKey(spec[1])
             if tier then host[spec[2]] = createReadableExactFrame(host, tier.level) end
         end
-
-        local boostedRestTier = findTierByKey("BoostedRest")
-        host.readableBoostedRestFrame = createReadableExactFrame(
-            host, boostedRestTier and boostedRestTier.level or 1
-        )
 
         local slowsTier = findTierByKey("Slows")
         host.readableSlowsFrame = createReadableExactFrame(host, slowsTier and slowsTier.level or 278)
@@ -1449,6 +1538,7 @@ function R.UpdateHost(host, forceContainerRefresh)
     host._hostilePlayer = hostilePlayer
     if playerReadable then host._isPlayer = isPlayer else host._isPlayer = nil end
     host._playerReadable = playerReadable
+    updateRaceBaseline(host, base and playerReadable and isPlayer)
     if assistReadable then host._assistable = assistable else host._assistable = nil end
     host._assistReadable = assistReadable
 
@@ -1484,32 +1574,6 @@ function R.UpdateHost(host, forceContainerRefresh)
     updateReadableHarmfulTier(host, base, "StatusEffects", "readableStatusEffectsFrame", "_statusEffects")
     updateReadableHarmfulTier(host, base, "ResurrectionSickness", "readableResurrectionSicknessFrame", "_resurrectionSickness")
     updateReadableHarmfulTier(host, base, "OffensiveHarmful", "readableOffensiveHarmfulFrame", "_offensiveHarmful")
-
-    -- Boosted Rest is a harmful camping cooldown that can be directly readable
-    -- on friendly/self units even when exact harmful-ID AuraContainer filtering
-    -- is relation-gated. Keep the secure exact lane authoritative when legal;
-    -- otherwise render only a directly readable exact 1229451 witness.
-    local boostedRestTier = findTierByKey("BoostedRest")
-    local boostedRestSecureAllowed = boostedRestTier and R.ExactFilterAllowed(
-        host.unit, false, boostedRestTier.spellIDs, boostedRestTier.allowNeverSecret
-    ) or false
-    host._boostedRestReadable = false
-    host._boostedRestActive = false
-    if not R.SMALL_UNITS[host.unit] and base and boostedRestTier and not boostedRestSecureAllowed then
-        local aura, readable = scanReadableExactAura(
-            host.unit, "HARMFUL|INCLUDE_NAME_PLATE_ONLY", BOOSTED_REST_SPELL_ID
-        )
-        host._boostedRestReadable = readable
-        if aura then
-            host._boostedRestActive = showReadableAura(
-                host.readableBoostedRestFrame, aura, BOOSTED_REST_SPELL_ID, host.unit
-            )
-        else
-            hideReadableExact(host.readableBoostedRestFrame)
-        end
-    elseif host.readableBoostedRestFrame then
-        hideReadableExact(host.readableBoostedRestFrame)
-    end
 
     -- Waiting to Resurrect is a helpful aura on ghosted units. Keep its secure
     -- exact lane authoritative when legal; otherwise show only a directly
@@ -1600,6 +1664,9 @@ function R.UpdateHost(host, forceContainerRefresh)
             -- classified CC, StatusEffects, and DoTs all outrank this fallback.
             -- Never identify or promote a generic aura based on its presence.
             enabled = enabled and (hostileUnit or not exactHarmfulAllowed)
+            if enabled and not R.testMode and onlyReadableExcludedHarmful(host.unit) then
+                enabled = false
+            end
             host._smallHarmfulEnabled = enabled and true or false
         elseif tier.key == "ChilledSignature" then
             -- Chilled's semantic signature is the last resort: exact secure
@@ -1762,6 +1829,30 @@ function R.GetLayoutDebug(unit)
     local x, y = center(host.portraitMask or host.portrait)
     local tx, ty = center(text)
     local delta = x and tx and string.format("%.3f,%.3f", tx-x, ty-y) or "unknown"
+    local raceToken, raceSex = "unknown", "unknown"
+    if type(UnitRace) == "function" then
+        local ok, _, token = pcall(UnitRace, unit)
+        if ok and R.CanAccess(token) and type(token) == "string" then raceToken = token end
+    end
+    if type(UnitSex) == "function" then
+        local ok, sex = pcall(UnitSex, unit)
+        if ok and R.CanAccess(sex) and type(sex) == "number" then raceSex = sex end
+    end
+    local raceArt = host._raceBaselineAtlas or "none"
+    local raceAtlasPixels = "unavailable"
+    if type(raceArt) == "string" and raceArt:sub(1, 6) == "atlas:" then
+        local getInfo = C_Texture and C_Texture.GetAtlasInfo or GetAtlasInfo
+        if type(getInfo) == "function" then
+            local ok, info = pcall(getInfo, raceArt:sub(7))
+            if ok and R.CanAccess(info) and type(info) == "table" then
+                local fieldsOK, w, h = pcall(function() return info.width, info.height end)
+                if fieldsOK and R.CanAccess(w) and R.CanAccess(h)
+                    and type(w) == "number" and type(h) == "number" then
+                    raceAtlasPixels = tostring(w) .. "x" .. tostring(h)
+                end
+            end
+        end
+    end
     return unit .. " host=present enabled=" .. tostring(R.IsUnitEnabled(unit) == true)
         .. " build=" .. (host._buildComplete and "ready" or "incomplete")
         .. " ghostFrame=" .. tostring(host.readableGhostFrame ~= nil)
@@ -1774,6 +1865,10 @@ function R.GetLayoutDebug(unit)
         .. " assistReadable=" .. tostring(host._assistReadable)
         .. " assist=" .. tostring(host._assistable)
         .. " ghost=" .. tostring(host._ghostActive) .. ":" .. tostring(host._ghostSource or "none")
+        .. " raceBaseline=" .. tostring(host._raceBaselineActive) .. ":"
+        .. tostring(host._raceBaselineReason or "unavailable")
+        .. " raceToken=" .. tostring(raceToken) .. " raceSex=" .. tostring(raceSex)
+        .. " raceArt=" .. tostring(raceArt) .. " racePixels=" .. tostring(raceAtlasPixels)
         .. " form=" .. tostring(host._formStateActive) .. ":" .. tostring(host._formStateSpellID)
         .. ":" .. tostring(host._formStateReason or "none")
         .. " statusEffects=" .. tostring(host._statusEffectsActive)

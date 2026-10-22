@@ -1,11 +1,13 @@
 # bjarkiPortraits architecture
 
-This document tracks **bjarkiPortraits 0.1.130-form-state-test** (synchronized to GitHub 2026-10-17). Sections 1–22 are historical architecture and experiment notes; **section 23 describes the current post-patch system** and supersedes conflicting earlier behavior. This reference does not claim undocumented guarantees about the WoW: Forever client.
+This document tracks **bjarkiPortraits 0.1.149-foundation-v15-fixes-test** (2026-10-22). Sections 1–24 are historical architecture and experiment notes; **section 25 describes the current source** and supersedes conflicting earlier behavior. This reference does not claim undocumented guarantees about the WoW: Forever client.
 
-The runtime is split into seven Lua modules:
+The runtime is split into nine Lua modules, loaded in this order:
 
 - `Spells.lua` — spell-ID category tables.
-- `Core.lua` — settings, unit/portrait lookup, value-access helpers, relation checks, timer formatting.
+- `Core.lua` — settings, unit/portrait lookup, value-access helpers, relation checks, race artwork, timer formatting.
+- `SharedEvidence.lua` — bounded shared bus for readable positive helpful-aura observations.
+- `EvidencePublisher.lua` — guarded aura-event publication and derived-unit snapshots.
 - `Priority.lua` — display lanes and priority levels.
 - `AuraEngine.lua` — portrait hosts, secure aura containers, readable fallbacks, rendering, lifecycle.
 - `PetPortraits.lua` — pet-family artwork under portrait aura layers.
@@ -448,3 +450,30 @@ This synchronized release retains the exact nine runtime/manifest files of the d
 The Greater Discolored Healing Potion's applied **Rapid Poison (`1231579`)** and **Foul Disease (`1231580`)** belong to the ordinary **DoTs** lane at existing priority 190. They are periodic-damage debuffs; neither the potion's use effect nor its healing component is added as an aura candidate. Known higher-priority effects retain precedence and same-tier DoT election remains unchanged. No changes were made to icon placement, masks, crop, timer anchoring, five-second decimal threshold, whole-second truncation, native filters, the Ghost/Resurrection Sickness construction repair, or the guarded Druid form-state helper.
 
 The local candidate passed the new focused checks and retained form-state tests and compiled as seven Lua modules. The larger historical test suite contains baseline-failing expectations on both the original .130 and candidate .131 sources; it must **not** be reported as fully passing. Live effects/priority, protected aura access and taint safety remain separately unverified. These two debuff IDs and local candidate lineage are now available on `main` with exact Git-blob parity.
+
+## 25. Verified v15 source synchronization: 0.1.149-foundation-v15-fixes-test (2026-10-22)
+
+### 25.1 Source scope and preservation
+
+The nine Lua modules and both TOCs are copied byte-for-byte from the verified v15 suite. This advances the repository from `0.1.131-potion-dots-test` and includes accepted intermediate local changes. Relative to the shipped v14 Portraits source, v15 changes only the version in `Core.lua` and the two manifests; the v15 behavioral repairs are in the separate `bjarkiCC` addon.
+
+The repository's Rapid Poison (`1231579`) and Foul Disease (`1231580`) DoT coverage remains present. The guarded Druid form-state presenter and existing portrait calibration remain in place; `PetPortraits.lua` is byte-identical to the previous repository version. Historical observations in `KNOWN_ISSUES.md` remain open unless separately verified.
+
+### 25.2 Current presentation and selection
+
+- An addon-owned race foundation sits above the native portrait and below aura/status layers. Classic race art uses the existing character-create sprite sheet with one-eighth-width tiles. Skyborne uses a validated native atlas; unavailable or ineligible identity clears the owned artwork and leaves the native portrait available.
+- With `/bp decimals` enabled, countdowns show one decimal strictly below **3 seconds**, whole seconds rounded down from 3 through 60 seconds, and no numeric timer above 60 seconds. The compatibility threshold follows the same three-second policy.
+- Cosmetic transformations, tracking, profession-only effects, and Boosted Rest are exclusion-only data. The old visible Cosmetic and Boosted Rest lanes are removed. Broad fallbacks receive the corresponding exclusions; the readable harmful check suppresses a fallback only when every observed entry is excluded and the bounded scan completes. Inaccessible identities do not become inferred exclusions.
+- Air Bubbles IDs `17775` and `18733` join the existing travel-utility category. Existing combat stat, movement, and water-breathing effects retain their separate categories.
+
+### 25.3 Shared positive evidence and recovery
+
+`SharedEvidence.lua` installs or connects to the same compatible, bounded bus used by `bjarkiCC`. It accepts a closed schema of readable positive helpful-aura observations; securely rendered artwork and inferred identities are not evidence. Portraits remains usable independently of CC.
+
+`EvidencePublisher.lua` publishes guarded added-aura observations for hostile player recipients. Target-of-target and focus-of-target binding snapshots inspect a fixed cooldown-aura shortlist and are first sightings, never new-application claims. Readable positives publish immediately even if another query is unavailable. Unavailable snapshots retain event-driven retry work; a completed snapshot, including an empty one, consumes the request. Queued work rereads the live unit, and disabling the addon cancels recovery. Existing one-shot refresh scheduling handles the work without a permanent aura poller.
+
+Both manifests load the bus and publisher after `Core.lua`. The packaging workflow stages all nine modules and both manifests so its output matches that load list. `/bp audit` includes shared-evidence counters; enable/reset queues derived snapshots.
+
+### 25.4 Verification boundary
+
+The accepted v15 suite evidence records **42/42 executable scripts** and **28/28 runtime syntax files** passing under ordinary Lua 5.4 with modeled WoW APIs. Portraits coverage includes the shared-bus cases and derived-snapshot recovery regressions. These are suite results, not 42 Portraits-only tests. They do not certify native secret propagation, secure execution or taint, rendered pixels, or client combat behavior. The existing live-client reports remain separate validation items.

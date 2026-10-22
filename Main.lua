@@ -6,25 +6,47 @@ local R = assert(BP.Runtime, "Core.lua must load first")
 -- cache a unit's aura identity, borrow Target's result for Focus, or self-poll.
 local tracked = {}
 for _, unit in ipairs(R.TRACKED_UNITS) do tracked[unit] = true end
+local derived = {targettarget=true, focustarget=true}
 local queued, scheduled = {}, false
-local function queueRefresh(unit, reason)
+local snapshotNeeded = {}
+local function publishDerivedSnapshot(unit)
+    if R.PublishDerivedSnapshot then
+        -- Only an explicit unavailable result retains work for a later event.
+        -- A completed pass (including an empty one) consumes the request.
+        snapshotNeeded[unit] = R.PublishDerivedSnapshot(unit) == false or nil
+    end
+end
+local function queueRefresh(unit, reason, requestSnapshot)
     if not R.CanAccess(unit) or type(unit) ~= "string" or not tracked[unit]
         or not C_Timer or type(C_Timer.After) ~= "function" then return end
-    queued[unit] = reason or "unit-event"
+    local request = queued[unit]
+    if not request then request = {}; queued[unit] = request end
+    request.reason = reason or "unit-event"
+    -- Later visual reasons must not cancel evidence work already requested.
+    if derived[unit] and (reason == "derived-binding" or requestSnapshot) then
+        request.publishDerivedSnapshot = true
+    end
     if scheduled then return end
     scheduled = true
     local ok = pcall(C_Timer.After, 0, function()
         local pending = queued
         queued, scheduled = {}, false
-        if not R.db or not R.db.enabled then return end
-        for token, why in pairs(pending) do
+        if not R.db or not R.db.enabled then snapshotNeeded = {}; return end
+        for token, request in pairs(pending) do
             R.Refresh(token, true)
-            if R.hosts[token] then R.hosts[token]._nativeRefreshReason = why end
+            if request.publishDerivedSnapshot and R.PublishDerivedSnapshot then
+                publishDerivedSnapshot(token)
+            end
+            if R.hosts[token] then R.hosts[token]._nativeRefreshReason = request.reason end
             if token ~= "player" then R.UpdateObservedPetPortrait(token) end
             R.ApplyPresentation(token)
         end
     end)
     if not ok then queued, scheduled = {}, false end
+end
+
+function R.QueueDerivedSnapshots()
+    for unit in pairs(derived) do queueRefresh(unit, "derived-recovery", true) end
 end
 
 -- Native Focus may finish a portrait refresh or rebind without another
@@ -75,7 +97,12 @@ events:SetScript("OnEvent", function(_, event, arg1)
         installNativePortraitHooks()
         R.BuildAll()
         R.UpdatePetPortraits()
-        for _, token in ipairs(R.TRACKED_UNITS) do queueRefresh(token) end
+        if R.PublishDerivedSnapshot then
+            publishDerivedSnapshot("targettarget")
+            publishDerivedSnapshot("focustarget")
+        end
+        -- Identity may become readable only after the immediate world pass.
+        for _, token in ipairs(R.TRACKED_UNITS) do queueRefresh(token, "world-entry", snapshotNeeded[token]) end
     elseif event == "PLAYER_REGEN_ENABLED" then
         if R.forceRebuildQueued then
             R.forceRebuildQueued = false
@@ -99,13 +126,13 @@ events:SetScript("OnEvent", function(_, event, arg1)
         R.Refresh("targettarget", true)
         R.UpdateObservedPetPortrait("target")
         R.UpdateObservedPetPortrait("targettarget")
-        queueRefresh("target"); queueRefresh("targettarget")
+        queueRefresh("target"); queueRefresh("targettarget", "derived-binding")
     elseif event == "PLAYER_FOCUS_CHANGED" then
         R.Refresh("focus", true)
         R.Refresh("focustarget", true)
         R.UpdateObservedPetPortrait("focus")
         R.UpdateObservedPetPortrait("focustarget")
-        queueRefresh("focus"); queueRefresh("focustarget")
+        queueRefresh("focus"); queueRefresh("focustarget", "derived-binding")
     elseif event == "PET_BAR_UPDATE" then
         R.UpdateLocalPetPortrait()
     end
@@ -130,13 +157,13 @@ local function installUnitStateEvents(unitA, unitB)
     register("UNIT_CONNECTION")
     register("UNIT_PORTRAIT_UPDATE")
     register("UNIT_NAME_UPDATE")
-    frame:SetScript("OnEvent", function(_, event, unit)
+    frame:SetScript("OnEvent", function(_, event, unit, updateInfo)
         if not unit then return end
         if event == "UNIT_PORTRAIT_UPDATE" or event == "UNIT_NAME_UPDATE" then
             -- These events also signal late current-unit availability. Refresh
             -- the independent pet art now, then re-evaluate aura eligibility.
             if unit ~= "player" then R.UpdateObservedPetPortrait(unit) end
-            queueRefresh(unit)
+            queueRefresh(unit, "unit-availability", snapshotNeeded[unit])
             return
         end
         if unit == "player" and (event == "UNIT_FACTION" or event == "UNIT_FLAGS") then
@@ -146,7 +173,13 @@ local function installUnitStateEvents(unitA, unitB)
             R.UpdateObservedPetPortraits()
             for _, token in ipairs(R.TRACKED_UNITS) do queueRefresh(token) end
         elseif event == "UNIT_AURA" then
+            if R.PublishAuraEvent then R.PublishAuraEvent(unit, updateInfo) end
             R.Refresh(unit)
+            -- A binding snapshot may have run before eligibility settled.
+            -- Retry only that pending derived token through the one-shot queue.
+            if derived[unit] and snapshotNeeded[unit] then
+                queueRefresh(unit, "derived-recovery", true)
+            end
         elseif event == "UNIT_DISPLAYPOWER" then
             -- Re-evaluate the current primary power once immediately and
             -- once after Blizzard completes the form transition. No polling.
@@ -155,7 +188,7 @@ local function installUnitStateEvents(unitA, unitB)
             return
         else
             R.Refresh(unit, true)
-            queueRefresh(unit)
+            queueRefresh(unit, nil, event == "UNIT_CONNECTION" and snapshotNeeded[unit])
         end
         -- Aura changes do not change pet identity/family. Reclassify only on
         -- relation/state changes, and only for the unit that actually changed.
@@ -183,11 +216,11 @@ unitTargetEvents:SetScript("OnEvent", function(_, _, unit)
     if unit == "target" then
         R.Refresh("targettarget", true)
         R.UpdateObservedPetPortrait("targettarget")
-        queueRefresh("targettarget")
+        queueRefresh("targettarget", "derived-binding")
     elseif unit == "focus" then
         R.Refresh("focustarget", true)
         R.UpdateObservedPetPortrait("focustarget")
-        queueRefresh("focustarget")
+        queueRefresh("focustarget", "derived-binding")
     end
 end)
 

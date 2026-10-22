@@ -1,6 +1,6 @@
 # Known issues and bugs
 
-Historical status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**. Current synchronized source is **0.1.130-form-state-test** (2026-10-17); historical items below are not automatically closed by that update.
+Historical status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**. Current synchronized source is **0.1.149-foundation-v15-fixes-test** (2026-10-22); historical items below are not automatically closed by that update.
 
 The items below reflect reports and screenshots from Battleground sessions.
 They remain open until checked in the live client against this build. A report
@@ -58,7 +58,7 @@ No live WoW test has confirmed these reports fixed in 0.1.80-local. See
 reported BG findings. Class-colored unit-frame failures are tracked in the
 [bjarkiUI issue list](https://github.com/bjoern-janson/bjarkiUI/blob/main/KNOWN_ISSUES.md).
 
-## Current post-patch follow-up (0.1.130, 2026-10-17)
+## Post-patch follow-up (0.1.130, 2026-10-17)
 
 - The Ghost/Resurrection Sickness helper construction failure was observed and its repaired display confirmed in game. This does not establish that every aura reader behaves correctly through all client secrecy transitions.
 - Enemy Moonfire on Player/self Target was reported working with the identity-blind native harmful fallback. During restricted reads, this fallback cannot identify the exact harmful spell or guarantee its category-specific priority.

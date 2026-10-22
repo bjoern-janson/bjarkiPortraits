@@ -13,7 +13,7 @@ jobs:
       - name: Stage addon
         run: |
           mkdir -p dist/bjarkiPortraits
-          cp Spells.lua Core.lua Priority.lua AuraEngine.lua PetPortraits.lua Commands.lua Main.lua bjarkiPortraits.toc bjarkiPortraits_Camelot.toc dist/bjarkiPortraits/
+          cp Spells.lua Core.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua Commands.lua Main.lua bjarkiPortraits.toc bjarkiPortraits_Camelot.toc dist/bjarkiPortraits/
       - uses: actions/upload-artifact@v4
         with:
           name: bjarkiPortraits
