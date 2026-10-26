@@ -1,10 +1,12 @@
 # bjarkiPortraits architecture
 
+**Five-second decimal threshold restored (2026-10-26):** `0.1.152-five-second-decimals-test` restores one-decimal portrait aura countdowns below five seconds when `/bp decimals` is enabled (whole seconds at five and above). Both the native formatter breakpoint and compatibility fallback threshold are updated together. Section 27 supersedes the three-second policy in section 25.
+
 **Low-priority informational tiers (2026-10-26):** `0.1.151-low-priority-tracking-status-test` restores explicitly requested gathering buffs, informational debuffs, and tracking/sensing buffs in three separate exact lanes immediately above the race-portrait foundation. No combat-priority changes. Section 26 supersedes the earlier exclusion-only tracking/Boosted Rest policy.
 
 **v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
 
-This document tracks **bjarkiPortraits 0.1.151-low-priority-tracking-status-test** (2026-10-26). Sections 1–25 are historical architecture and experiment notes; **section 26 describes the current low-tier source** and supersedes conflicting earlier behavior. This reference does not claim undocumented guarantees about the WoW: Forever client.
+This document tracks **bjarkiPortraits 0.1.152-five-second-decimals-test** (2026-10-26). Sections 1–26 are historical architecture and experiment notes; **section 27 records the current countdown policy** and supersedes conflicting earlier behavior. This reference does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into nine Lua modules, loaded in this order:
 
@@ -509,3 +511,11 @@ On self/friendly harmful units, Forever may forbid exact harmful ID filtering ev
 GitHub Actions now syntax-compiles the nine shipped Lua modules plus `tests/low-priority.lua` under Lua 5.1 and Lua 5.4 and runs exact policy assertions: all gathering ranks, informational IDs, tracking/sensing coverage, exclusive membership, index ownership, strict tier ordering, semantic exclusions, and the guarded readable harmful helper wiring. The test file is **not** packaged as an addon module.
 
 Offline checks do not certify whether each aura ID is actually exposed by the postlaunch Forever client, whether the native secure harmful filter allows those two auras on every relation, or whether the guarded readable fallback sees a complete harmful list in combat. Screenshot-level visual centering and mixed-faction visibility must still be checked in game.
+
+## 27. Restore portrait decimals below five seconds: 0.1.152-five-second-decimals-test (2026-10-26)
+
+- With `/bp decimals` **on**, portrait aura countdowns use the existing `%.1f` native numeric format strictly below **5 seconds**, and whole seconds rounded down at five through sixty seconds. Countdowns above the existing `60.000001` cutoff remain hidden as before.
+- With `/bp decimals` **off**, all displayed portrait countdowns remain whole seconds. The saved preference and its default value are unchanged.
+- `Core.lua` changes only the formatter's whole-second threshold from 3 to 5 and the compatibility `Cooldown:SetCountdownMillisecondsThreshold` value from 3 to 5. There is no cooldown-time reading, rescheduling, mask, priority, or aura-election change.
+- `tests/decimal-threshold.lua` loads the real `Core.lua` code under modeled native APIs and checks decimals-on/off formatting, 4.9/5.0 and 60-second boundaries, successful native formatter application, and both compatibility fallback cases under Lua 5.1 and 5.4.
+- This accompanies bjarkiUI's separate action-button `0.2.256` sub-five-second formatter update, without linking the addons or changing their independent runtime behavior.
