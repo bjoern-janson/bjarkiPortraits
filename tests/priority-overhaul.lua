@@ -41,8 +41,9 @@ end
 -- > ordinary utility/roots > slowing/mobility effects > informational auras.
 local hierarchy={"WaitingToResurrect","Immunity","Stun","SpellImmunity",
     "PhysicalImmunity","Control","CrowdControl","InterruptSilence",
-    "RootImmunity","Defensive","Offensive","Utility","Roots","Slows",
-    "Mobility","SelfState","Thorns","Plainsrunning","CampfireNearby","Tracking","Gathering"}
+    "RootImmunity","Roots","Defensive","Offensive","Dazed","Slows",
+    "Utility","Mobility","SelfState","Thorns","Plainsrunning",
+    "CampfireNearby","Tracking","Gathering"}
 for i=1,#hierarchy-1 do
     check(level(hierarchy[i]) > level(hierarchy[i+1]),
         "priority descends: "..hierarchy[i].." > "..hierarchy[i+1])
@@ -60,10 +61,85 @@ check(level("HonorlessTarget")>level("Utility"),
 check(level("Defensive")>level("Offensive"),
    "defensive above offensive")
 check(level("Roots")>level("Slows"),"root priority above snare")
-check(level("Offensive")>level("Roots"),"old screenshot offense above root")
+check(level("Roots")>level("Defensive") and level("Roots")>level("Offensive"),
+    "roots retain the original high priority, above defensive/offensive effects")
+
+-- Lock every retained pre-overhaul tier to its original level. The only
+-- approved level changes were explicit requests: Utility lower and harmful
+-- Offensive merged with helpful Offensive. Other merges use new keys.
+-- This guards against extrapolating from screenshots into unrelated priorities.
+local preservedPriorityLevels = {
+    Gathering = 1,
+    Tracking = 3,
+    CampfireNearby = 4,
+    CampfireNearbyHarmful = 4,
+    PassiveSpeed = 9,
+    Plainsrunning = 10,
+    TravelUtility = 50,
+    PassiveDebuff = 59,
+    PaladinAura = 60,
+    BloodPact = 70,
+    Scrolls = 80,
+    Elixirs = 81,
+    BaselineClass = 90,
+    BaselineClassHarmful = 90,
+    WellFed = 110,
+    Thorns = 120,
+    SelfState = 150,
+    HostileHelpful = 5,
+    Mobility = 160,
+    LoneWolf = 170,
+    HuntersMark = 180,
+    SmallFriendlyHarmful = 175,
+    Demoralizing = 185,
+    Consecration = 189,
+    DoTs = 190,
+    Seal = 210,
+    Slows = 278,
+    Dazed = 279,
+    PriorityDebuff = 238,
+    Forbearance = 240,
+    Healing = 251,
+    StatusEffects = 253,
+    ResurrectionSickness = 255,
+    PowerWordShield = 256,
+    HonorlessTarget = 257,
+    MinorRegen = 259,
+    FoodDrink = 260,
+    Innervate = 261,
+    Utility = 225,
+    Important = 85,
+    Offensive = 280,
+    OffensiveHarmful = 280,
+    ExternalDef = 288,
+    BigDef = 289,
+    Defensive = 290,
+    Roots = 300,
+    RootImmunity = 305,
+    CrowdControl = 309,
+    Control = 310,
+    PhysicalImmunity = 315,
+    Stun = 320,
+    HelpfulSelfStun = 320,
+    ImmunityHarmful = 330,
+    Immunity = 330,
+    WaitingToResurrect = 332,
+}
+for name,expectedLevel in pairs(preservedPriorityLevels) do
+    eq(level(name),expectedLevel,
+        "pre-overhaul level retained unless explicitly requested: "..name)
+end
 
 -- Consolidated defensive/immunity effects.
-for _,id in ipairs({498,5573,7744}) do unique(id,"Immunity") end
+for _,id in ipairs({498,5573}) do unique(id,"Immunity") end
+-- Explicit live Forever observation overrides historical Classic assumptions:
+-- Will of the Forsaken cast 7744 has no observed portrait buff.
+check(#ownerOf(7744)==0, "no fabricated Will of the Forsaken aura tier")
+for category,set in pairs(C) do
+    check(not set[7744], "WotF must not be included in category "..category)
+end
+check(R.HELPFUL_TIER_BY_SPELL[7744]==nil,
+    "WotF has no helpful exact-tier lookup")
 check(not owns("Immunity",1303458),"Reflection Field no longer treated as immunity")
 unique(1303458,"Thorns")
 unique(20594,"Defensive")

@@ -1,6 +1,8 @@
 # bjarkiPortraits architecture
 
-**Priority consolidation and applied-control coverage (2026-10-27):** `0.1.153-priority-consolidation-test` merges redundant aura priorities, adopts the previous PvP hierarchy shown in the user's screenshots where explicitly requested, and adds guarded complete-aura elections for stuns and silences. The separate Pounce bleed remains a DoT. Section 28 supersedes historical priority and fallback descriptions. No new periodic polling or native-layout writes.
+**Priority scope correction (2026-10-27):** `0.1.154-priority-scope-correction-test` restores Roots 300, Slows 278 and Dazed 279 to their pre-overhaul levels. Their lowering in v0.1.153 was unauthorized. Will of the Forsaken (7744) is removed from all portrait aura categories because the user's direct Forever test observed **no applied buff**; a cast-only effect must not be invented as a visible immunity. Section 29 is authoritative and corrects erroneous conclusions in section 28.
+
+**Previous priority consolidation (2026-10-27):** `0.1.153-priority-consolidation-test` merged requested aura categories and added guarded complete-aura elections for stuns and silences. It also introduced **unrequested root/slow reprioritization and an incorrect Will of the Forsaken aura assumption**, both corrected in section 29. The separate Pounce bleed remains a DoT. No new periodic polling or native-layout writes.
 
 **Five-second decimal threshold restored (2026-10-26):** `0.1.152-five-second-decimals-test` restores one-decimal portrait aura countdowns below five seconds when `/bp decimals` is enabled (whole seconds at five and above). Both the native formatter breakpoint and compatibility fallback threshold are updated together. Section 27 supersedes the three-second policy in section 25.
 
@@ -8,7 +10,7 @@
 
 **v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
 
-This document tracks **bjarkiPortraits 0.1.153-priority-consolidation-test** (2026-10-27). Sections 1–27 are historical architecture and experiment notes; **section 28 records the current spell priority and ownership contract** and supersedes conflicting earlier behavior. This reference does not claim undocumented guarantees about the WoW: Forever client.
+This document tracks **bjarkiPortraits 0.1.154-priority-scope-correction-test** (2026-10-27). Sections 1–28 are historical architecture and experiment notes; **section 29 corrects the unsolicited priority changes and the Will of the Forsaken aura assumption**. This reference does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into nine Lua modules, loaded in this order:
 
@@ -526,7 +528,7 @@ Offline checks do not certify whether each aura ID is actually exposed by the po
 
 ### 28.1 Consolidated classifications
 
-- Divine Protection `498/5573` joins `Immunity` (330) rather than occupying its own 331 lane. The former hostile readable Divine Protection witness remains **within Immunity's level** and now requires a complete, same-tier readable election before it can render. Will of the Forsaken `7744` is likewise a 5-second Charm/Fear/Sleep immunity on Classic data; the corresponding aura, when visible on Forever, is classified as an Immunity rather than an ordinary defensive racial. Stoneform joins `Defensive` (290). No separate racial-defensive tier.
+- Divine Protection `498/5573` joins `Immunity` (330) rather than occupying its own 331 lane. The former hostile readable Divine Protection witness remains **within Immunity's level** and now requires a complete, same-tier readable election before it can render. **Correction (section 29):** the previous claim that Will of the Forsaken `7744` supplies a usable Forever portrait aura was not supported. The user's live Forever test found no applied buff; v0.1.154 excludes `7744` from all exact portrait tiers. Stoneform joins `Defensive` (290). No separate racial-defensive tier.
 - Reflection Field `1303458` is no longer in Immunity; it joins `Thorns` (120), as a reactive hostile-spell reflection rather than invulnerability. Free Action Potion `6615` moves to the **PhysicalImmunity display tier** (315) at the user's request; mechanically it protects against stun, snares and roots, **not direct physical damage**. Grounding Totem Effect `8178` and Voice of Truth `1310897` join a distinct `SpellImmunity` (316). Voice protects against silence/interrupt, not roots.
 - Stuns (320) retain the existing 36 exact IDs, including Charge Stun `7922`, Intercept Stun `20253/20614/20615`, Cheap Shot `1833`, and Pounce `9005/9823/9827`. The separate long Pounce bleeds `9007/9824/9826` **remain DoTs (190)**. Missing stun display was a native/readable eligibility problem, not evidence that these IDs were absent. The new readable helper requires an entire complete, ordered harmful-aura election; unknown/secret observations never fabricate a stun.
 - The new `InterruptSilence` harmful tier (306) contains reviewed silence auras `15487/18425/18469/24259/1330` alongside pre-existing interrupt IDs. Harmful generic Control excludes all stun, silence and interrupt members. A second complete-aura helper presents positive readable entries where native filtering is unavailable. **Interrupt cast success and school lockouts without an observable aura do not become fictional debuffs**; full opponent school-lock tracking is outside aura-portrait evidence.
@@ -538,7 +540,7 @@ Offline checks do not certify whether each aura ID is actually exposed by the po
 
 ### 28.2 Priority layout reference and selection limits
 
-The previous PvP layout screenshots prioritize: immunity and true control above interrupt/silence protection and interruptions; defense above offense; low-status auras and movement effects below stronger PvP information. This release preserves the existing numeric range rather than copying arbitrary 1–100 slider values. It moves ordinary Roots to 218 and Slows/Dazed to 205/206, below active defensive/offensive buffs, while keeping actual root/slow effects above weaker damage-over-time auras. Utility moves from 270 to 225. Other existing tier ranks are retained unless listed above; the screenshots are qualitative references, not a command to force identical levels.
+The previous PvP layout screenshots prioritize: immunity and true control above interrupt/silence protection and interruptions; defense above offense; low-status auras and movement effects below stronger PvP information. This release preserves the existing numeric range rather than copying arbitrary 1–100 slider values. **Historical error, reversed in section 29:** v0.1.153 moved Roots to 218 and Slows/Dazed to 205/206 without a user request. Those are restored to 300/278/279. Utility moves from 270 to 225 because the user explicitly said its tier was too high; the harmful Offensive lane joins helpful Offensive at 280 as explicitly requested. Screenshot slider values were references, not authorization to rearrange unrelated tiers.
 
 Overlapping aura IDs are removed from generic Control when their explicit Stun or InterruptSilence tier owns them. The exact tier lookup is unique per spell ID. Helpful and harmful AuraContainers at the same numeric level are still separate native widgets; on unreadable simultaneous cross-filter cases there is no guaranteed last-applied winner between those two filters. Complete readable helpers decline partial elections, and the broad fallback remains an unclassified last resort.
 
@@ -547,3 +549,21 @@ Overlapping aura IDs are removed from generic Control when their explicit Stun o
 `tests/priority-overhaul.lua` loads actual `Spells.lua` and `Priority.lua` and checks 20 requested classification and merging decisions, tier rank relationships, all reviewed spell IDs, no overlapping exact ownership, and complete-evidence helper wiring. `tests/low-priority.lua` adapts to the merged nearby harmful tier; the existing five-second countdown tests remain unchanged. GitHub Actions compiles the nine runtime modules and all three regression scripts and executes them on Lua 5.1 and 5.4. No new timer loop, client CVar, full-frame replacement or saved layout override.
 
 Forever may expose different applied stun/silence spell IDs or restrict target aura visibility. In particular, Classic Pounce has distinct short stun and long bleed effects, but a Forever build might package them differently; an unobservable stun cannot safely be inferred from a surviving bleed. Confirm Pounce stun, Charge/Intercept stun, successful school lockouts, Grounding and Voice of Truth in the live client before claiming all are rendered. Removing shape-only approximations trades speculative coverage for fewer false-positive classifications.
+
+## 29. Correcting unauthorized priority changes and cast-only WotF: 0.1.154-priority-scope-correction-test (2026-10-27)
+
+The user's explicitly enumerated adjustments in the previous turn were authoritative. The three separate rank changes introduced by v0.1.153 were not requested, and screenshots of earlier addon slider configurations did **not** authorize moving otherwise untouched categories. This release restores their original values:
+
+| Tier | v0.1.152 (pre-overhaul) | v0.1.153 error | v0.1.154 (restored) |
+| --- | ---: | ---: | ---: |
+| `Roots` | 300 | 218 | **300** |
+| `Slows` | 278 | 205 | **278** |
+| `Dazed` | 279 | 206 | **279** |
+
+Both readable helper fallback frame levels for Slows and Dazed are restored to 278 and 279. Roots again outrank Defensive 290 and Offensive 280, and RootImmunity 305 still outranks Roots. The explicit decision to lower the generic Utility tier from 270 to 225 and merge OffensiveHarmful 281 into Offensive 280 remains in effect. Every other retained tier matches its v0.1.152 numeric priority, except those two explicit changes; retired/merged tiers retain the user's requested categories.
+
+**Will of the Forsaken:** `7744` was incorrectly added to `immunities` based on generic historical spell information. The user's direct Forever observation states that activating WotF provides **no visible applied buff**. This release removes ID 7744 from *all* displayed exact aura categories and their helpful-tier index. The top Immunity lane is for observed immunity auras, not for classifying a cast-only action by its effect. Divine Protection's inclusion in the Immunity lane remains the user's explicit instruction. Other pre-existing Immunity IDs are unchanged by this corrective patch.
+
+`tests/priority-overhaul.lua` now asserts the restored hierarchy, excludes 7744 from every category and secure aura tier, and locks **all 55 retained pre-overhaul tier levels** to their original numbers except the explicitly requested Utility and OffensiveHarmful changes. This prevents future screenshot interpretation or unrelated cleanup from silently changing established priorities.
+
+All remaining v0.1.153 classification merges, stun/silence complete-readable presentation checks, five-second timers and race-fallback behavior remain unchanged. Neither protected server aura visibility nor postlaunch immunities can be inferred from CI; further spell-ID changes must follow actual Forever observations rather than general Classic assumptions.

@@ -8,7 +8,6 @@ PT.categories = {
         [1278162] = true, -- Ghost (Forever model variant; no native aura icon)
     },
     immunities = {
-        [7744] = true, -- Will of the Forsaken (brief Charm/Fear/Sleep immunity)
         [3169] = true,
         [16621] = true,
         [425876] = true,

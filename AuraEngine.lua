@@ -1404,7 +1404,7 @@ local function buildHost(unit, host)
         host, (selfStateTier and selfStateTier.level or 150) - 1
     )
     local dazedTier = findTierByKey("Dazed")
-    host.readableDazedFrame = createReadableExactFrame(host, dazedTier and dazedTier.level or 206)
+    host.readableDazedFrame = createReadableExactFrame(host, dazedTier and dazedTier.level or 279)
 
     -- Other large-frame-only helpers retain their existing scope. Pox
     -- remains inside StatusEffects, while actual Resurrection Sickness has an
@@ -1421,7 +1421,7 @@ local function buildHost(unit, host)
         end
 
         local slowsTier = findTierByKey("Slows")
-        host.readableSlowsFrame = createReadableExactFrame(host, slowsTier and slowsTier.level or 205)
+        host.readableSlowsFrame = createReadableExactFrame(host, slowsTier and slowsTier.level or 278)
 
         local forbearanceTier = findTierByKey("Forbearance")
         host.readableForbearanceFrame = createReadableExactFrame(

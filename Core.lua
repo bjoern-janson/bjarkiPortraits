@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.153-priority-consolidation-test"
+R.VERSION = "0.1.154-priority-scope-correction-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }

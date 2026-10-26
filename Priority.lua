@@ -79,15 +79,15 @@ R.TIERS = {
     exact("Consecration", "HARMFUL", 189, false, C.debuffs_consecration, true),
     exact("DoTs", "HARMFUL", 190, false, C.debuffs_dots),
 
-    -- In the user's former priority layout, ordinary root/slow effects were
-    -- below offensive/defensive cooldowns, not above those cooldowns.
-    exact("Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 205, false,
+    -- Preserve the pre-overhaul slow priority; no change was requested.
+    exact("Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 278, false,
         union("slows", "slows_chilled"), true),
-    exact("Dazed", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 206, false, C.slows_dazed, true),
+    exact("Dazed", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 279, false, C.slows_dazed, true),
     exact("Seal", "HELPFUL", 210, true, union("buffs_seals", "buffs_improved_stormstrike")),
-    -- Only applied root effects here: Nature's Grasp *self buff* remains in
-    -- Utility; the distinct roots it procs are actual harmful root auras.
-    exact("Roots", "HARMFUL", 218, false, C.roots),
+    -- Restore Roots to their pre-overhaul priority of 300; the user did not
+    -- request a change to their relation with offensive/defensive cooldowns.
+    -- Nature's Grasp's self-buff stays Utility; only its proc roots are Roots.
+    exact("Roots", "HARMFUL", 300, false, C.roots),
 
     -- Utility was overpromoted above offensive and defensive cooldowns. The
     -- Blink aura IDs now belong to RootImmunity, if the client exposes them.
@@ -148,8 +148,10 @@ R.TIERS = {
     exact("Stun", "HARMFUL", 320, false, C.stuns, true),
     exact("HelpfulSelfStun", "HELPFUL", 320, true, C.buffs_self_stun, true),
     exact("ImmunityHarmful", "HARMFUL", 330, false, C.immunities_harmful, true),
-    -- Divine Protection and Will of the Forsaken are immunities. Reflection
-    -- Field is Thorns-like counterattack and has moved out of this lane.
+    -- Reserve this lane for actual immunity auras. Divine Protection belongs
+    -- here per the requested consolidation. Will of the Forsaken has no
+    -- observed Forever buff and must not be invented as a portrait aura.
+    -- Reflection Field remains a reactive Thorns-tier effect.
     exact("Immunity", "HELPFUL", 330, true,
         union("immunities", "buffs_divine_protection"), true),
     exact("WaitingToResurrect", "HELPFUL", 332, true,
