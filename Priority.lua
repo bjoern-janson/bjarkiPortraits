@@ -11,9 +11,12 @@ local function union(...)
     return result
 end
 
-local function unionExcept(excludeCategory, ...)
+local function unionExcept(excludeCategories, ...)
     local result = union(...)
-    for spellID in pairs(C[excludeCategory] or {}) do result[spellID] = nil end
+    if type(excludeCategories) == "string" then excludeCategories = { excludeCategories } end
+    for _, category in ipairs(excludeCategories) do
+        for spellID in pairs(C[category] or {}) do result[spellID] = nil end
+    end
     return result
 end
 
@@ -34,178 +37,121 @@ end
 -- uses AuraInstanceID; BaselineClass, Healing and StatusEffects can replace their native owner
 -- only with a complete readable application-time election.
 R.TIERS = {
-    -- Three lowest exact lanes above the race-portrait foundation. Keep these
-    -- distinct so simultaneous auras have deterministic priority:
-    -- 1 Gathering < 2 informational debuffs < 3 tracking/sensing.
+    -- Lowest informational lanes immediately above the race-portrait baseline.
     exact("Gathering", "HELPFUL", 1, true, C.buffs_gathering),
-    exact("InformationalDebuffs", "HARMFUL", 2, false,
-        union("debuffs_noncombat", "debuffs_boosted_rest"), true),
     exact("Tracking", "HELPFUL", 3, true, C.buffs_tracking),
-    -- Existing ambient lanes shift just enough to stay ABOVE all three.
-    -- Their relative order, and all combat-oriented levels, stay unchanged.
+    -- Informational harmful effects share the actual nearby-world level.
     exact("CampfireNearby", "HELPFUL", 4, true, C.buffs_campfire_nearby),
-    exact("CampfireNearbyHarmful", "HARMFUL", 4, false, C.debuffs_campfire_nearby, true),
+    exact("CampfireNearbyHarmful", "HARMFUL", 4, false,
+        union("debuffs_campfire_nearby", "debuffs_noncombat", "debuffs_boosted_rest"), true),
+    -- Opposite-faction helpful fallback is deliberately low; do not infer a
+    -- category from a restricted, arbitrary timed aura.
+    semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 5, { maxDuration = math.huge }),
+
     exact("PassiveSpeed", "HELPFUL", 9, true, C.buffs_passive_speed, true),
-    exact("Plainsrunning", "HELPFUL", 10, true, union("buffs_plainsrunning", "buffs_elemental_blessing"), true),
-    -- Profession-only and cosmetic effects are still exclusion-only.
+    exact("Plainsrunning", "HELPFUL", 10, true,
+        union("buffs_plainsrunning", "buffs_elemental_blessing", "buffs_righteous_fury"), true),
     exact("TravelUtility", "HELPFUL", 50, true, C.buffs_travel_utility),
-    -- Persistent item/queue status stays below passive class and totem buffs.
     exact("PassiveDebuff", "HARMFUL", 59, false, C.debuffs_passive, true),
-    exact("RighteousFury", "HELPFUL", 59, true, C.buffs_righteous_fury),
     exact("PaladinAura", "HELPFUL", 60, true,
         union("buffs_paladin_auras", "buffs_warlock_armor", "buffs_minor_world")),
     exact("BloodPact", "HELPFUL", 70, true,
         union("buffs_blood_pact", "buffs_furious_howl", "buffs_minor_class")),
     exact("Scrolls", "HELPFUL", 80, true, C.buffs_scrolls),
     exact("Elixirs", "HELPFUL", 81, true, C.buffs_elixirs, true),
+    semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 85),
     exact("BaselineClass", "HELPFUL", 90, true,
         union("buffs_class_baseline", "buffs_camp_benefits")),
     exact("BaselineClassHarmful", "HARMFUL", 90, false, C.debuffs_class_baseline, true),
     exact("WellFed", "HELPFUL", 110, true, C.buffs_well_fed),
     exact("Thorns", "HELPFUL", 120, true, C.buffs_thorns),
-    exact("ElementalShield", "HELPFUL", 130, true, C.buffs_lightning_shield),
-    exact("SelfState", "HELPFUL", 150, true, union("buffs_other", "buffs_frost_armor")),
-    -- Carried objectives outrank forms and Inner Fire, below active Utility.
-    exact("BattlegroundFlag", "HELPFUL", 151, true, C.buffs_battleground_flag, true),
-    -- Combat-safe hostile-NPC fallback for Frost Armor when spell identity is
-    -- sealed. 12544 is a 30-minute Magic buff and is spellstealable from NPCs.
-    -- This lane is enabled only for hostile NPCs when the readable exact path
-    -- has disappeared, so it cannot broaden ordinary readable behavior.
-    semantic("FrostArmorSignature", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 150, {
-        includeDispelTypes = { Magic = true },
-        maxDuration = 1800.1,
-        isFromPlayerOrPlayerPet = false,
-    }),
 
-    -- Opposite-faction exact helpful identity filters are relation-restricted in
-    -- Forever. This broad secure lane is only a visibility fallback when hostile
-    -- aura identities are not readable to Lua. Keep it BELOW every gameplay
-    -- aura while ABOVE the three intentionally low informational exact lanes.
-    -- Exclusion-only spell-ID filters are ignored when hostile helpful identity
-    -- filtering is not permitted. A native duration filter is still applied:
-    -- maxDuration rejects permanent auras (duration == 0). Infinity imposes no
-    -- arbitrary cap on timed effects, but intentionally drops unknown permanent
-    -- buffs such as Find Minerals from this unclassified fallback. Classified
-    -- permanent buffs still use exact/public or readable paths.
-    semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 5, { maxDuration = math.huge }),
-
+    -- Ordinary forms, armor, Shaman shields and other persistent self states
+    -- share one helpful lane. No Frost Armor signature guess is required.
+    exact("SelfState", "HELPFUL", 150, true,
+        union("buffs_other", "buffs_frost_armor", "buffs_lightning_shield")),
     exact("Mobility", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 160, true,
         union("buffs_ghostwolf", "buffs_ghostwolf_variants", "buffs_cheetah", "buffs_mobility"), true),
     exact("LoneWolf", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 170, true, C.buffs_lone_wolf, true),
-    exact("HuntersMark", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 180, false, C.debuffs_hunters_mark),
-
-    -- Friendly/self units on ALL five portrait hosts can lose exact harmful
-    -- identity filtering while their native class forms remain visible.
-    -- Rank this UNCLASSIFIED native harmful stream above persistent forms but
-    -- below identified Hunter's Mark, DoTs and every higher harmful tier.
-    -- It does not identify Moonfire or justify assigning DoT/CC priority.
-    -- The old key is retained for diagnostic compatibility on all five hosts.
     semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 175),
-
+    exact("HuntersMark", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 180, false, C.debuffs_hunters_mark),
     exact("Demoralizing", "HARMFUL", 185, false, C.debuffs_demoralizing, true),
     exact("Consecration", "HARMFUL", 189, false, C.debuffs_consecration, true),
     exact("DoTs", "HARMFUL", 190, false, C.debuffs_dots),
-    exact("Seal", "HELPFUL", 210, true, union("buffs_seals", "buffs_improved_stormstrike")),
-    -- Schedule public per-aura exceptions on self/friendly units as well;
-    -- Blizzard still rejects each identity that is not permitted for the unit.
-    -- Confirmed movement slows beat damage/healing/attack penalties, but
-    -- remain below Offensive and all root/control/immunity bands.
-    exact("Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 278, false,
+
+    -- In the user's former priority layout, ordinary root/slow effects were
+    -- below offensive/defensive cooldowns, not above those cooldowns.
+    exact("Slows", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 205, false,
         union("slows", "slows_chilled"), true),
-    -- Dazed wins within the slow band, below Offensive and roots/control.
-    -- Use adjacent integer levels so native and readable frame layers agree.
-    exact("Dazed", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 279, false, C.slows_dazed, true),
-    -- 12544 Frost Armor procs spell 6136 Chilled. In combat its identity is
-    -- secret, but its safe metadata remains distinctive: harmful Magic,
-    -- <=5 seconds, nameplate-personal, and not cast by the player/pet.
-    -- Keep the approximation below exact Slows when both native containers
-    -- are eligible; an absent public member must not hide this fallback.
-    semantic("ChilledSignature", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 219, {
-        includeDispelTypes = { Magic = true },
-        maxDuration = 5.1,
-        nameplateShowPersonal = true,
-        isFromPlayerOrPlayerPet = false,
-    }),
-    exact("WeakenedSoul", "HARMFUL", 230, false, C.debuffs_weakenedsoul),
-    exact("RecentlyBandaged", "HARMFUL", 229, false, C.debuffs_recently_bandaged, true),
-    semantic("WeakenedSoulFallback", "HARMFUL", 228, {
-        maxDuration = 15.1,
-        excludeSpellIDs = C.debuffs_dots,
-        excludeDispelTypes = { Magic = true, Curse = true, Disease = true, Poison = true, Bleed = true },
-    }),
+    exact("Dazed", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 206, false, C.slows_dazed, true),
+    exact("Seal", "HELPFUL", 210, true, union("buffs_seals", "buffs_improved_stormstrike")),
+    -- Only applied root effects here: Nature's Grasp *self buff* remains in
+    -- Utility; the distinct roots it procs are actual harmful root auras.
+    exact("Roots", "HARMFUL", 218, false, C.roots),
+
+    -- Utility was overpromoted above offensive and defensive cooldowns. The
+    -- Blink aura IDs now belong to RootImmunity, if the client exposes them.
+    exact("Utility", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 225, true, C.buffs_utility),
+    -- One exact harmful priority for Weakened Soul, Recently Bandaged and
+    -- Wandering Plague. Retire the uncertain 15-second shape-based fallback.
+    exact("Wounds", "HARMFUL", 230, false,
+        union("debuffs_weakenedsoul", "debuffs_recently_bandaged"), true),
     semantic("PriorityDebuff", "HARMFUL", 238, { isPriorityAura = true }),
     exact("Forbearance", "HARMFUL", 240, false, C.debuffs_priority, true),
-    -- Reserve a distinct secure/readable lane for actual Resurrection Sickness
-    -- above ordinary StatusEffects, just like Dazed is the top movement slow.
-    -- The two-slot gaps keep *partial* direct witnesses correctly ordered:
-    -- Healing native 252 < partial Status 253 < native Status 254
-    -- < partial ResSickness 255 < native ResSickness 256 < PW:S native 257.
-    -- No fractional frame levels, arbitrary last-applied exceptions, or
-    -- promotion of Silithid Pox to Resurrection Sickness priority.
+
     exact("Healing", "HELPFUL", 251, true, union("buffs_shield", "buffs_hots")),
-    -- Faerie Fire, curses, Pox and combat penalties share the existing
-    -- application-time election. Only Pox is a bounded direct-witness member;
-    -- never sweep all StatusEffects with direct spell lookups.
     exact("StatusEffects", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 253, false,
-        union("debuffs_other", "debuffs_taunts", "debuffs_casting_penalty", "debuffs_attack_penalty",
-            "debuffs_healing_reduction", "debuffs_environmental_danger", "debuffs_res_sickness"),
+        union("debuffs_other", "debuffs_taunts", "debuffs_casting_penalty",
+            "debuffs_attack_penalty", "debuffs_healing_reduction",
+            "debuffs_environmental_danger", "debuffs_res_sickness"),
         true, C.debuffs_res_sickness),
     exact("ResurrectionSickness", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 255, false,
         C.debuffs_resurrection_sickness, true, C.debuffs_resurrection_sickness),
+    -- Ice Barrier and Power Word: Shield are now in the same absorb lane.
     exact("PowerWordShield", "HELPFUL", 256, true, C.buffs_power_word_shield),
-    -- PvP Honorless status outranks routine healing-over-time auras such as Renew.
-    exact("HonorlessTarget", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 257, true, C.buffs_honorless_target, true),
-    -- Recovery/consumable channel category remains above routine harmful DoTs;
-    -- hostile readable election uses this same category level in battlegrounds.
-    -- Small ambient recovery sits at the bottom of the regeneration band.
+    -- Campfire and the Darkspear flag share this informational status band.
+    exact("HonorlessTarget", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 257, true,
+        union("buffs_honorless_target", "buffs_battleground_flag",
+            "buffs_welcoming_campfire"), true),
     exact("MinorRegen", "HELPFUL", 259, true, C.buffs_minor_regen),
     exact("FoodDrink", "HELPFUL", 260, true, C.buffs_fooddrink),
-    -- Innervate, Druid Enrage, Warrior Bloodrage, and resource-recovery states intentionally share one
-    -- actual priority surface so equal-priority recency is arbitrated inside
-    -- one lane.
     exact("Innervate", "HELPFUL", 261, true,
         union("buffs_innervate", "buffs_druid_enrage", "buffs_bloodrage")),
-    -- One actual Utility lane. Welcoming Campfire shares this secure slot so
-    -- equal-priority effects cannot stack independent cooldown widgets.
-    exact("Utility", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 270, true,
-        union("buffs_utility", "buffs_welcoming_campfire")),
-    -- IMPORTANT is a broad client flag, not a PvP priority class. It is the
-    -- fallback for otherwise unclassified important buffs; explicit categories
-    -- and dedicated Big/External defensive lanes outrank it.
-    semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 85),
+
+    -- Helpful and harmful cannot share one Blizzard AuraContainer filter, but
+    -- identical levels make them a *single* offensive priority category.
     exact("Offensive", "HELPFUL", 280, true, C.buffs_offensive),
-    -- Death Wish and Arcane Blast stacks are harmful offensive states. One level above helpful offense
-    -- gives simultaneous cooldowns a deterministic order within this band.
-    exact("OffensiveHarmful", "HARMFUL", 281, false, C.debuffs_offensive, true),
+    exact("OffensiveHarmful", "HARMFUL", 280, false, C.debuffs_offensive, true),
     semantic("ExternalDef", "HELPFUL|EXTERNAL_DEFENSIVE", 288),
     semantic("BigDef", "HELPFUL|BIG_DEFENSIVE", 289),
-    exact("Defensive", "HELPFUL", 290, true, C.buffs_defensive),
-    -- Defensive racials are one PvP category: let Stoneform and Will of the
-    -- Forsaken outrank offensive cooldowns, including when their IDs are safe
-    -- for secure hostile filtering.
-    exact("RacialDefensive", "HELPFUL", 291, true, C.buffs_racial_defensive, true),
-    exact("Roots", "HARMFUL", 300, false, C.roots),
-    -- Movement/casting immunity and spell redirection share one protection lane.
-    exact("RootImmunity", "HELPFUL", 305, true,
-        union("immunities_root", "immunities_interrupt", "buffs_grounding"), true),
+    exact("Defensive", "HELPFUL", 290, true,
+        union("buffs_defensive", "buffs_racial_defensive")),
+
+    exact("RootImmunity", "HELPFUL", 305, true, C.immunities_root, true),
+    -- Casting lockouts are not always duration-bearing auras. Exact positive
+    -- applied silence IDs share this lane with the reviewed interrupt IDs;
+    -- neither a cast alone nor a school-lock inference creates a portrait aura.
+    exact("InterruptSilence", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 306, false,
+        union("interrupts", "silences"), true),
     semantic("CrowdControl", "HARMFUL|CROWD_CONTROL", 309),
-    -- Harmful stuns are conceptually CC, but exact lanes must be disjoint:
-    -- the dedicated 320 Stun lane owns every harmful stun ID.
-    exact("Control", "HARMFUL", 310, false, unionExcept("stuns", "interrupts", "cc")),
+    exact("Control", "HARMFUL", 310, false,
+        unionExcept({"stuns", "interrupts", "silences"}, "cc")),
+    -- Free Action is grouped here for display priority: it prevents stun,
+    -- snare and root mechanics, not physical damage itself.
     exact("PhysicalImmunity", "HELPFUL", 315, true, C.immunities_physical, true),
-    exact("Stun", "HARMFUL", 320, false, C.stuns),
-    -- Cocoon's self-stun is currently HELPFUL in the client spell data.
+    -- Grounding redirects one hostile spell. Voice of Truth prevents Silence
+    -- and Interrupt; neither is a root immunity.
+    exact("SpellImmunity", "HELPFUL", 316, true,
+        union("immunities_interrupt", "buffs_grounding"), true),
+    -- All verified applied stun auras belong here, including Charge Stun,
+    -- Intercept Stun, Cheap Shot and Pounce's short stun (not its long bleed).
+    exact("Stun", "HARMFUL", 320, false, C.stuns, true),
     exact("HelpfulSelfStun", "HELPFUL", 320, true, C.buffs_self_stun, true),
     exact("ImmunityHarmful", "HARMFUL", 330, false, C.immunities_harmful, true),
-    -- Opt in to the same per-aura NeverSecret exceptions as DivineProtection.
-    -- This does not authorize Lua to identify a private hostile immunity.
-    exact("Immunity", "HELPFUL", 330, true, C.immunities, true),
-    -- Keep Divine Protection independently eligible for safe hostile exact
-    -- identity, above Forbearance and the ordinary Immunity lane.
-    exact("DivineProtection", "HELPFUL", 331, true, C.buffs_divine_protection, true),
-    -- Secure buttons use tier + 1; Ghost's state witness uses Immunity + 2.
-    -- Level 332 makes resurrection waiting and the dead-only speed aura
-    -- visibly outrank Ghost without inferring either aura from death state.
+    -- Divine Protection and Will of the Forsaken are immunities. Reflection
+    -- Field is Thorns-like counterattack and has moved out of this lane.
+    exact("Immunity", "HELPFUL", 330, true,
+        union("immunities", "buffs_divine_protection"), true),
     exact("WaitingToResurrect", "HELPFUL", 332, true,
         union("buffs_waiting_to_resurrect", "buffs_ghost_speed"), true),
 }

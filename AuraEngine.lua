@@ -362,8 +362,8 @@ local function getReadablePlayerAuraBySpellID(spellID)
     return aura, true, true
 end
 
-local function scanReadableUtilityWinner(unit)
-    local tier = findTierByKey("Utility")
+local function scanReadableHonorlessWinner(unit)
+    local tier = findTierByKey("HonorlessTarget")
     local meta = {
         welcomingDirect = false,
         welcomingDirectFound = false,
@@ -419,7 +419,7 @@ local function scanReadableUtilityWinner(unit)
         return true
     end
 
-    -- First enumerate the full readable Utility candidate set. The secure lane
+    -- Elect over the full readable Honorless/Campfire/Flag candidate set. The secure lane
     -- uses AuraInstanceIDOnly/Reverse, so readable arbitration must use the same
     -- ordering before it is allowed to suppress that secure owner.
     for index = 1, AURA_SCAN_LIMIT do
@@ -445,7 +445,7 @@ local function scanReadableUtilityWinner(unit)
 
     -- Forever has exposed Welcoming Campfire through a direct player lookup on
     -- builds where the indexed stream was inconsistent. A positive direct
-    -- witness joins the SAME Utility election instead of short-circuiting it.
+    -- witness joins the SAME HonorlessTarget election instead of short-circuiting it.
     if unit == "player" then
         for _, spellID in ipairs(WELCOMING_CAMPFIRE_DIRECT_IDS) do
             local aura, readable, directAvailable = getReadablePlayerAuraBySpellID(spellID)
@@ -870,7 +870,13 @@ local function updateReadableHarmfulTier(host, baseEnabled, tierKey, frameKey, p
     -- Only a complete, ordered election can replace native selection. A tier's
     -- explicit small direct-witness subset can preserve a known positive effect
     -- on an incomplete read, below the native slot and without disabling it.
-    if not tier.directWitnessSpellIDs and not usesApplicationTime(tier)
+    -- Applied stuns and silences are the two control categories whose
+    -- native exact-ID filters have been observed to miss expected effects.
+    -- A complete readable election may replace their native owner even when
+    -- relation-based native filtering was nominally permitted. An incomplete
+    -- scan leaves the native frame authoritative and makes no inference.
+    local controlWitness = tierKey == "Stun" or tierKey == "InterruptSilence"
+    if not controlWitness and not tier.directWitnessSpellIDs and not usesApplicationTime(tier)
         and R.ExactFilterAllowed(host.unit, false, tier.spellIDs, tier.allowNeverSecret) then
         clearReadableHarmfulTier(host, frameKey, prefix)
         return
@@ -957,7 +963,8 @@ local function updateReadableHostile(host, baseEnabled)
 end
 
 local function updateReadableDivineProtection(host, baseEnabled, hostileUnit, secureAllowed)
-    local tier = findTierByKey("DivineProtection")
+    -- Same immunity tier, without a separate Divine Protection priority.
+    local tier = findTierByKey("Immunity")
     host._divineProtectionSecureAllowed = secureAllowed and true or false
     host._divineProtectionReadable = false
     host._divineProtectionActive = false
@@ -965,27 +972,31 @@ local function updateReadableDivineProtection(host, baseEnabled, hostileUnit, se
 
     local frame = host.readableDivineProtectionFrame
     if not frame or not baseEnabled or R.testMode or not hostileUnit or secureAllowed or not tier
-        or host._readableTierOwners.DivineProtection
+        or host._readableTierOwners.Immunity
         or R.NativeExactContainerAllowed(host.unit, tier)
     then
         if frame then hideReadableExact(frame) end
         return
     end
 
-    -- Retain a directly readable exact witness only where a native owner cannot
-    -- run and the general hostile presenter did not already claim this tier.
-    local aura, spellID, readable = scanReadableExactAuraSet(
-        host.unit, "HELPFUL", tier.spellIDs
+    -- A positive lookup is not a complete election. Do not display Divine
+    -- Protection above a different immunity aura whose native identity is
+    -- unavailable: read all candidates and elect the actual latest member.
+    local best, complete, readable = scanLatestReadableExactTierAura(
+        host.unit, "Immunity", "HELPFUL"
     )
-    host._divineProtectionReadable = readable
+    local spellID = best and best.spellID or nil
+    host._divineProtectionReadable = complete and readable
     host._divineProtectionSpellID = spellID
-    if not aura then
+    if not complete or not readable or not best
+        or not (BP.categories and BP.categories.buffs_divine_protection
+            and BP.categories.buffs_divine_protection[spellID]) then
         hideReadableExact(frame)
         return
     end
 
-    host._divineProtectionActive = showReadableTier(host, "readableDivineProtectionFrame",
-        { aura = aura, spellID = spellID, tier = tier }, false)
+    host._divineProtectionActive = showReadableTier(host,
+        "readableDivineProtectionFrame", best, false)
 end
 
 local function clearReadableRecency(host, frameKey, prefix)
@@ -1039,8 +1050,8 @@ local function clearReadableWelcomingCampfire(host)
     local frame = host and host.readableWelcomingCampfireFrame
     if frame then hideReadableExact(frame) end
     if host then
-        host._utilityReadable = false
-        host._utilityWinnerSpellID = nil
+        host._honorlessReadable = false
+        host._honorlessWinnerSpellID = nil
         host._welcomingCampfireReadable = false
         host._welcomingCampfireActive = false
         host._welcomingCampfireDirect = false
@@ -1052,14 +1063,14 @@ local function clearReadableWelcomingCampfire(host)
 end
 
 local function updateReadableWelcomingCampfire(host, baseEnabled)
-    if not host or not baseEnabled or R.testMode or host._readableTierOwners.Utility then
+    if not host or not baseEnabled or R.testMode or host._readableTierOwners.HonorlessTarget then
         clearReadableWelcomingCampfire(host)
         return
     end
 
-    local best, readable, meta = scanReadableUtilityWinner(host.unit)
-    host._utilityReadable = readable
-    host._utilityWinnerSpellID = best and best.spellID or nil
+    local best, readable, meta = scanReadableHonorlessWinner(host.unit)
+    host._honorlessReadable = readable
+    host._honorlessWinnerSpellID = best and best.spellID or nil
     host._welcomingCampfireReadable = meta and meta.welcomingReadable or false
     host._welcomingCampfireDirect = meta and meta.welcomingDirect or false
     host._welcomingCampfireDirectFound = meta and meta.welcomingDirectFound or false
@@ -1068,10 +1079,9 @@ local function updateReadableWelcomingCampfire(host, baseEnabled)
     host._welcomingCampfireTimingSource = meta and meta.welcomingTimingSource or nil
     host._welcomingCampfireActive = false
 
-    -- This readable frame may suppress the merged secure Utility slot only
-    -- when the complete readable election proves Campfire is that slot's actual
-    -- AuraInstanceID winner. If another Utility buff is newer, leave secure
-    -- Utility authoritative.
+    -- The helper may suppress native HonorlessTarget only when complete
+    -- readable recency establishes Campfire as this shared lane's true
+    -- winner. A newer Honorless/flag aura keeps its native ownership.
     if not readable or not best or not isWelcomingCampfireSpellID(best.spellID) then
         hideReadableExact(host.readableWelcomingCampfireFrame)
         return
@@ -1225,9 +1235,11 @@ function R.DestroyHost(unit)
     if host.readableResurrectionSicknessFrame then hideReadableExact(host.readableResurrectionSicknessFrame) end
     if host.readableDemoralizingFrame then hideReadableExact(host.readableDemoralizingFrame) end
     if host.readableBaselineHarmfulFrame then hideReadableExact(host.readableBaselineHarmfulFrame) end
-    if host.readableCampfireHarmfulFrame then hideReadableExact(host.readableCampfireHarmfulFrame) end
+    if host.readableNearbyHarmfulFrame then hideReadableExact(host.readableNearbyHarmfulFrame) end
+    if host.readableStunFrame then hideReadableExact(host.readableStunFrame) end
+    if host.readableInterruptSilenceFrame then hideReadableExact(host.readableInterruptSilenceFrame) end
+    if host.readableWoundsFrame then hideReadableExact(host.readableWoundsFrame) end
     if host.readableOffensiveHarmfulFrame then hideReadableExact(host.readableOffensiveHarmfulFrame) end
-    if host.readableRecentlyBandagedFrame then host.readableRecentlyBandagedFrame:Hide() end
     if host.readableGhostFrame then host.readableGhostFrame:Hide() end
     if host.readableFormStateFrame then host.readableFormStateFrame:Hide() end
     if host.readableWelcomingCampfireFrame then host.readableWelcomingCampfireFrame:Hide() end
@@ -1351,20 +1363,23 @@ local function buildHost(unit, host)
         host, healingTier and healingTier.level or 251
     )
 
-    local utilityTier = findTierByKey("Utility")
+    local honorlessTier = findTierByKey("HonorlessTarget")
     host.readableWelcomingCampfireFrame = createReadableExactFrame(
-        host, utilityTier and utilityTier.level or 270
+        host, honorlessTier and honorlessTier.level or 257
     )
 
-    -- Self/friendly harmful identity filters can be restricted even when the
-    -- underlying informational aura is readable by index. Reuse the existing
-    -- complete-election harmful helper for both low-priority debuffs.
-    -- One helper per host owns the combined informational tier, never two
-    -- competing overlays with ambiguous same-tier recency.
-    local infoTier = findTierByKey("InformationalDebuffs")
-    host.readableInformationalDebuffFrame = createReadableExactFrame(
-        host, infoTier and infoTier.level or 2
-    )
+    -- Control/status IDs may be restricted from secure exact filtering even
+    -- when the complete indexed harmful aura set is readable. Separate
+    -- evidence-gated visual helpers never infer an unobserved cast or silence.
+    for _, spec in ipairs({
+        { "CampfireNearbyHarmful", "readableNearbyHarmfulFrame", 4 },
+        { "Stun", "readableStunFrame", 320 },
+        { "InterruptSilence", "readableInterruptSilenceFrame", 306 },
+        { "Wounds", "readableWoundsFrame", 230 },
+    }) do
+        local tier = findTierByKey(spec[1])
+        host[spec[2]] = createReadableExactFrame(host, tier and tier.level or spec[3])
+    end
 
     -- Same-tier status recency applies on all five portrait hosts. These use
     -- the existing portrait placement helper; no native frame geometry changes.
@@ -1389,7 +1404,7 @@ local function buildHost(unit, host)
         host, (selfStateTier and selfStateTier.level or 150) - 1
     )
     local dazedTier = findTierByKey("Dazed")
-    host.readableDazedFrame = createReadableExactFrame(host, dazedTier and dazedTier.level or 279)
+    host.readableDazedFrame = createReadableExactFrame(host, dazedTier and dazedTier.level or 206)
 
     -- Other large-frame-only helpers retain their existing scope. Pox
     -- remains inside StatusEffects, while actual Resurrection Sickness has an
@@ -1400,14 +1415,13 @@ local function buildHost(unit, host)
         for _, spec in ipairs({
             { "Demoralizing", "readableDemoralizingFrame" },
             { "BaselineClassHarmful", "readableBaselineHarmfulFrame" },
-            { "CampfireNearbyHarmful", "readableCampfireHarmfulFrame" },
         }) do
             local tier = findTierByKey(spec[1])
             if tier then host[spec[2]] = createReadableExactFrame(host, tier.level) end
         end
 
         local slowsTier = findTierByKey("Slows")
-        host.readableSlowsFrame = createReadableExactFrame(host, slowsTier and slowsTier.level or 278)
+        host.readableSlowsFrame = createReadableExactFrame(host, slowsTier and slowsTier.level or 205)
 
         local forbearanceTier = findTierByKey("Forbearance")
         host.readableForbearanceFrame = createReadableExactFrame(
@@ -1416,17 +1430,12 @@ local function buildHost(unit, host)
 
         local offensiveHarmfulTier = findTierByKey("OffensiveHarmful")
         host.readableOffensiveHarmfulFrame = createReadableExactFrame(
-            host, offensiveHarmfulTier and offensiveHarmfulTier.level or 281
+            host, offensiveHarmfulTier and offensiveHarmfulTier.level or 280
         )
 
         local waitingTier = findTierByKey("WaitingToResurrect")
         host.readableWaitingToResurrectFrame = createReadableExactFrame(
             host, waitingTier and waitingTier.level or 332
-        )
-
-        local recentlyBandagedTier = findTierByKey("RecentlyBandaged")
-        host.readableRecentlyBandagedFrame = createReadableExactFrame(
-            host, recentlyBandagedTier and recentlyBandagedTier.level or 229
         )
 
         local immunityTier = findTierByKey("Immunity")
@@ -1441,9 +1450,9 @@ local function buildHost(unit, host)
             )
         end
 
-        local divineProtectionTier = findTierByKey("DivineProtection")
+        local immunityTier = findTierByKey("Immunity")
         host.readableDivineProtectionFrame = createReadableExactFrame(
-            host, divineProtectionTier and divineProtectionTier.level or 331
+            host, immunityTier and immunityTier.level or 330
         )
     end
 
@@ -1563,7 +1572,7 @@ function R.UpdateHost(host, forceContainerRefresh)
     end
     updateObservedDruidForm(host, base, hostilePlayer, hostileReadable)
 
-    local divineProtectionTier = findTierByKey("DivineProtection")
+    local divineProtectionTier = findTierByKey("Immunity")
     local divineProtectionSecureAllowed = divineProtectionTier and R.ExactFilterAllowed(
         host.unit, true, divineProtectionTier.spellIDs, divineProtectionTier.allowNeverSecret
     ) or false
@@ -1571,14 +1580,19 @@ function R.UpdateHost(host, forceContainerRefresh)
         host, base, hostileUnit, divineProtectionSecureAllowed
     )
 
-    -- These friendly/self harmful lanes can be relation-restricted. Use only
-    -- complete, directly readable same-tier elections; partial/secret lists
-    -- cannot replace a permitted native owner or invent an aura's identity.
-    updateReadableHarmfulTier(host, base, "InformationalDebuffs",
-        "readableInformationalDebuffFrame", "_informationalDebuff")
+    -- Native stun/silence filters can be relation-restricted. Use only a
+    -- complete, directly readable exact-ID election; silence/interrupt casts
+    -- without an applied aura never become a positive portrait witness.
+    updateReadableHarmfulTier(host, base, "CampfireNearbyHarmful",
+        "readableNearbyHarmfulFrame", "_nearbyHarmful")
+    updateReadableHarmfulTier(host, base, "Stun",
+        "readableStunFrame", "_stun")
+    updateReadableHarmfulTier(host, base, "InterruptSilence",
+        "readableInterruptSilenceFrame", "_interruptSilence")
+    updateReadableHarmfulTier(host, base, "Wounds",
+        "readableWoundsFrame", "_wounds")
     updateReadableHarmfulTier(host, base, "Demoralizing", "readableDemoralizingFrame", "_demoralizing")
     updateReadableHarmfulTier(host, base, "BaselineClassHarmful", "readableBaselineHarmfulFrame", "_baselineHarmful")
-    updateReadableHarmfulTier(host, base, "CampfireNearbyHarmful", "readableCampfireHarmfulFrame", "_campfireHarmful")
     updateReadableHarmfulTier(host, base, "DoTs", "readableDoTsFrame", "_dots")
     updateReadableHarmfulTier(host, base, "Dazed", "readableDazedFrame", "_dazed")
     updateReadableHarmfulTier(host, base, "Slows", "readableSlowsFrame", "_slows")
@@ -1619,10 +1633,6 @@ function R.UpdateHost(host, forceContainerRefresh)
         hideReadableExact(host.readableWaitingToResurrectFrame)
     end
 
-    -- RecentlyBandaged now includes Wandering Plague. Elect over the entire
-    -- readable band instead of a singleton 11196 lookup that cannot see it.
-    updateReadableHarmfulTier(host, base, "RecentlyBandaged", "readableRecentlyBandagedFrame", "_recentlyBandaged")
-
     -- Ghost is a state-derived Immunity-tier witness. This is required on
     -- self/friendly units where exact harmful aura identity may be unavailable.
     updateGhostState(host, base)
@@ -1631,19 +1641,10 @@ function R.UpdateHost(host, forceContainerRefresh)
     updateReadableRecency(host, base, "BaselineClass", "readableBaselineFrame", "_baseline")
     updateReadableRecency(host, base, "Healing", "readableHealingFrame", "_healing")
 
-    -- Welcoming Campfire is a Utility-tier state at 270. Its separate readable
-    -- witness exists only for Forever visibility and stays on the same visual
-    -- priority surface as ordinary Utility buffs.
+    -- Welcoming Campfire shares the 257 Honorless/Flag tier; a complete
+    -- readable election determines its winner rather than guessing priority.
     updateReadableWelcomingCampfire(host, base)
 
-    local slowsTier = findTierByKey("Slows")
-    local slowsSecureAllowed = slowsTier and R.ExactFilterAllowed(
-        host.unit, false, slowsTier.spellIDs, slowsTier.allowNeverSecret
-    ) or false
-    local weakenedSoulTier = findTierByKey("WeakenedSoul")
-    local weakenedSoulSecureAllowed = weakenedSoulTier and R.ExactFilterAllowed(
-        host.unit, false, weakenedSoulTier.spellIDs, weakenedSoulTier.allowNeverSecret
-    ) or false
     local exactHarmfulAllowed = R.ExactFilterAllowed(host.unit, false, nil, false)
     host._exactHarmfulAllowed = exactHarmfulAllowed
     host._smallHarmfulEnabled = false
@@ -1652,16 +1653,7 @@ function R.UpdateHost(host, forceContainerRefresh)
     for index, tier in ipairs(R.TIERS or {}) do
         local enabled = base
 
-        if tier.key == "FrostArmorSignature" then
-            -- Use the semantic Frost Armor equivalence class only for a hostile
-            -- unit that is positively established as non-player. UNKNOWN player
-            -- identity is not permission to classify the unit as an NPC.
-            enabled = enabled
-                and hostileUnit
-                and playerReadable
-                and not isPlayer
-                and not hostileReadable
-        elseif tier.key == "HostileHelpful" then
+        if tier.key == "HostileHelpful" then
             -- Exact readable identities win when available. If Forever seals
             -- them, fall back to Blizzard's broad secure HELPFUL stream, but
             -- for any positively established hostile unit, including totems.
@@ -1680,14 +1672,6 @@ function R.UpdateHost(host, forceContainerRefresh)
                 enabled = false
             end
             host._smallHarmfulEnabled = enabled and true or false
-        elseif tier.key == "ChilledSignature" then
-            -- Chilled's semantic signature is the last resort: exact secure
-            -- identity first, then the readable exact Slows witness, then shape.
-            enabled = enabled and not slowsSecureAllowed and not host._slowsActive
-        elseif tier.key == "WeakenedSoulFallback" then
-            -- Do not run the broad short-harmful approximation where exact
-            -- Weakened Soul identity filtering is already legal.
-            enabled = enabled and not weakenedSoulSecureAllowed
         elseif tier.exact then
             local owner = host._readableTierOwners[tier.key]
             if (owner and owner.complete) or (tier.key == "ImmunityHarmful" and host._ghostActive) then

@@ -8,7 +8,7 @@ PT.categories = {
         [1278162] = true, -- Ghost (Forever model variant; no native aura icon)
     },
     immunities = {
-        [1303458] = true, -- Reflection Field (applied allied spell-reflection aura)
+        [7744] = true, -- Will of the Forsaken (brief Charm/Fear/Sleep immunity)
         [3169] = true,
         [16621] = true,
         [425876] = true,
@@ -22,11 +22,13 @@ PT.categories = {
         [1022] = true, -- Blessing of Protection Rank 1
         [5599] = true, -- Blessing of Protection Rank 2
         [10278] = true, -- Blessing of Protection Rank 3
+        [6615] = true, -- Free Action Potion (stun/root/snare immunity; grouped here by display priority)
     },
     immunities_root = {
         [1044] = true, -- Blessing of Freedom
         [20589] = true, -- Escape Artist
-        [6615] = true, -- Free Action (potion: root, snare and stun immunity)
+        [1953] = true, -- Blink (Mage; displayed here if an eligible aura is present)
+        [1236175] = true, -- Blink (Forever variant)
     },
     immunities_interrupt = {
         [1310897] = true, -- Voice of Truth (Silence and Interrupt immunity)
@@ -34,6 +36,7 @@ PT.categories = {
     buffs_grounding = {
         [8178] = true, -- Grounding Totem Effect (spell redirection)
     },
+    -- Spell silence/interrupt prevention and redirection; not root immunity.
     buffs_self_stun = {
         [1301167] = true, -- Transformative Cocoon (self-stun; currently a helpful aura)
     },
@@ -161,9 +164,11 @@ PT.categories = {
         [10308] = true, -- Hammer of Justice
         [20170] = true, -- Seal of Justice stun
         [19410] = true, -- Concussive Shot Stun
-        [9005] = true, -- Pounce Stun
-        [9823] = true, -- Pounce Stun
-        [9827] = true, -- Pounce Stun
+        -- Pounce has a 2-second stun and a separately triggered bleed.
+        -- Track ONLY stun aura IDs here; 9007/9824/9826 remain DoTs.
+        [9005] = true, -- Pounce Stun Rank 1
+        [9823] = true, -- Pounce Stun Rank 2
+        [9827] = true, -- Pounce Stun Rank 3
         [16922] = true, -- Starfire Stun
         [5211] = true, -- Bash
         [6798] = true, -- Bash
@@ -393,6 +398,15 @@ PT.categories = {
         [1265878] = true, -- Web
         [1277332] = true, -- Chastise
     },
+    -- Applied harmful silence auras. Interrupt *cast* IDs live in interrupts
+    -- below; not every interrupt produces a duration-bearing aura.
+    silences = {
+        [15487] = true, -- Silence (Priest)
+        [18425] = true, -- Kick - Silenced (Improved Kick effect)
+        [18469] = true, -- Silenced - Improved Counterspell
+        [24259] = true, -- Spell Lock (applied silence)
+        [1330] = true, -- Garrote - Silence (later-rank effect, only if present)
+    },
     interrupts = {
         [15752] = true,
         [19244] = true,
@@ -428,6 +442,10 @@ PT.categories = {
         [10900] = true, -- Power Word: Shield
         [10901] = true, -- Power Word: Shield
         [1316048] = true, -- Transformative Cocoon (absorb aura)
+        [11426] = true, -- Ice Barrier Rank 1
+        [13031] = true, -- Ice Barrier Rank 2
+        [13032] = true, -- Ice Barrier Rank 3
+        [13033] = true, -- Ice Barrier Rank 4
     },
     buffs_shield = {
         [6229] = true, -- Shadow Ward
@@ -440,10 +458,6 @@ PT.categories = {
         [19441] = true, -- Sacrifice
         [19442] = true, -- Sacrifice
         [19443] = true, -- Sacrifice
-        [11426] = true, -- Ice Barrier
-        [13031] = true, -- Ice Barrier
-        [13032] = true, -- Ice Barrier
-        [13033] = true, -- Ice Barrier
         [543] = true, -- Fire Ward
         [8457] = true, -- Fire Ward
         [8458] = true, -- Fire Ward
@@ -500,8 +514,6 @@ PT.categories = {
                 [1310612] = true, -- Trickster's Dance
     },
     buffs_utility = {
-        [1953] = true, -- Blink (Mage)
-        [1236175] = true, -- Blink (Mage, Forever variant)
         [1259416] = true, -- Walk on Air (Skyborne racial, 10 sec)
         [1308663] = true, -- Walk on Air (Forever variant, 1 min)
         [1260270] = true, -- Rapid Regeneration (Troll racial, Forever)
@@ -962,6 +974,7 @@ PT.categories = {
         [29131] = true, -- Bloodrage (Warrior aura; 10 sec rage generation)
     },
     buffs_thorns = {
+        [1303458] = true, -- Reflection Field (spell reflection, Thorns-like counterattack priority)
         [467] = true, -- Thorns Rank 1 (Druid)
         [782] = true, -- Thorns Rank 2 (Druid)
         [1075] = true, -- Thorns Rank 3 (Druid)
@@ -1318,9 +1331,7 @@ PT.categories = {
         [24755] = true, -- Tricked or Treated: Halloween interaction cooldown
     },
     buffs_racial_defensive = {
-        -- Defensive racials share a high-priority PvP category, separate from
-        -- offensive cooldowns and ordinary passive class buffs.
-        [7744] = true, -- Will of the Forsaken
+        -- Source grouping only: Stoneform joins ordinary defensive buffs.
         [20594] = true, -- Stoneform
     },
     debuffs_offensive = {

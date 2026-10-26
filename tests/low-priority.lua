@@ -14,23 +14,23 @@ local function equal(actual, expected, label)
         .. ", wanted " .. tostring(expected) .. ")")
 end
 local gathering = assert(R.TIER_BY_KEY.Gathering)
-local info = assert(R.TIER_BY_KEY.InformationalDebuffs)
+local info = assert(R.TIER_BY_KEY.CampfireNearbyHarmful)
 local tracking = assert(R.TIER_BY_KEY.Tracking)
 local ambient = assert(R.TIER_BY_KEY.CampfireNearby)
 local ambientHarmful = assert(R.TIER_BY_KEY.CampfireNearbyHarmful)
 local fallback = assert(R.TIER_BY_KEY.HostileHelpful)
 
 equal(gathering.level, 1, "Find Herbs/Minerals lowest aura tier")
-equal(info.level, 2, "informational harmful immediately above gathering")
-equal(tracking.level, 3, "tracking/sensing immediately above informational")
+equal(info.level, 4, "informational harmful merged into nearby-world effects")
+equal(tracking.level, 3, "tracking/sensing immediately above gathering")
 equal(ambient.level, 4, "original ambient buff above tracking")
-equal(ambientHarmful.level, 4, "original ambient harmful above tracking")
+equal(ambientHarmful.level, 4, "ambient harmful and informational effects share priority")
 equal(fallback.level, 5, "generic hostile fallback above the exact low lanes")
 check(gathering.helpful and gathering.exact, "gathering is exact helpful")
 check(not info.helpful and info.exact, "informational effects are exact harmful")
 check(tracking.helpful and tracking.exact, "tracking is exact helpful")
 for _, tier in ipairs(R.TIERS) do
-    if tier ~= gathering and tier ~= info and tier ~= tracking then
+    if tier ~= gathering and tier ~= tracking then
         check(tier.level >= 4, "all remaining aura tiers above race-fallback lanes: " .. tier.key)
     end
 end
@@ -123,7 +123,7 @@ for id in pairs(sensingIDs) do
         "generic hostile helpful does not promote tracking")
 end
 for id in pairs(infoIDs) do
-    check(filter("InformationalDebuffs").includeSpellIDs[id] == true,
+    check(filter("CampfireNearbyHarmful").includeSpellIDs[id] == true,
         "secure informational harmful filter")
     check(filter("SmallFriendlyHarmful").excludeSpellIDs[id] == true,
         "generic harmful fallback does not promote informational status")
@@ -143,12 +143,10 @@ end
 -- harmful units, exact-ID native filtering may be restricted by secrecy.
 local engine = assert(io.open("AuraEngine.lua", "rb"))
 local engineSource = assert(engine:read("*a")); engine:close()
-check(engineSource:find('findTierByKey("InformationalDebuffs")', 1, true) ~= nil,
-    "informational fallback frame inherits the same tier")
-check(engineSource:find('host.readableInformationalDebuffFrame = createReadableExactFrame(', 1, true) ~= nil,
-    "one readable informational frame constructed per host")
-check(engineSource:find('updateReadableHarmfulTier(host, base, "InformationalDebuffs"', 1, true) ~= nil,
-    "friendly harmful complete-election fallback refreshed")
+check(engineSource:find('{ "CampfireNearbyHarmful", "readableNearbyHarmfulFrame", 4 }', 1, true) ~= nil,
+    "merged nearby-world readable frame inherits tier four")
+check(engineSource:find('updateReadableHarmfulTier(host, base, "CampfireNearbyHarmful"', 1, true) ~= nil,
+    "one complete-election harmful refresh covers informational and nearby effects")
 check(engineSource:find('local function updateReadableHarmfulTier(host, baseEnabled, tierKey', 1, true) ~= nil,
     "reuses the pre-existing guarded harmful helper")
 check(engineSource:find('createRaceBaseline(host)', 1, true) ~= nil,

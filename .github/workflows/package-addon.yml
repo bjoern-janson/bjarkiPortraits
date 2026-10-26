@@ -18,11 +18,12 @@ jobs:
         run: |
           set -euo pipefail
           for version in 5.1 5.4; do
-            for file in Spells.lua Core.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua Commands.lua Main.lua tests/low-priority.lua tests/decimal-threshold.lua; do
+            for file in Spells.lua Core.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua Commands.lua Main.lua tests/low-priority.lua tests/decimal-threshold.lua tests/priority-overhaul.lua; do
               "luac${version}" -p "$file"
             done
             "lua${version}" tests/low-priority.lua
             "lua${version}" tests/decimal-threshold.lua
+            "lua${version}" tests/priority-overhaul.lua
           done
       - name: Stage addon
         run: |
