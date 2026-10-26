@@ -1,8 +1,10 @@
 # bjarkiPortraits architecture
 
+**Low-priority informational tiers (2026-10-26):** `0.1.151-low-priority-tracking-status-test` restores explicitly requested gathering buffs, informational debuffs, and tracking/sensing buffs in three separate exact lanes immediately above the race-portrait foundation. No combat-priority changes. Section 26 supersedes the earlier exclusion-only tracking/Boosted Rest policy.
+
 **v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
 
-This document tracks **bjarkiPortraits 0.1.150-foundation-v16-fixes-test** (2026-10-22). Sections 1–24 are historical architecture and experiment notes; **section 25 describes the current source** and supersedes conflicting earlier behavior. This reference does not claim undocumented guarantees about the WoW: Forever client.
+This document tracks **bjarkiPortraits 0.1.151-low-priority-tracking-status-test** (2026-10-26). Sections 1–25 are historical architecture and experiment notes; **section 26 describes the current low-tier source** and supersedes conflicting earlier behavior. This reference does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into nine Lua modules, loaded in this order:
 
@@ -479,3 +481,31 @@ Both manifests load the bus and publisher after `Core.lua`. The packaging workfl
 ### 25.4 Verification boundary
 
 The accepted v15 suite evidence records **42/42 executable scripts** and **28/28 runtime syntax files** passing under ordinary Lua 5.4 with modeled WoW APIs. Portraits coverage includes the shared-bus cases and derived-snapshot recovery regressions. These are suite results, not 42 Portraits-only tests. They do not certify native secret propagation, secure execution or taint, rendered pixels, or client combat behavior. The existing live-client reports remain separate validation items.
+
+## 26. Three exact informational tiers above race baseline: 0.1.151-low-priority-tracking-status-test (2026-10-26)
+
+### 26.1 Desired priority contract
+
+The race portrait remains the addon-owned visual foundation; these are actual native `CustomAuraContainer` exact lanes on every portrait host, with no new masks or full-frame replacements:
+
+| Level | Lane | Included auras |
+|---|---|---|
+| 1 | `Gathering` (HELPFUL) | Find Herbs ranks 1/2 (`2383`, `8387`); Find Minerals ranks 1/2 (`2580`, `8388`) |
+| 2 | `InformationalDebuffs` (HARMFUL) | Tricked or Treated (`24755`); Boosted Rest (`1229451`) |
+| 3 | `Tracking` (HELPFUL) | The full remaining `buffs_tracking` set: Track Humanoids/Beasts/Hidden/Undead/Elementals/Demons/Dragonkin/Giants, Sense Demons/Undead, Find Treasure/Fish, Detect Invisibility, Beast Lore, Eye of Kilrogg, Mind Vision, Far Sight, Eagle Eye |
+
+The former `CampfireNearby` and `CampfireNearbyHarmful` lanes move together from level 2 to level 4. The unclassified `HostileHelpful` semantic lane moves from 3 to 5, so all existing ambient/generic auras remain above the informational levels; every combat tier, including PassiveSpeed (9), Plainsrunning (10), and everything from TravelUtility (50) upward, retains its previous level. The ambient/generic relative order is unchanged.
+
+`Spells.lua` splits four gathering IDs from the prior combined tracking denylist; no higher-priority IDs were added to the tracking tiers and pure cosmetic/profession auras remain excluded.
+
+### 26.2 Secure and readable ownership
+
+Each exact tier participates in the existing secure aura-slot sort, including native same-lane `AuraInstanceID` recency. Tracking and gathering IDs remain excluded from broad `Important` / `BigDef` / `ExternalDef` and `HostileHelpful` semantic fallbacks, **not** from their new explicit tiers. The two informational harmful IDs likewise remain excluded from `SmallFriendlyHarmful` and generic priority harmful fallbacks, which would otherwise promote them above genuine combat effects. Permanent unclassified hostile helpful auras remain excluded from the broad duration-filtered fallback; inaccessible identity is never treated as a known tracking spell.
+
+On self/friendly harmful units, Forever may forbid exact harmful ID filtering even when readable aura data is available. The same `InformationalDebuffs` tier therefore receives one optional readable helper on each host, using the existing `updateReadableHarmfulTier` complete, same-tier election and ownership conditions. A missing, partial or secret harmful list never authorizes an inferred icon. Higher-priority helpful and harmful auras continue to win.
+
+### 26.3 Regression and live-client boundary
+
+GitHub Actions now syntax-compiles the nine shipped Lua modules plus `tests/low-priority.lua` under Lua 5.1 and Lua 5.4 and runs exact policy assertions: all gathering ranks, informational IDs, tracking/sensing coverage, exclusive membership, index ownership, strict tier ordering, semantic exclusions, and the guarded readable harmful helper wiring. The test file is **not** packaged as an addon module.
+
+Offline checks do not certify whether each aura ID is actually exposed by the postlaunch Forever client, whether the native secure harmful filter allows those two auras on every relation, or whether the guarded readable fallback sees a complete harmful list in combat. Screenshot-level visual centering and mixed-faction visibility must still be checked in game.

@@ -1264,20 +1264,25 @@ PT.categories = {
                 [13161] = true, -- Aspect of the Beast
                 [14752] = true, -- Divine Spirit
     },
+    -- Gathering node detection is intentionally BELOW passive status auras
+    -- and other tracking/sensing abilities. These are the four observed
+    -- Forever ranks, kept together in one native AuraContainer lane.
+    buffs_gathering = {
+        [2383] = true, -- Find Herbs Rank 1
+        [8387] = true, -- Find Herbs Rank 2
+        [2580] = true, -- Find Minerals Rank 1
+        [8388] = true, -- Find Minerals Rank 2
+    },
     buffs_tracking = {
-        -- Never display these tracking/scouting effects on portrait auras.
-        -- This category is retained solely as a *denylist* for secure broad
-        -- helpful fallbacks (especially hostile players), not as a tier.
+        -- Tracking/sensing and related remote scouting occupy one low-priority
+        -- helpful tier, ABOVE informational debuffs and gathering, BELOW every
+        -- gameplay buff. Preserve exact IDs in broad semantic exclusions too.
         [2481] = true, -- Find Treasure / treasure tracking
         [5225] = true, -- Druid Track Humanoids (cat form)
         [19878] = true, -- Track Demons
         [19879] = true, -- Track Dragonkin
         [19882] = true, -- Track Giants
         [43308] = true, -- Find Fish
-        [2383] = true, -- Find Herbs Rank 1
-        [8387] = true, -- Find Herbs Rank 2
-        [2580] = true, -- Find Minerals Rank 1
-        [8388] = true, -- Find Minerals Rank 2
                 [126] = true, -- Eye of Kilrogg
                 [132] = true, -- Detect Invisibility
                 [1462] = true, -- Beast Lore
@@ -1292,8 +1297,8 @@ PT.categories = {
                 [19884] = true, -- Track Undead
                 [19885] = true, -- Track Hidden
     },
-    -- Exclusion-only categories: these must never OWN a portrait aura slot.
-    -- Exact IDs are preferred over names; cosmetic spell variants do not imply
+    -- The remaining sets below are exclusion-only unless separately assigned
+    -- an exact tier. Exact IDs are preferred over names; cosmetic spell variants do not imply
     -- that temporary CC, movement, underwater breathing, or stat auras are cosmetic.
     buffs_cosmetic = {
         [8213] = true, -- Savory Deviate Delight (visual transformation)
@@ -1307,6 +1312,8 @@ PT.categories = {
         [1280341] = true, -- Uncommon Fishing: Fishing Rack loot bonus
         [1249521] = true, -- Profession-only Well Fed: Fishing Skill
     },
+    -- Low-priority informational debuff, still excluded from broad harmful
+    -- fallbacks that would otherwise promote it above actual combat effects.
     debuffs_noncombat = {
         [24755] = true, -- Tricked or Treated: Halloween interaction cooldown
     },
@@ -1375,7 +1382,8 @@ PT.categories = {
         [1259688] = true, -- Elemental Blessing (Skysight, 30 sec)
         [1270893] = true, -- Elemental Blessing (Skysight, 15 min)
     },
-    -- Denylist only; this XP/camp eligibility cooldown has no PvP effect.
+    -- Visible only in the lowest informational harmful tier, above gathering;
+    -- still excluded from unclassified harmful fallback promotion.
     debuffs_boosted_rest = {
         [1229451] = true, -- Boosted Rest (Forever camp rest eligibility)
     },

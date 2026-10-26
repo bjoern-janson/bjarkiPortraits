@@ -1356,6 +1356,16 @@ local function buildHost(unit, host)
         host, utilityTier and utilityTier.level or 270
     )
 
+    -- Self/friendly harmful identity filters can be restricted even when the
+    -- underlying informational aura is readable by index. Reuse the existing
+    -- complete-election harmful helper for both low-priority debuffs.
+    -- One helper per host owns the combined informational tier, never two
+    -- competing overlays with ambiguous same-tier recency.
+    local infoTier = findTierByKey("InformationalDebuffs")
+    host.readableInformationalDebuffFrame = createReadableExactFrame(
+        host, infoTier and infoTier.level or 2
+    )
+
     -- Same-tier status recency applies on all five portrait hosts. These use
     -- the existing portrait placement helper; no native frame geometry changes.
     local statusEffectsTier = findTierByKey("StatusEffects")
@@ -1564,6 +1574,8 @@ function R.UpdateHost(host, forceContainerRefresh)
     -- These friendly/self harmful lanes can be relation-restricted. Use only
     -- complete, directly readable same-tier elections; partial/secret lists
     -- cannot replace a permitted native owner or invent an aura's identity.
+    updateReadableHarmfulTier(host, base, "InformationalDebuffs",
+        "readableInformationalDebuffFrame", "_informationalDebuff")
     updateReadableHarmfulTier(host, base, "Demoralizing", "readableDemoralizingFrame", "_demoralizing")
     updateReadableHarmfulTier(host, base, "BaselineClassHarmful", "readableBaselineHarmfulFrame", "_baselineHarmful")
     updateReadableHarmfulTier(host, base, "CampfireNearbyHarmful", "readableCampfireHarmfulFrame", "_campfireHarmful")

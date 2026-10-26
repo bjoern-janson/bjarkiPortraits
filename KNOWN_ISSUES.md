@@ -1,8 +1,10 @@
 # Known issues and bugs
 
+**Low-priority aura reintroduction (2026-10-26):** `0.1.151-low-priority-tracking-status-test` restores Find Herbs/Minerals, Tricked or Treated, Boosted Rest and all other tracking/sensing buffs as three visible exact tiers immediately above race portraits. Their semantic fallback exclusions remain, to prevent promotion above combat effects. Self/friendly informational debuffs also receive a guarded readable helper; actual Forever display in all client secrecy states still needs validation.
+
 **v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
 
-Historical status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**. Current synchronized source is **0.1.150-foundation-v16-fixes-test** (2026-10-22); historical items below are not automatically closed by that update.
+Historical status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**. Current synchronized source is **0.1.151-low-priority-tracking-status-test** (2026-10-26); historical items below are not automatically closed by that update.
 
 The items below reflect reports and screenshots from Battleground sessions.
 They remain open until checked in the live client against this build. A report

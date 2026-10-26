@@ -10,6 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install Lua compilers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1 lua5.4
+      - name: Check Lua syntax and low-priority policy
+        run: |
+          set -euo pipefail
+          for version in 5.1 5.4; do
+            for file in Spells.lua Core.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua Commands.lua Main.lua tests/low-priority.lua; do
+              "luac${version}" -p "$file"
+            done
+            "lua${version}" tests/low-priority.lua
+          done
       - name: Stage addon
         run: |
           mkdir -p dist/bjarkiPortraits

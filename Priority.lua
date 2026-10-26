@@ -34,12 +34,20 @@ end
 -- uses AuraInstanceID; BaselineClass, Healing and StatusEffects can replace their native owner
 -- only with a complete readable application-time election.
 R.TIERS = {
+    -- Three lowest exact lanes above the race-portrait foundation. Keep these
+    -- distinct so simultaneous auras have deterministic priority:
+    -- 1 Gathering < 2 informational debuffs < 3 tracking/sensing.
+    exact("Gathering", "HELPFUL", 1, true, C.buffs_gathering),
+    exact("InformationalDebuffs", "HARMFUL", 2, false,
+        union("debuffs_noncombat", "debuffs_boosted_rest"), true),
+    exact("Tracking", "HELPFUL", 3, true, C.buffs_tracking),
+    -- Existing ambient lanes shift just enough to stay ABOVE all three.
+    -- Their relative order, and all combat-oriented levels, stay unchanged.
+    exact("CampfireNearby", "HELPFUL", 4, true, C.buffs_campfire_nearby),
+    exact("CampfireNearbyHarmful", "HARMFUL", 4, false, C.debuffs_campfire_nearby, true),
     exact("PassiveSpeed", "HELPFUL", 9, true, C.buffs_passive_speed, true),
     exact("Plainsrunning", "HELPFUL", 10, true, union("buffs_plainsrunning", "buffs_elemental_blessing"), true),
-    exact("CampfireNearby", "HELPFUL", 2, true, C.buffs_campfire_nearby),
-    exact("CampfireNearbyHarmful", "HARMFUL", 2, false, C.debuffs_campfire_nearby, true),
-    -- Noncombat/profession/cosmetic effects have no visible exact tier.
-    -- Their IDs remain as exclusion-only sets below for broad native fallbacks.
+    -- Profession-only and cosmetic effects are still exclusion-only.
     exact("TravelUtility", "HELPFUL", 50, true, C.buffs_travel_utility),
     -- Persistent item/queue status stays below passive class and totem buffs.
     exact("PassiveDebuff", "HARMFUL", 59, false, C.debuffs_passive, true),
@@ -71,15 +79,15 @@ R.TIERS = {
 
     -- Opposite-faction exact helpful identity filters are relation-restricted in
     -- Forever. This broad secure lane is only a visibility fallback when hostile
-    -- aura identities are not readable to Lua. Keep it at the bottom so its
-    -- arbitrary winner cannot mask any classified category above it.
+    -- aura identities are not readable to Lua. Keep it BELOW every gameplay
+    -- aura while ABOVE the three intentionally low informational exact lanes.
     -- Exclusion-only spell-ID filters are ignored when hostile helpful identity
     -- filtering is not permitted. A native duration filter is still applied:
     -- maxDuration rejects permanent auras (duration == 0). Infinity imposes no
     -- arbitrary cap on timed effects, but intentionally drops unknown permanent
     -- buffs such as Find Minerals from this unclassified fallback. Classified
     -- permanent buffs still use exact/public or readable paths.
-    semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 3, { maxDuration = math.huge }),
+    semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 5, { maxDuration = math.huge }),
 
     exact("Mobility", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 160, true,
         union("buffs_ghostwolf", "buffs_ghostwolf_variants", "buffs_cheetah", "buffs_mobility"), true),
@@ -259,11 +267,12 @@ for _, tier in ipairs(R.TIERS) do
     end
 end
 
--- Exact excluded auras must not enter the semantic IMPORTANT/big-defensive,
--- generic hostile helpful, or generic self/friendly harmful fallbacks. Native
--- restricted identities can still prevent enforcing exclusions on a hostile
--- unit; never claim to know an inaccessible aura's spell ID.
-local excludedHelpful = union("buffs_tracking", "buffs_cosmetic", "buffs_noncombat")
+-- Low-priority exact auras must never be PROMOTED by unrelated high semantic
+-- fallbacks (IMPORTANT, hostile helpful, or generic harmful). The exclusion
+-- sets filter those broad lanes, not the explicit Gathering/Tracking/info lanes.
+-- Restricted hostile identities may still prevent enforcing the exclusions;
+-- never infer an inaccessible aura's spell ID.
+local excludedHelpful = union("buffs_gathering", "buffs_tracking", "buffs_cosmetic", "buffs_noncombat")
 local excludedHarmful = union("debuffs_noncombat", "debuffs_boosted_rest")
 for spellID in pairs(excludedHelpful) do helpfulExplicit[spellID] = true end
 for spellID in pairs(excludedHarmful) do harmfulExplicit[spellID] = true end
