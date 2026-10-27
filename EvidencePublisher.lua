@@ -4,7 +4,7 @@ local R = assert(BP.Runtime, "Core must load first")
 -- securely rendered aura is NOT a readable observation and never enters CC.
 local SOURCE_UNITS = {target=true, focus=true, targettarget=true, focustarget=true}
 local MAX_EVENT_ITEMS = 64
--- Fixed, self-cast cooldown aura shortlist used only on derived unit binding.
+-- Fixed self-cast cooldown aura shortlist for derived binding and aura updates.
 -- Newly added readable auras are not constrained to this shortlist; the CC
 -- consumer owns the inference whitelist.
 local COOLDOWN_AURAS = {16689,16810,16811,16812,16813,17329,22812,5277,26669}

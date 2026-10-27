@@ -16,12 +16,14 @@ local function publishDerivedSnapshot(unit)
         snapshotNeeded[unit] = R.PublishDerivedSnapshot(unit) == false or nil
     end
 end
-local function queueRefresh(unit, reason, requestSnapshot)
+local function queueRefresh(unit, reason, requestSnapshot, snapshotOnly)
     if not R.CanAccess(unit) or type(unit) ~= "string" or not tracked[unit]
         or not C_Timer or type(C_Timer.After) ~= "function" then return end
     local request = queued[unit]
     if not request then request = {}; queued[unit] = request end
-    request.reason = reason or "unit-event"
+    -- Visual work can upgrade a snapshot-only request, never be cancelled by it.
+    request.refresh = request.refresh or not snapshotOnly
+    if not snapshotOnly or not request.reason then request.reason = reason or "unit-event" end
     -- Later visual reasons must not cancel evidence work already requested.
     if derived[unit] and (reason == "derived-binding" or requestSnapshot) then
         request.publishDerivedSnapshot = true
@@ -33,13 +35,15 @@ local function queueRefresh(unit, reason, requestSnapshot)
         queued, scheduled = {}, false
         if not R.db or not R.db.enabled then snapshotNeeded = {}; return end
         for token, request in pairs(pending) do
-            R.Refresh(token, true)
+            if request.refresh then R.Refresh(token, true) end
             if request.publishDerivedSnapshot and R.PublishDerivedSnapshot then
                 publishDerivedSnapshot(token)
             end
-            if R.hosts[token] then R.hosts[token]._nativeRefreshReason = request.reason end
-            if token ~= "player" then R.UpdateObservedPetPortrait(token) end
-            R.ApplyPresentation(token)
+            if request.refresh then
+                if R.hosts[token] then R.hosts[token]._nativeRefreshReason = request.reason end
+                if token ~= "player" then R.UpdateObservedPetPortrait(token) end
+                R.ApplyPresentation(token)
+            end
         end
     end)
     if not ok then queued, scheduled = {}, false end
@@ -171,14 +175,19 @@ local function installUnitStateEvents(unitA, unitB)
             -- relation, so these player events invalidate all five hosts.
             R.RefreshAll(true)
             R.UpdateObservedPetPortraits()
-            for _, token in ipairs(R.TRACKED_UNITS) do queueRefresh(token) end
+            -- Player relation changes can unblock retained derived evidence too.
+            for _, token in ipairs(R.TRACKED_UNITS) do
+                queueRefresh(token, nil, snapshotNeeded[token])
+            end
         elseif event == "UNIT_AURA" then
             if R.PublishAuraEvent then R.PublishAuraEvent(unit, updateInfo) end
             R.Refresh(unit)
-            -- A binding snapshot may have run before eligibility settled.
-            -- Retry only that pending derived token through the one-shot queue.
-            if derived[unit] and snapshotNeeded[unit] then
-                queueRefresh(unit, "derived-recovery", true)
+            -- A completed binding can still gain readable timing or a new
+            -- positive on a full update. Re-read the bounded shortlist through
+            -- the same one-shot queue; these remain first sightings/corrections.
+            -- Pending availability recovery retains its full visual refresh.
+            if derived[unit] then
+                queueRefresh(unit, "derived-evidence", true, not snapshotNeeded[unit])
             end
         elseif event == "UNIT_DISPLAYPOWER" then
             -- Re-evaluate the current primary power once immediately and
@@ -188,7 +197,7 @@ local function installUnitStateEvents(unitA, unitB)
             return
         else
             R.Refresh(unit, true)
-            queueRefresh(unit, nil, event == "UNIT_CONNECTION" and snapshotNeeded[unit])
+            queueRefresh(unit, nil, snapshotNeeded[unit])
         end
         -- Aura changes do not change pet identity/family. Reclassify only on
         -- relation/state changes, and only for the unit that actually changed.

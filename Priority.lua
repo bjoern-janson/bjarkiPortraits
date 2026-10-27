@@ -220,7 +220,8 @@ end
 -- sets filter those broad lanes, not the explicit Gathering/Tracking/info lanes.
 -- Restricted hostile identities may still prevent enforcing the exclusions;
 -- never infer an inaccessible aura's spell ID.
-local excludedHelpful = union("buffs_gathering", "buffs_tracking", "buffs_cosmetic", "buffs_noncombat")
+local excludedHelpful = union("buffs_gathering", "buffs_tracking", "buffs_campfire_nearby",
+    "buffs_cosmetic", "buffs_noncombat")
 local excludedHarmful = union("debuffs_noncombat", "debuffs_boosted_rest")
 for spellID in pairs(excludedHelpful) do helpfulExplicit[spellID] = true end
 for spellID in pairs(excludedHarmful) do harmfulExplicit[spellID] = true end

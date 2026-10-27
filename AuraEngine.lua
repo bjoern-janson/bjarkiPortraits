@@ -1654,10 +1654,12 @@ function R.UpdateHost(host, forceContainerRefresh)
         local enabled = base
 
         if tier.key == "HostileHelpful" then
-            -- Exact readable identities win when available. If Forever seals
-            -- them, fall back to Blizzard's broad secure HELPFUL stream, but
-            -- for any positively established hostile unit, including totems.
-            enabled = enabled and hostileUnit and not hostileReadable
+            -- A complete readable winner suppresses the generic lane only
+            -- when its priority reaches that lane. Informational witnesses
+            -- must leave higher, unclassified helpful auras eligible.
+            local readableTier = hostileReadable and findTierByKey(host._hostileTierKey)
+            local replacesGeneric = readableTier and readableTier.level >= tier.level
+            enabled = enabled and hostileUnit and not replacesGeneric
         elseif tier.key == "SmallFriendlyHarmful" then
             -- Preserve a low-priority, identity-blind native harmful stream for
             -- hostile units too. Exact-ID filtering may be permitted on the

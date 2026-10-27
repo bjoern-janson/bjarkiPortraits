@@ -1,5 +1,9 @@
 # bjarkiPortraits architecture
 
+**Pending evidence recovery (2026-10-27):** `0.1.156-fixes-test` retries retained derived snapshots when faction/flag events restore eligibility, including player-wide relation changes. Section 31 describes this event-routing repair.
+
+**Priority handoff and derived evidence repairs (2026-10-27):** `0.1.155-fixes-test` keeps the generic helpful lane eligible above lower informational helpers and delivers later readable timing through bounded, coalesced derived snapshots. Section 30 describes these repairs; section 29 remains authoritative for spell classifications and numeric priorities.
+
 **Priority scope correction (2026-10-27):** `0.1.154-priority-scope-correction-test` restores Roots 300, Slows 278 and Dazed 279 to their pre-overhaul levels. Their lowering in v0.1.153 was unauthorized. Will of the Forsaken (7744) is removed from all portrait aura categories because the user's direct Forever test observed **no applied buff**; a cast-only effect must not be invented as a visible immunity. Section 29 is authoritative and corrects erroneous conclusions in section 28.
 
 **Previous priority consolidation (2026-10-27):** `0.1.153-priority-consolidation-test` merged requested aura categories and added guarded complete-aura elections for stuns and silences. It also introduced **unrequested root/slow reprioritization and an incorrect Will of the Forsaken aura assumption**, both corrected in section 29. The separate Pounce bleed remains a DoT. No new periodic polling or native-layout writes.
@@ -10,7 +14,7 @@
 
 **v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
 
-This document tracks **bjarkiPortraits 0.1.154-priority-scope-correction-test** (2026-10-27). Sections 1–28 are historical architecture and experiment notes; **section 29 corrects the unsolicited priority changes and the Will of the Forsaken aura assumption**. This reference does not claim undocumented guarantees about the WoW: Forever client.
+This document tracks **bjarkiPortraits 0.1.156-fixes-test** (2026-10-27). Sections 1–28 are historical architecture and experiment notes; **section 29 corrects the unsolicited priority changes and the Will of the Forsaken aura assumption**. This reference does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into nine Lua modules, loaded in this order:
 
@@ -567,3 +571,29 @@ Both readable helper fallback frame levels for Slows and Dazed are restored to 2
 `tests/priority-overhaul.lua` now asserts the restored hierarchy, excludes 7744 from every category and secure aura tier, and locks **all 55 retained pre-overhaul tier levels** to their original numbers except the explicitly requested Utility and OffensiveHarmful changes. This prevents future screenshot interpretation or unrelated cleanup from silently changing established priorities.
 
 All remaining v0.1.153 classification merges, stun/silence complete-readable presentation checks, five-second timers and race-fallback behavior remain unchanged. Neither protected server aura visibility nor postlaunch immunities can be inferred from CI; further spell-ID changes must follow actual Forever observations rather than general Classic assumptions.
+
+
+## 30. Priority handoff and derived timing corrections: 0.1.155-fixes-test (2026-10-27)
+
+A complete, successfully presented readable helpful winner now suppresses `HostileHelpful` only when its exact tier reaches that generic lane's priority. Gathering (1), Tracking (3), and CampfireNearby (4) leave the generic lane (5) eligible. The known CampfireNearby IDs also join the generic exclusion set, preventing that broad native lane from promoting them above their own level. Exact memberships, numeric priorities, and the higher readable winner's same-tier ownership are unchanged. Partial elections and presentation failures still cannot suppress the native fallback.
+
+Every relevant derived `UNIT_AURA` can now request the existing fixed nine-spell snapshot, including after a binding snapshot completed. Newly readable or corrected timing is published as a first sighting/correction (`newApplication=false`); explicit `addedAuras` positives retain their existing new-application signal. The publisher rereads the live unit/GUID when the coalesced callback executes. It still emits only readable positives, never removals from absence or failed queries.
+
+Stable correction-only requests use the existing one-shot queue without a second forced native refresh, pet reclassification, or presentation pass. A pending availability retry retains full reconciliation. Any queued binding or visual request upgrades that token to full reconciliation, and later correction-only requests cannot cancel it. Repeated events coalesce to one pending callback and at most one nine-query shortlist pass per requested derived token. No per-aura retained history, polling timer, or new dependency is introduced; the shared bus and consumer identity rules are unchanged.
+
+`tests/hostile-helpful-priority.lua` exercises actual `UpdateHost` ownership, relative priority, readable candidate exclusions, partial scans and presentation failures. `tests/derived-evidence.lua` exercises actual event dispatch and publication for delayed timing, full updates, explicit additions, rebinding, disable, partial lookups and burst bounds. The three existing scripts remain unchanged; CI syntax-checks and runs all five scripts on Lua 5.1 and Lua 5.4.
+
+These are ordinary-Lua checks with modeled game APIs. Native rendering, restricted-value behavior, taint and frame-time cost still require in-game validation. The separate audit findings concerning failed access-check calls and failed native parent restoration are outside this two-bug repair.
+
+
+## 31. Pending evidence recovery: 0.1.156-fixes-test (2026-10-27)
+
+A derived binding snapshot that could not establish recipient eligibility already retained pending work. In 0.1.155, `UNIT_FACTION` and `UNIT_FLAGS` refreshed visual eligibility but omitted that work from their queued request. If the next aura event was removal, a readable positive could pass entirely unobserved.
+
+The unit-state route now forwards its existing `snapshotNeeded[unit]` request for faction, flags and connection events. The player faction/flags route forwards the retained request for each tracked token because the player's relationship affects every recipient. Completed snapshots are not reopened by those events; only retained derived work is retried.
+
+Recovery uses the existing one-shot queue and fixed nine-spell shortlist. Repeated events coalesce, partial lookups retain independent positives, the callback rechecks the live recipient GUID and eligibility, and snapshots remain first sightings/corrections (`newApplication=false`). A completed or empty successful pass consumes pending work. Disabling the addon before the callback cancels publication. No new history, timer loop, dependency, spell priority, aura ownership rule, or consumer behavior is introduced.
+
+`tests/pending-evidence-recovery.lua` exercises both derived units, unit and player faction/flags, selective pending tokens, coalescing, ineligible retries, current identity, disable, partial/empty reads and the existing connection recovery path. All five previous test scripts remain unchanged; CI compiles and runs all six scripts on Lua 5.1 and Lua 5.4.
+
+Verification uses ordinary Lua with modeled game APIs. Live faction/event ordering, secret values, rendering, taint and frame-time cost remain unverified. Existing conditional API-failure observations and consumer retention/identity limitations are outside this narrow repair.
