@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.158-stance-test"
+R.VERSION = "0.1.159-ten-second-decimals-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
@@ -410,12 +410,12 @@ function R.GetCountdownFormatter()
     if not formatter or not formatter.SetBreakpoints then return nil end
 
     -- Match native aura whole seconds by truncating, not rounding to nearest.
-    -- Show decimals strictly below 5 seconds; preserve the native whole-second
+    -- Show decimals strictly below 10 seconds; preserve the native whole-second
     -- rounding and 60-second hide boundary.
     if key == 1 then
         formatter:SetBreakpoints({
             { threshold = 0, format = "%.1f" },
-            { threshold = 5, step = 1, rounding = Enum.NumericRuleFormatRounding.Down, format = "%.0f" },
+            { threshold = 10, step = 1, rounding = Enum.NumericRuleFormatRounding.Down, format = "%.0f" },
             { threshold = 60.000001, format = "" },
         })
     else
@@ -447,7 +447,7 @@ function R.ApplyCountdownFormat(cooldown)
         pcall(
             cooldown.SetCountdownMillisecondsThreshold,
             cooldown,
-            R.db and R.db.showDecimals and 5 or 0
+            R.db and R.db.showDecimals and 10 or 0
         )
     end
 end
