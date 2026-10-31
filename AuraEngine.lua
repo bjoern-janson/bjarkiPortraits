@@ -807,6 +807,27 @@ local function updateObservedDruidForm(host, baseEnabled, hostilePlayer, hostile
     host._formStateReason = host._formStateActive and "unit-power" or "presentation-failed"
 end
 
+-- Share the existing below-SelfState frame; Warrior proof has no Druid
+-- relation/low-helpful gates and never claims an aura lane or clock.
+local function updateFormState(host, baseEnabled, hostilePlayer, hostileReadable)
+    if baseEnabled and not R.testMode and R.ResolveWarriorStance then
+        local result = R.ResolveWarriorStance(host.unit)
+        if result.reason ~= "not-warrior" then
+            host._formStateActive = false
+            host._formStateSpellID = result.spellID
+            host._formStateReason = result.source .. ":" .. result.reason
+            if result.spellID then
+                host._formStateActive = showStaticSpell(host.readableFormStateFrame, result.spellID)
+                if not host._formStateActive then host._formStateReason = "presentation-failed" end
+            else
+                hideReadableExact(host.readableFormStateFrame)
+            end
+            return
+        end
+    end
+    updateObservedDruidForm(host, baseEnabled, hostilePlayer, hostileReadable)
+end
+
 local function updateGhostState(host, baseEnabled)
     host._ghostReadable = false
     host._ghostActive = false
@@ -1581,7 +1602,7 @@ function R.UpdateHost(host, forceContainerRefresh)
     else
         clearReadableHostile(host)
     end
-    updateObservedDruidForm(host, base, hostilePlayer, hostileReadable)
+    updateFormState(host, base, hostilePlayer, hostileReadable)
 
     local divineProtectionTier = findTierByKey("Immunity")
     local divineProtectionSecureAllowed = divineProtectionTier and R.ExactFilterAllowed(

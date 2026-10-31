@@ -154,7 +154,7 @@ SLASH_BJARKIPORTRAITS2 = "/bjarkiportraits"
 SlashCmdList.BJARKIPORTRAITS = function(message)
     local command, option, detail = (message or ""):lower():match("^%s*(%S*)%s*(%S*)%s*(%S*)")
     if command == "" or command == "help" then
-        R.Print("/bp or /bjarkiportraits test | on | off | player | target | focus | tot | fot | swipe | decimals | pets [status|on|off|debug [unit]] | geometry [unit] | layout [unit] | inspect [unit] | debug | audit | reset")
+        R.Print("/bp or /bjarkiportraits test | on | off | player | target | focus | tot | fot | swipe | decimals | pets [status|on|off|debug [unit]] | geometry [unit] | layout [unit] | inspect [unit] | stance [player|target|focus|tot|tof] | debug | audit | reset")
     elseif command == "test" then
         R.testMode = not R.testMode
         R.RefreshAll()
@@ -238,6 +238,12 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
                 R.Print(R.GetLayoutDebug(token))
             end
         end
+    elseif command == "stance" then
+        local unit = ({player="player", target="target", focus="focus", tot="targettarget",
+            tof="focustarget", fot="focustarget", targettarget="targettarget", focustarget="focustarget"})[option == "" and "target" or option]
+        if not unit or detail ~= "" then R.Print("usage: /bp stance [player|target|focus|tot|tof]")
+        elseif R.GetStanceDiagnostic then R.Print(R.GetStanceDiagnostic(unit))
+        else R.Print("stance " .. unit .. " source=none reason=api-unavailable recognized=unknown") end
     elseif command == "inspect" then
         inspectAuras(option)
     elseif command == "debug" then

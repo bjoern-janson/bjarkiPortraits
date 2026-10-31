@@ -87,6 +87,12 @@ for _, event in ipairs({
     "PLAYER_TARGET_CHANGED", "PLAYER_FOCUS_CHANGED", "PET_BAR_UPDATE",
 }) do events:RegisterEvent(event) end
 
+-- Optional native events differ across supported clients; an unsupported
+-- event must not prevent the rest of the addon from loading.
+for _, event in ipairs({"UPDATE_SHAPESHIFT_FORM", "UPDATE_SHAPESHIFT_FORMS"}) do
+    pcall(events.RegisterEvent, events, event)
+end
+
 events:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" then
         if arg1 == "Blizzard_UnitFrame" then installNativePortraitHooks() end
@@ -137,6 +143,13 @@ events:SetScript("OnEvent", function(_, event, arg1)
         R.UpdateObservedPetPortrait("focus")
         R.UpdateObservedPetPortrait("focustarget")
         queueRefresh("focus"); queueRefresh("focustarget", "derived-binding")
+    elseif event == "UPDATE_SHAPESHIFT_FORM" or event == "UPDATE_SHAPESHIFT_FORMS" then
+        for _, token in ipairs(R.TRACKED_UNITS) do
+            if token == "player" or (R.IsPlayerStanceUnit and R.IsPlayerStanceUnit(token)) then
+                R.Refresh(token, true)
+                queueRefresh(token, "stance-transition")
+            end
+        end
     elseif event == "PET_BAR_UPDATE" then
         R.UpdateLocalPetPortrait()
     end
@@ -156,13 +169,14 @@ local function installUnitStateEvents(unitA, unitB)
     -- Form changes are observable even while hostile aura identity is sealed.
     -- A scoped display-power event is much cheaper than polling resource APIs.
     register("UNIT_DISPLAYPOWER")
+    pcall(register, "UNIT_FORM_CHANGED")
     register("UNIT_FACTION")
     register("UNIT_FLAGS")
     register("UNIT_CONNECTION")
     register("UNIT_PORTRAIT_UPDATE")
     register("UNIT_NAME_UPDATE")
     frame:SetScript("OnEvent", function(_, event, unit, updateInfo)
-        if not unit then return end
+        if not R.CanAccess(unit) or type(unit) ~= "string" or not tracked[unit] then return end
         if event == "UNIT_PORTRAIT_UPDATE" or event == "UNIT_NAME_UPDATE" then
             -- These events also signal late current-unit availability. Refresh
             -- the independent pet art now, then re-evaluate aura eligibility.
@@ -189,11 +203,11 @@ local function installUnitStateEvents(unitA, unitB)
             if derived[unit] then
                 queueRefresh(unit, "derived-evidence", true, not snapshotNeeded[unit])
             end
-        elseif event == "UNIT_DISPLAYPOWER" then
+        elseif event == "UNIT_DISPLAYPOWER" or event == "UNIT_FORM_CHANGED" then
             -- Re-evaluate the current primary power once immediately and
             -- once after Blizzard completes the form transition. No polling.
             R.Refresh(unit)
-            queueRefresh(unit, "power-type")
+            queueRefresh(unit, event == "UNIT_FORM_CHANGED" and "stance-transition" or "power-type")
             return
         else
             R.Refresh(unit, true)
