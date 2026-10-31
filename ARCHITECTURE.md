@@ -1,5 +1,7 @@
 # bjarkiPortraits architecture
 
+**Audit repairs (2026-10-31):** `0.1.157-audit-fixes-test` preserves Roots/Control priorities through readable presentation, excludes Quitter from generic harmful promotion, completes Waiting-to-Resurrect elections, and hardens access checks and native portrait restoration. Section 32 records the source-level changes and verification boundary. WotF remains excluded: the user's current Forever observation is a CC removal on use with no applied buff.
+
 **Pending evidence recovery (2026-10-27):** `0.1.156-fixes-test` retries retained derived snapshots when faction/flag events restore eligibility, including player-wide relation changes. Section 31 describes this event-routing repair.
 
 **Priority handoff and derived evidence repairs (2026-10-27):** `0.1.155-fixes-test` keeps the generic helpful lane eligible above lower informational helpers and delivers later readable timing through bounded, coalesced derived snapshots. Section 30 describes these repairs; section 29 remains authoritative for spell classifications and numeric priorities.
@@ -14,7 +16,7 @@
 
 **v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
 
-This document tracks **bjarkiPortraits 0.1.156-fixes-test** (2026-10-27). Sections 1–28 are historical architecture and experiment notes; **section 29 corrects the unsolicited priority changes and the Will of the Forsaken aura assumption**. This reference does not claim undocumented guarantees about the WoW: Forever client.
+This document tracks **bjarkiPortraits 0.1.157-audit-fixes-test** (2026-10-31). Sections 1–28 are historical architecture and experiment notes; **section 29 corrects the unsolicited priority changes and the Will of the Forsaken aura assumption**. This reference does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into nine Lua modules, loaded in this order:
 
@@ -597,3 +599,20 @@ Recovery uses the existing one-shot queue and fixed nine-spell shortlist. Repeat
 `tests/pending-evidence-recovery.lua` exercises both derived units, unit and player faction/flags, selective pending tokens, coalescing, ineligible retries, current identity, disable, partial/empty reads and the existing connection recovery path. All five previous test scripts remain unchanged; CI compiles and runs all six scripts on Lua 5.1 and Lua 5.4.
 
 Verification uses ordinary Lua with modeled game APIs. Live faction/event ordering, secret values, rendering, taint and frame-time cost remain unverified. Existing conditional API-failure observations and consumer retention/identity limitations are outside this narrow repair.
+
+
+## 32. Audit repairs: 0.1.157-audit-fixes-test (2026-10-31)
+
+The explicit priority numbers and spell memberships are unchanged. Roots (300) and Control (310) now have the same complete-readable harmful presentation path used by other reviewed categories on all five portrait hosts. This matters when friendly/self exact harmful filtering is unavailable despite readable aura data. Incomplete scans, unreadable ordering or timing, and failed presentation do not gain complete same-tier ownership. Native exact-filter permissions remain unchanged.
+
+The generic harmful exclusion set now includes the nearby-world harmful category. Quitter (1299099) remains in its informational level-4 lane and cannot gain level 175 through the broad fallback when its identity is available. Unrelated generic harmful auras remain eligible.
+
+The primary-frame WaitingToResurrect fallback uses a complete ordered tier election instead of the first matching indexed aura. It does not select an older candidate merely because the newer candidate cannot present its timing. The native lane remains authoritative when permitted.
+
+An available value-access checker must positively establish readability. Failed, inaccessible or nonboolean checks no longer grant access; ordinary legacy behavior with absent optional checkers remains supported. Boolean/string reader wrappers honor the shared access boundary.
+
+Native portrait restoration retains ownership and recovery state when restoring the original parent or points fails. A failed restoration must not discard the host, permit nested replacement ownership, or hide an owned layer still containing the native portrait. Recovery uses existing lifecycle opportunities, with no polling loop.
+
+The new behavioral scripts cover priority recovery, access guards and native portrait restoration; the package workflow runs them alongside the six retained scripts on Lua 5.1 and Lua 5.4 and now also validates pull requests. Tests use modeled WoW APIs and do not certify native pixels, protected-value VM behavior, combat taint or client frame-time cost.
+
+WotF (7744) is cast-only CC removal per the user's direct observation and remains outside every displayed aura category. Combined Pounce stun/bleed presentation and absent applied school-lockout auras remain evidence limitations; this repair adds no guessed duration or invented aura.

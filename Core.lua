@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.156-fixes-test"
+R.VERSION = "0.1.157-audit-fixes-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
@@ -44,14 +44,18 @@ end
 function R.IsSecret(value)
     if not issecretvalue then return false end
     local ok, secret = pcall(issecretvalue, value)
-    return ok and secret == true
+    -- Only a successful literal false proves nonsecrecy. Treat failed or
+    -- malformed available checks as secret so callers cannot certify access.
+    return not ok or secret ~= false
 end
 
 function R.CanAccess(value)
     if R.IsSecret(value) then return false end
     if canaccessvalue then
         local ok, accessible = pcall(canaccessvalue, value)
-        if ok and not R.IsSecret(accessible) and accessible == false then return false end
+        -- An available checker must positively establish access. Failed or
+        -- unreadable results are UNKNOWN, never permission to inspect value.
+        return ok and not R.IsSecret(accessible) and accessible == true
     end
     return true
 end
@@ -59,14 +63,14 @@ end
 function R.SafeBool(fn, ...)
     if type(fn) ~= "function" then return nil, false end
     local ok, value = pcall(fn, ...)
-    if not ok or R.IsSecret(value) or type(value) ~= "boolean" then return nil, false end
+    if not ok or not R.CanAccess(value) or type(value) ~= "boolean" then return nil, false end
     return value, true
 end
 
 function R.SafeString(fn, ...)
     if type(fn) ~= "function" then return nil, false end
     local ok, value = pcall(fn, ...)
-    if not ok or R.IsSecret(value) or type(value) ~= "string" then return nil, false end
+    if not ok or not R.CanAccess(value) or type(value) ~= "string" then return nil, false end
     return value, true
 end
 

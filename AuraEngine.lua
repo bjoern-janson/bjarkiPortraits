@@ -577,6 +577,7 @@ local function createReadableExactFrame(host, level)
     -- These sibling frames anchor to host.anchor, which has forbidden layout
     -- scripts. Opt in at creation; SetAllPoints cannot inherit that aspect.
     local frame = CreateFrame("Frame", nil, host.layer, R.AURA_ANCHOR_TEMPLATE)
+    frame:Hide()
     placeAtPortrait(frame, host)
     frame:SetFrameStrata(host.strata)
     frame:SetFrameLevel((host.smallBaseLevel or 0) + (level or 1) + 1)
@@ -1095,6 +1096,7 @@ end
 local function createTestFrame(host)
     host._buildStage = "test-helper"
     local frame = CreateFrame("Frame", nil, host.layer, R.AURA_ANCHOR_TEMPLATE)
+    frame:Hide()
     placeAtPortrait(frame, host)
     frame:SetFrameStrata(host.strata)
     frame:SetFrameLevel((host.smallBaseLevel or 0) + 900)
@@ -1182,7 +1184,7 @@ local function updateRaceBaseline(host, permitted)
 end
 
 local function hostStillCurrent(host)
-    if not host or host._buildComplete ~= true then return false end
+    if not host or host._buildComplete ~= true or host._restorePending then return false end
     local portrait, mask, unitFrame = R.GetPortrait(host.unit)
     return portrait == host.portrait and mask == host.portraitMask and unitFrame == host.unitFrame
 end
@@ -1204,21 +1206,22 @@ end
 
 
 local function restorePortrait(host)
-    if not host or not host.reparented or not host.portrait then return end
-    if host.portrait.SetParent and host.originalParent then
-        pcall(host.portrait.SetParent, host.portrait, host.originalParent)
-    end
-    R.RestorePoints(host.portrait, host.originalPoints)
+    if not host or not host.reparented then return true end
+    local portrait = host.portrait
+    if not portrait or not portrait.SetParent or not host.originalParent
+        or not portrait.ClearAllPoints or not portrait.SetPoint then return false end
+    local parentOK = pcall(portrait.SetParent, portrait, host.originalParent)
+    if not parentOK then return false end
+    local pointsOK = pcall(R.RestorePoints, portrait, host.originalPoints)
+    if not pointsOK then return false end
     host.reparented = false
+    return true
 end
 
 function R.DestroyHost(unit)
     local host = R.hosts[unit]
     if not host then return true end
-    if InCombatLockdown and InCombatLockdown() then
-        R.buildQueued = true
-        return false
-    end
+    host._restorePending = true
     disableContainers(host)
     for _, owner in pairs(host._readableTierOwners or {}) do hideReadableExact(owner.frame) end
     host._readableTierOwners = {}
@@ -1236,14 +1239,25 @@ function R.DestroyHost(unit)
     if host.readableDemoralizingFrame then hideReadableExact(host.readableDemoralizingFrame) end
     if host.readableBaselineHarmfulFrame then hideReadableExact(host.readableBaselineHarmfulFrame) end
     if host.readableNearbyHarmfulFrame then hideReadableExact(host.readableNearbyHarmfulFrame) end
+    if host.readableRootsFrame then hideReadableExact(host.readableRootsFrame) end
+    if host.readableControlFrame then hideReadableExact(host.readableControlFrame) end
     if host.readableStunFrame then hideReadableExact(host.readableStunFrame) end
     if host.readableInterruptSilenceFrame then hideReadableExact(host.readableInterruptSilenceFrame) end
     if host.readableWoundsFrame then hideReadableExact(host.readableWoundsFrame) end
     if host.readableOffensiveHarmfulFrame then hideReadableExact(host.readableOffensiveHarmfulFrame) end
+    if host.readableWaitingToResurrectFrame then hideReadableExact(host.readableWaitingToResurrectFrame) end
+    if host.readableDivineProtectionFrame then hideReadableExact(host.readableDivineProtectionFrame) end
     if host.readableGhostFrame then host.readableGhostFrame:Hide() end
     if host.readableFormStateFrame then host.readableFormStateFrame:Hide() end
     if host.readableWelcomingCampfireFrame then host.readableWelcomingCampfireFrame:Hide() end
-    restorePortrait(host)
+    if InCombatLockdown and InCombatLockdown() then
+        R.buildQueued = true
+        return false
+    end
+    if not restorePortrait(host) then
+        R.buildQueued = true
+        return false
+    end
     if host.ownsLayer and host.layer then host.layer:Hide() end
     R.hosts[unit] = nil
     return true
@@ -1255,8 +1269,11 @@ function R.DestroyAll()
         R.buildQueued = true
         return false
     end
-    for _, unit in ipairs(R.TRACKED_UNITS) do R.DestroyHost(unit) end
-    return true
+    local restored = true
+    for _, unit in ipairs(R.TRACKED_UNITS) do
+        if not R.DestroyHost(unit) then restored = false end
+    end
+    return restored
 end
 
 -- An in-progress host is private to its constructor. Keep at most one build
@@ -1274,7 +1291,7 @@ local function buildHost(unit, host)
         R.buildQueued = true
         return nil
     end
-    if existing then R.DestroyHost(unit) end
+    if existing and not R.DestroyHost(unit) then return nil end
     if not R.SORT_METHOD or not R.SORT_DIRECTION then return nil end
 
     local portrait, portraitMask, unitFrame = R.GetPortrait(unit)
@@ -1373,6 +1390,8 @@ local function buildHost(unit, host)
     -- evidence-gated visual helpers never infer an unobserved cast or silence.
     for _, spec in ipairs({
         { "CampfireNearbyHarmful", "readableNearbyHarmfulFrame", 4 },
+        { "Roots", "readableRootsFrame", 300 },
+        { "Control", "readableControlFrame", 310 },
         { "Stun", "readableStunFrame", 320 },
         { "InterruptSilence", "readableInterruptSilenceFrame", 306 },
         { "Wounds", "readableWoundsFrame", 230 },
@@ -1463,18 +1482,10 @@ local function buildHost(unit, host)
 end
 
 local function abandonHost(host)
-    disableContainers(host)
-    -- Hiding the owned layer also hides any helper that threw before it could
-    -- be assigned to a host field. Never leave that partial tree rendering.
-    if host.layer then pcall(host.layer.Hide, host.layer) end
-    local restored = true
-    if host.reparented and host.portrait then
-        local parentOK = pcall(host.portrait.SetParent, host.portrait, host.originalParent)
-        local pointsOK = pcall(R.RestorePoints, host.portrait, host.originalPoints)
-        restored = parentOK and pointsOK
-        if restored then host.reparented = false end
-    end
-    return restored
+    -- Recovery ownership is reachable even when construction never published a
+    -- usable host. DestroyHost retains it until native parent AND points return.
+    R.hosts[host.unit] = host
+    return R.DestroyHost(host.unit)
 end
 
 function R.CreateHost(unit)
@@ -1530,7 +1541,7 @@ local function setContainer(container, shown, forceRefresh)
 end
 
 function R.UpdateHost(host, forceContainerRefresh)
-    if not host or host._buildComplete ~= true then return end
+    if not host or host._buildComplete ~= true or host._restorePending then return end
     local owners = host._readableTierOwners or {}
     for key, owner in pairs(owners) do
         -- A missing/replaced addon frame must revoke its previous presentation.
@@ -1585,6 +1596,10 @@ function R.UpdateHost(host, forceContainerRefresh)
     -- without an applied aura never become a positive portrait witness.
     updateReadableHarmfulTier(host, base, "CampfireNearbyHarmful",
         "readableNearbyHarmfulFrame", "_nearbyHarmful")
+    updateReadableHarmfulTier(host, base, "Roots",
+        "readableRootsFrame", "_roots")
+    updateReadableHarmfulTier(host, base, "Control",
+        "readableControlFrame", "_control")
     updateReadableHarmfulTier(host, base, "Stun",
         "readableStunFrame", "_stun")
     updateReadableHarmfulTier(host, base, "InterruptSilence",
@@ -1602,8 +1617,8 @@ function R.UpdateHost(host, forceContainerRefresh)
     updateReadableHarmfulTier(host, base, "OffensiveHarmful", "readableOffensiveHarmfulFrame", "_offensiveHarmful")
 
     -- Waiting to Resurrect is a helpful aura on ghosted units. Keep its secure
-    -- exact lane authoritative when legal; otherwise show only a directly
-    -- readable exact-ID witness above the state-derived Ghost frame.
+    -- exact lane authoritative when legal; otherwise require a complete ordered
+    -- election above the state-derived Ghost frame.
     local waitingTier = findTierByKey("WaitingToResurrect")
     local waitingSecureAllowed = waitingTier and R.ExactFilterAllowed(
         host.unit, true, waitingTier.spellIDs, waitingTier.allowNeverSecret
@@ -1616,15 +1631,15 @@ function R.UpdateHost(host, forceContainerRefresh)
         and not host._readableTierOwners.WaitingToResurrect
         and not R.NativeExactContainerAllowed(host.unit, waitingTier)
     then
-        local aura, spellID, readable = scanReadableExactAuraSet(
-            host.unit, "HELPFUL", waitingTier.spellIDs
+        local best, complete, electionReadable = scanLatestReadableExactTierAura(
+            host.unit, waitingTier.key, waitingTier.filter
         )
-        host._waitingToResurrectReadable = readable
-        if aura then
-            host._waitingToResurrectSpellID = spellID
+        host._waitingToResurrectReadable = complete and electionReadable
+        if complete and electionReadable and best then
+            host._waitingToResurrectSpellID = best.spellID
             host._waitingToResurrectActive = showReadableTier(
                 host, "readableWaitingToResurrectFrame",
-                { aura = aura, spellID = spellID, tier = waitingTier }, false
+                best, true
             )
         else
             hideReadableExact(host.readableWaitingToResurrectFrame)
@@ -1719,6 +1734,7 @@ function R.Refresh(unit, forceContainerRefresh)
         if host then
             if host.testFrame then host.testFrame:Hide() end
             R.UpdateHost(host)
+            if host._restorePending then R.DestroyHost(unit) end
         end
         return
     end
@@ -1727,7 +1743,7 @@ function R.Refresh(unit, forceContainerRefresh)
             R.buildQueued = true
             return
         end
-        R.DestroyHost(unit)
+        if not R.DestroyHost(unit) then return end
         host = nil
     end
     host = host or R.CreateHost(unit)
@@ -1754,15 +1770,16 @@ function R.BuildAll()
         return
     end
     if not R.db or not R.db.enabled then
-        R.DestroyAll()
-        R.buildQueued = false
+        R.buildQueued = not R.DestroyAll()
         return
     end
     R.buildQueued = false
     for _, unit in ipairs(R.TRACKED_UNITS) do
         local failure = hostBuildFailures[unit]
-        -- Failed restoration requires a reload, not nested ownership on retry.
-        if failure and failure.restored then hostBuildFailures[unit] = nil end
+        -- An explicit build retries recovery first; construction can resume only
+        -- after the old native parent and points have been restored.
+        if failure and R.hosts[unit] then R.DestroyHost(unit) end
+        if failure and not R.hosts[unit] then hostBuildFailures[unit] = nil end
         R.CreateHost(unit)
     end
     R.RefreshAll()
