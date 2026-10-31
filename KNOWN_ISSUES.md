@@ -1,5 +1,11 @@
 # Known issues and bugs
 
+**Ten-second decimals (2026-10-31):** `0.1.159-ten-second-decimals-test` uses one decimal strictly below ten seconds with `/bp decimals` on, whole seconds at ten and above, and a matching compatibility threshold. Decimals off and the existing long-duration hiding rule are unchanged. This supersedes the five-second policy below; live-client verification remains pending.
+
+**Warrior stance experiment (2026-10-31):** `0.1.158-stance-test` supports Battle (2457), Defensive (71), and Berserker (2458) through the existing static form-state presenter. The player's own stance uses the active shapeshift-form API, including positively identified self aliases. Other Warriors require a single readable, current exact stance aura; absent or restricted evidence leaves the stance unknown. Hidden stance auras may never be exposed by Forever for other players. On a non-Warrior, use `/bp stance target` while a targeted Warrior switches stances to inspect the available evidence. `UNIT_FORM_CHANGED` identifies a unit, not its new stance. Live cross-faction/combat behavior remains unverified. See architecture section 33.
+
+**Audit repairs (2026-10-31):** `0.1.157-audit-fixes-test` addresses the reproduced Roots/Control fallback omission, Quitter promotion, first-match Waiting-to-Resurrect election, failed-access-check behavior and failed native portrait restoration. New behavioral regressions exercise those source paths. These repairs do not close historical live Battleground/rendering reports without client verification. WotF removes CC on use and has no applied buff, so it remains excluded. See architecture section 32.
+
 **Correction (2026-10-27):** `0.1.154-priority-scope-correction-test` restores Roots 300, Slows 278 and Dazed 279. Their decrease in v0.1.153 was not requested. WotF (7744) is removed from all portrait aura categories: the user's direct Forever test observed no WotF buff, and a cast-only effect cannot be displayed as an invented immunity aura. Tests lock all retained pre-overhaul priority numbers except the two explicitly requested changes (Utility and OffensiveHarmful). No other spell classification from the consolidation is changed.
 
 **Priority consolidation (2026-10-27):** `0.1.153-priority-consolidation-test` merges redundant tiers (Divine Protection, defensive racials, Weakened Soul/bandaging, shields, flags and informational debuffs), reclassifies reflection/Free Action/Voice/Grounding/Blink and adds a dedicated applied-stun and interrupt/silence readable election. The existing Charge, Intercept, Cheap Shot and Pounce stun IDs were already listed; missing live display may still reflect protected/absent aura evidence. The distinct Pounce bleed remains DoTs. Unverified shape-only Chilled/Frost Armor approximations are removed; true unreadable auras may now fall back more conservatively. Combat/taint and target/focus cross-faction visibility require Forever testing.
@@ -10,7 +16,7 @@
 
 **v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
 
-Historical status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**. Current synchronized source is **0.1.154-priority-scope-correction-test** (2026-10-27); historical items below are not automatically closed by that update.
+Historical status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**. Current synchronized source is **0.1.159-ten-second-decimals-test** (2026-10-31); historical items below are not automatically closed by that update.
 
 The items below reflect reports and screenshots from Battleground sessions.
 They remain open until checked in the live client against this build. A report

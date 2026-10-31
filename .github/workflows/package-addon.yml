@@ -3,6 +3,8 @@ name: Package addon
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -18,7 +20,7 @@ jobs:
         run: |
           set -euo pipefail
           for version in 5.1 5.4; do
-            for file in Spells.lua Core.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua Commands.lua Main.lua tests/low-priority.lua tests/decimal-threshold.lua tests/priority-overhaul.lua tests/hostile-helpful-priority.lua tests/derived-evidence.lua tests/pending-evidence-recovery.lua; do
+            for file in Spells.lua Core.lua StanceState.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua Commands.lua Main.lua tests/*.lua; do
               "luac${version}" -p "$file"
             done
             "lua${version}" tests/low-priority.lua
@@ -27,11 +29,15 @@ jobs:
             "lua${version}" tests/hostile-helpful-priority.lua
             "lua${version}" tests/derived-evidence.lua
             "lua${version}" tests/pending-evidence-recovery.lua
+            "lua${version}" tests/access-guards.lua
+            "lua${version}" tests/priority-recovery.lua
+            "lua${version}" tests/portrait-restoration.lua
+            "lua${version}" tests/stance-state.lua
           done
       - name: Stage addon
         run: |
           mkdir -p dist/bjarkiPortraits
-          cp Spells.lua Core.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua Commands.lua Main.lua bjarkiPortraits.toc bjarkiPortraits_Camelot.toc dist/bjarkiPortraits/
+          cp Spells.lua Core.lua StanceState.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua Commands.lua Main.lua bjarkiPortraits.toc bjarkiPortraits_Camelot.toc dist/bjarkiPortraits/
       - uses: actions/upload-artifact@v4
         with:
           name: bjarkiPortraits

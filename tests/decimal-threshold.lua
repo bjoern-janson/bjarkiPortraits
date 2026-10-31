@@ -1,4 +1,4 @@
--- Native portrait countdown formatting: decimals below five seconds.
+-- Native portrait countdown formatting: decimals below ten seconds.
 -- Load the actual Core.lua; validate both formatter and compatibility paths.
 local BP = {}
 local oldGlobals = { db = BjarkiPortraitsDB, strings = C_StringUtil, enumeration = Enum }
@@ -51,7 +51,7 @@ equal(constructors, 1, "one formatter allocated")
 equal(#enabled.rules, 3, "existing three-breakpoint formatter")
 equal(enabled.rules[1].threshold, 0, "one-decimal rule begins at zero")
 equal(enabled.rules[1].format, "%.1f", "native one-decimal format unchanged")
-equal(enabled.rules[2].threshold, 5, "whole seconds begin precisely at five")
+equal(enabled.rules[2].threshold, 10, "whole seconds begin precisely at ten")
 equal(enabled.rules[2].format, "%.0f", "whole-second format intact")
 equal(enabled.rules[2].step, 1, "whole-second step unchanged")
 equal(enabled.rules[2].rounding, Enum.NumericRuleFormatRounding.Down,
@@ -61,7 +61,8 @@ equal(enabled.rules[3].format, "", "long duration text remains hidden")
 for _, case in ipairs({
     {0.1, "0.1"}, {1.4, "1.4"}, {2.9, "2.9"},
     {3, "3.0"}, {4, "4.0"}, {4.9, "4.9"},
-    {5, "5"}, {5.1, "5"}, {5.9, "5"},
+    {5, "5.0"}, {5.1, "5.1"}, {5.9, "5.9"},
+    {9.9, "9.9"}, {10, "10"}, {10.1, "10"},
     {12.9, "12"}, {59.9, "59"}, {60, "60"},
     {60.000001, ""}, {90, ""},
 }) do
@@ -95,7 +96,7 @@ equal(working.applyCount, 1, "formatter applied once")
 equal(working.fallbackCount, 0, "compatibility threshold not used on native success")
 local fallback = makeCooldown(false)
 R.ApplyCountdownFormat(fallback)
-equal(fallback.fallback, 5, "unsupported native formatter uses 5-second fallback")
+equal(fallback.fallback, 10, "unsupported native formatter uses 10-second fallback")
 equal(fallback.fallbackCount, 1, "native fallback called exactly once")
 
 R.db.showDecimals = false
@@ -109,6 +110,9 @@ equal(disabled.rules[2].threshold, 60.000001,
     "decimal-off long timer hiding remains unchanged")
 equal(render(disabled, 4.9), "4", "decimal-off leaves four whole seconds")
 equal(render(disabled, 5), "5", "decimal-off five whole seconds")
+equal(render(disabled, 9.9), "9", "decimal-off below ten whole seconds")
+equal(render(disabled, 10), "10", "decimal-off ten whole seconds")
+equal(render(disabled, 10.1), "10", "decimal-off above ten whole seconds")
 equal(render(disabled, 59.9), "59", "decimal-off down-rounded whole seconds")
 local offFallback = makeCooldown(false)
 R.ApplyCountdownFormat(offFallback)
@@ -119,7 +123,7 @@ check(offNative.formatter == disabled, "decimal-off native formatter applied")
 
 R.db.showDecimals = true
 local again = assert(R.GetCountdownFormatter())
-equal(again.rules[2].threshold, 5, "decimals toggle back restores five seconds")
+equal(again.rules[2].threshold, 10, "decimals toggle back restores ten seconds")
 
 -- On builds without the numeric formatter, keep the compatibility path
 -- instead of reading, comparing or rescheduling any protected aura duration.
@@ -127,11 +131,11 @@ R._formatter, R._formatterKey = nil, nil
 C_StringUtil = nil
 local noNative = makeCooldown(false)
 R.ApplyCountdownFormat(noNative)
-equal(noNative.fallback, 5, "missing numeric formatter API uses five-second fallback")
+equal(noNative.fallback, 10, "missing numeric formatter API uses ten-second fallback")
 check(noNative.formatter == nil, "missing API adds no custom formatter")
 
 -- Restore the mutable globals for compatibility with combined test runners.
 BjarkiPortraitsDB = oldGlobals.db
 C_StringUtil = oldGlobals.strings
 Enum = oldGlobals.enumeration
-print("bjarkiPortraits five-second decimals: " .. checked .. " assertions passed")
+print("bjarkiPortraits ten-second decimals: " .. checked .. " assertions passed")

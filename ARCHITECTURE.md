@@ -1,5 +1,9 @@
 # bjarkiPortraits architecture
 
+**Ten-second decimals (2026-10-31):** `0.1.159-ten-second-decimals-test` displays one decimal strictly below ten seconds with `/bp decimals` enabled, whole seconds rounded down from ten through sixty, and the existing hidden countdown above `60.000001`. The compatibility threshold is ten seconds; decimals off remains unchanged. This supersedes the five-second timer policy in section 27. `tests/decimal-threshold.lua` covers 5.0, 9.9/10/10.1, both fallback cases, and the existing hiding boundary.
+
+**Audit repairs (2026-10-31):** `0.1.157-audit-fixes-test` preserves Roots/Control priorities through readable presentation, excludes Quitter from generic harmful promotion, completes Waiting-to-Resurrect elections, and hardens access checks and native portrait restoration. Section 32 records the source-level changes and verification boundary. WotF remains excluded: the user's current Forever observation is a CC removal on use with no applied buff.
+
 **Pending evidence recovery (2026-10-27):** `0.1.156-fixes-test` retries retained derived snapshots when faction/flag events restore eligibility, including player-wide relation changes. Section 31 describes this event-routing repair.
 
 **Priority handoff and derived evidence repairs (2026-10-27):** `0.1.155-fixes-test` keeps the generic helpful lane eligible above lower informational helpers and delivers later readable timing through bounded, coalesced derived snapshots. Section 30 describes these repairs; section 29 remains authoritative for spell classifications and numeric priorities.
@@ -14,7 +18,7 @@
 
 **v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
 
-This document tracks **bjarkiPortraits 0.1.156-fixes-test** (2026-10-27). Sections 1–28 are historical architecture and experiment notes; **section 29 corrects the unsolicited priority changes and the Will of the Forsaken aura assumption**. This reference does not claim undocumented guarantees about the WoW: Forever client.
+This document tracks **bjarkiPortraits 0.1.159-ten-second-decimals-test** (2026-10-31). Sections 1–28 are historical architecture and experiment notes; **section 29 corrects the unsolicited priority changes and the Will of the Forsaken aura assumption**. This reference does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into nine Lua modules, loaded in this order:
 
@@ -597,3 +601,36 @@ Recovery uses the existing one-shot queue and fixed nine-spell shortlist. Repeat
 `tests/pending-evidence-recovery.lua` exercises both derived units, unit and player faction/flags, selective pending tokens, coalescing, ineligible retries, current identity, disable, partial/empty reads and the existing connection recovery path. All five previous test scripts remain unchanged; CI compiles and runs all six scripts on Lua 5.1 and Lua 5.4.
 
 Verification uses ordinary Lua with modeled game APIs. Live faction/event ordering, secret values, rendering, taint and frame-time cost remain unverified. Existing conditional API-failure observations and consumer retention/identity limitations are outside this narrow repair.
+
+
+## 32. Audit repairs: 0.1.157-audit-fixes-test (2026-10-31)
+
+The explicit priority numbers and spell memberships are unchanged. Roots (300) and Control (310) now have the same complete-readable harmful presentation path used by other reviewed categories on all five portrait hosts. This matters when friendly/self exact harmful filtering is unavailable despite readable aura data. Incomplete scans, unreadable ordering or timing, and failed presentation do not gain complete same-tier ownership. Native exact-filter permissions remain unchanged.
+
+The generic harmful exclusion set now includes the nearby-world harmful category. Quitter (1299099) remains in its informational level-4 lane and cannot gain level 175 through the broad fallback when its identity is available. Unrelated generic harmful auras remain eligible.
+
+The primary-frame WaitingToResurrect fallback uses a complete ordered tier election instead of the first matching indexed aura. It does not select an older candidate merely because the newer candidate cannot present its timing. The native lane remains authoritative when permitted.
+
+An available value-access checker must positively establish readability. Failed, inaccessible or nonboolean checks no longer grant access; ordinary legacy behavior with absent optional checkers remains supported. Boolean/string reader wrappers honor the shared access boundary.
+
+Native portrait restoration retains ownership and recovery state when restoring the original parent or points fails. A failed restoration must not discard the host, permit nested replacement ownership, or hide an owned layer still containing the native portrait. Recovery uses existing lifecycle opportunities, with no polling loop.
+
+The new behavioral scripts cover priority recovery, access guards and native portrait restoration; the package workflow runs them alongside the six retained scripts on Lua 5.1 and Lua 5.4 and now also validates pull requests. Tests use modeled WoW APIs and do not certify native pixels, protected-value VM behavior, combat taint or client frame-time cost.
+
+WotF (7744) is cast-only CC removal per the user's direct observation and remains outside every displayed aura category. Combined Pounce stun/bleed presentation and absent applied school-lockout auras remain evidence limitations; this repair adds no guessed duration or invented aura.
+
+## 33. Warrior stance experiment: 0.1.158-stance-test (2026-10-31)
+
+Battle Stance (2457), Defensive Stance (71), and Berserker Stance (2458) use the existing static form-state presenter on all five portrait hosts. This presenter remains immediately below the native SelfState lane; stronger aura lanes retain their existing priority. Stances have no fabricated timer. Spell categories, numeric tier priorities, the Druid Cat/Bear witness, and WotF's exclusion are unchanged.
+
+`StanceState.lua` resolves only positively identified, living Warrior players. For `player` or a positively proven self alias, it scans the bounded player form list and accepts exactly one active, recognized stance spell ID. It does not assume that a particular form-list index always represents a particular stance. Those player-only APIs are never used to infer another Warrior's stance.
+
+For another Warrior, the resolver checks the three exact stance IDs through `C_UnitAuras.GetUnitAuraBySpellID(unit, spellID)`. Every query must complete readably, every returned aura must match the requested ID and be helpful, and exactly one stance must be present. Missing, restricted, malformed, conflicting, or failed evidence leaves the stance unknown. All Warriors using Rage does not distinguish their stances; neither a stance-change event nor a historical cast proves the current stance. There is no default Battle Stance, polling loop, cast cache, or new saved setting.
+
+Optional `UNIT_FORM_CHANGED` registration triggers a refresh of tracked units. Player form-change events refresh `player` and positively identified self aliases. Refreshes use the existing coalesced next-tick path and reread current unit bindings. Unsupported optional events cannot abort addon startup.
+
+`/bp stance [player|target|focus|tot|tof]` defaults to `target` and reports the resolver's source, result/reason, and exact-query statuses without changing the display or retaining observations. This provides a live probe when the observer is a Druid or another non-Warrior. A hidden stance aura may be readable through an exact query even when absent from the visible buff list, but the implementation makes no claim that Forever currently exposes it for other players.
+
+The API scope follows the [Forever native stance bar](https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_ActionBar/Shared/StanceBar.lua), [unit event documentation](https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua), and [unit aura documentation](https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitAuraDocumentation.lua). `UNIT_FORM_CHANGED` carries only a unit token. The form-bar getters describe the local player; the exact aura getter takes a unit token and can return no aura or restrict access.
+
+The packaging workflow compiles ten runtime modules and ten regression scripts, runs all ten scripts under Lua 5.1 and Lua 5.4, and ships the ten modules plus both manifests. The stance tests exercise the actual resolver, host presentation, event routes and slash command with modeled APIs. Live hidden-aura readability, protected values, combat taint, and rendered pixels still require client testing.
