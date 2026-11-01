@@ -40,6 +40,8 @@ R.TIERS = {
     -- Lowest informational lanes immediately above the race-portrait baseline.
     exact("Gathering", "HELPFUL", 1, true, C.buffs_gathering),
     exact("Tracking", "HELPFUL", 3, true, C.buffs_tracking),
+    -- Mind Vision is a target debuff; retain tracking's informational priority.
+    exact("TrackingHarmful", "HARMFUL", 3, false, C.debuffs_tracking, true),
     -- Informational harmful effects share the actual nearby-world level.
     exact("CampfireNearby", "HELPFUL", 4, true, C.buffs_campfire_nearby),
     exact("CampfireNearbyHarmful", "HARMFUL", 4, false,
@@ -222,7 +224,8 @@ end
 -- never infer an inaccessible aura's spell ID.
 local excludedHelpful = union("buffs_gathering", "buffs_tracking", "buffs_campfire_nearby",
     "buffs_cosmetic", "buffs_noncombat")
-local excludedHarmful = union("debuffs_campfire_nearby", "debuffs_noncombat", "debuffs_boosted_rest")
+local excludedHarmful = union("debuffs_tracking", "debuffs_campfire_nearby",
+    "debuffs_noncombat", "debuffs_boosted_rest")
 for spellID in pairs(excludedHelpful) do helpfulExplicit[spellID] = true end
 for spellID in pairs(excludedHarmful) do harmfulExplicit[spellID] = true end
 R.NONCOMBAT_EXCLUDED_HELPFUL = excludedHelpful

@@ -26,6 +26,7 @@ jobs:
             "lua${version}" tests/low-priority.lua
             "lua${version}" tests/decimal-threshold.lua
             "lua${version}" tests/priority-overhaul.lua
+            "lua${version}" tests/class-aura-coverage.lua
             "lua${version}" tests/hostile-helpful-priority.lua
             "lua${version}" tests/derived-evidence.lua
             "lua${version}" tests/pending-evidence-recovery.lua

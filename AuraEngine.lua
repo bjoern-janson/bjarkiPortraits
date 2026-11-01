@@ -1260,6 +1260,7 @@ function R.DestroyHost(unit)
     if host.readableDemoralizingFrame then hideReadableExact(host.readableDemoralizingFrame) end
     if host.readableBaselineHarmfulFrame then hideReadableExact(host.readableBaselineHarmfulFrame) end
     if host.readableNearbyHarmfulFrame then hideReadableExact(host.readableNearbyHarmfulFrame) end
+    if host.readableTrackingHarmfulFrame then hideReadableExact(host.readableTrackingHarmfulFrame) end
     if host.readableRootsFrame then hideReadableExact(host.readableRootsFrame) end
     if host.readableControlFrame then hideReadableExact(host.readableControlFrame) end
     if host.readableStunFrame then hideReadableExact(host.readableStunFrame) end
@@ -1411,6 +1412,7 @@ local function buildHost(unit, host)
     -- evidence-gated visual helpers never infer an unobserved cast or silence.
     for _, spec in ipairs({
         { "CampfireNearbyHarmful", "readableNearbyHarmfulFrame", 4 },
+        { "TrackingHarmful", "readableTrackingHarmfulFrame", 3 },
         { "Roots", "readableRootsFrame", 300 },
         { "Control", "readableControlFrame", 310 },
         { "Stun", "readableStunFrame", 320 },
@@ -1617,6 +1619,8 @@ function R.UpdateHost(host, forceContainerRefresh)
     -- without an applied aura never become a positive portrait witness.
     updateReadableHarmfulTier(host, base, "CampfireNearbyHarmful",
         "readableNearbyHarmfulFrame", "_nearbyHarmful")
+    updateReadableHarmfulTier(host, base, "TrackingHarmful",
+        "readableTrackingHarmfulFrame", "_trackingHarmful")
     updateReadableHarmfulTier(host, base, "Roots",
         "readableRootsFrame", "_roots")
     updateReadableHarmfulTier(host, base, "Control",
