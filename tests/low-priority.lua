@@ -16,6 +16,7 @@ end
 local gathering = assert(R.TIER_BY_KEY.Gathering)
 local info = assert(R.TIER_BY_KEY.CampfireNearbyHarmful)
 local tracking = assert(R.TIER_BY_KEY.Tracking)
+local trackingHarmful = assert(R.TIER_BY_KEY.TrackingHarmful)
 local ambient = assert(R.TIER_BY_KEY.CampfireNearby)
 local ambientHarmful = assert(R.TIER_BY_KEY.CampfireNearbyHarmful)
 local fallback = assert(R.TIER_BY_KEY.HostileHelpful)
@@ -23,6 +24,7 @@ local fallback = assert(R.TIER_BY_KEY.HostileHelpful)
 equal(gathering.level, 1, "Find Herbs/Minerals lowest aura tier")
 equal(info.level, 4, "informational harmful merged into nearby-world effects")
 equal(tracking.level, 3, "tracking/sensing immediately above gathering")
+equal(trackingHarmful.level, tracking.level, "harmful tracking shares the informational priority")
 equal(ambient.level, 4, "original ambient buff above tracking")
 equal(ambientHarmful.level, 4, "ambient harmful and informational effects share priority")
 equal(fallback.level, 5, "generic hostile fallback above the exact low lanes")
@@ -30,7 +32,7 @@ check(gathering.helpful and gathering.exact, "gathering is exact helpful")
 check(not info.helpful and info.exact, "informational effects are exact harmful")
 check(tracking.helpful and tracking.exact, "tracking is exact helpful")
 for _, tier in ipairs(R.TIERS) do
-    if tier ~= gathering and tier ~= tracking then
+    if tier ~= gathering and tier ~= tracking and tier ~= trackingHarmful then
         check(tier.level >= 4, "all remaining aura tiers above race-fallback lanes: " .. tier.key)
     end
 end
@@ -61,7 +63,6 @@ local sensingIDs = {
     [43308] = "Find Fish",
     [132] = "Detect Invisibility",
     [126] = "Eye of Kilrogg",
-    [2096] = "Mind Vision",
     [6196] = "Far Sight",
     [6197] = "Eagle Eye",
     [1462] = "Beast Lore",

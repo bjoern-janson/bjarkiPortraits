@@ -145,6 +145,11 @@ PT.categories = {
         [2878] = true, -- Turn Undead
         [1265054] = true, -- Mine!
         [1265056] = true, -- Mine!
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [5627] = true, -- Turn Undead
+        [10326] = true, -- Turn Undead
+        [14251] = true, -- Riposte (applied disarm)
     },
     stuns = {
         [20549] = true, -- War Stomp
@@ -225,8 +230,11 @@ PT.categories = {
         [1220748] = true,
         [1220749] = true,
         [1220751] = true,
-                [19577] = true, -- Intimidation
                 [1277455] = true, -- Confounding Flash
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [408690] = true, -- Earth Shock
+        [1220747] = true, -- Earth Shock
     },
     debuffs_consecration = {
         [1280353] = true, -- Consecration (Forever applied damage-amplification aura)
@@ -301,6 +309,25 @@ PT.categories = {
         [24583] = true, -- Scorpid Poison
         [24640] = true, -- Scorpid Poison
         [1265066] = true, -- Savage Rend
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [603] = true, -- Bane of Doom
+        [13812] = true, -- Explosive Trap Effect
+        [14315] = true, -- Explosive Trap Effect
+        [15264] = true, -- Holy Fire
+        [15265] = true, -- Holy Fire
+        [15266] = true, -- Holy Fire
+        [24587] = true, -- Scorpid Poison (Hunter pet, max rank)
+        [25349] = true, -- Deadly Poison
+        [29228] = true, -- Flame Shock
+        [434316] = true, -- Deadly Poison
+        [1265067] = true, -- Savage Rend Rank 3 (Hunter pet)
+        [1265068] = true, -- Savage Rend Rank 4 (Hunter pet)
+        [1265069] = true, -- Savage Rend Rank 5 (Hunter pet)
+        [1310536] = true, -- Lacerating Strikes (Hunter bleed)
+        [1316697] = true, -- Wrack
+        [1328616] = true, -- Lacerate (Druid level 34)
+        [1328617] = true, -- Lacerate (Druid talent)
     },
     slows = {
         [8058] = true, -- Frost Shock Rank 2
@@ -344,6 +371,20 @@ PT.categories = {
         [11201] = true, -- Crippling Poison (movement slow)
         [12548] = true, -- Frost Shock (movement slow)
         [18223] = true, -- Curse of Exhaustion (movement slow)
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [10458] = true, -- Frostbrand Attack
+        [14268] = true, -- Wing Clip
+        [16352] = true, -- Frostbrand Attack
+        [17313] = true, -- Mind Flay
+        [18807] = true, -- Mind Flay
+        [25304] = true, -- Frostbolt
+        [401502] = true, -- Frostfire Bolt
+        [1264739] = true, -- Pinch Rank 3 (Hunter pet)
+        [1264741] = true, -- Pinch Rank 4 (Hunter pet)
+        [1264742] = true, -- Pinch Rank 5 (Hunter pet)
+        [1265040] = true, -- Tendon Rip Rank 3 (Hunter pet)
+        [1265042] = true, -- Tendon Rip Rank 5 (Hunter pet)
     },
     slows_dazed = {
         [1604] = true, -- Dazed (applied movement slow)
@@ -359,6 +400,9 @@ PT.categories = {
         [20005] = true, -- Chilled (Forever/NPC variant)
         [1296223] = true, -- Chilled (Forever/NPC variant)
                 [120] = true, -- Cone of Cold
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [10161] = true, -- Cone of Cold
     },
     roots = {
         [6533] = true,
@@ -396,6 +440,12 @@ PT.categories = {
         [1265843] = true, -- Web
         [1265878] = true, -- Web
         [1277332] = true, -- Chastise
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [1238289] = true, -- Earthbound
+        [1265880] = true, -- Web Rank 3 (Hunter pet)
+        [1265881] = true, -- Web Rank 4 (Hunter pet)
+        [1265883] = true, -- Web Rank 5 (Hunter pet)
     },
     -- Applied harmful silence auras. Interrupt *cast* IDs live in interrupts
     -- below; not every interrupt produces a duration-bearing aura.
@@ -422,7 +472,6 @@ PT.categories = {
         [1767] = true,
         [1768] = true,
         [1769] = true,
-        [14251] = true,
         [6552] = true,
         [6554] = true,
         [72] = true,
@@ -511,6 +560,14 @@ PT.categories = {
                 [27828] = true, -- Focused Casting
                 [1311015] = true, -- Templar's Bulwark
                 [1310612] = true, -- Trickster's Dance
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [552] = true, -- Abolish Disease
+        [20925] = true, -- Holy Shield
+        [20927] = true, -- Holy Shield
+        [20928] = true, -- Holy Shield
+        [1239570] = true, -- Holy Shield
+        [1328551] = true, -- Shieldsworn
     },
     buffs_utility = {
         [1259416] = true, -- Walk on Air (Skyborne racial, 10 sec)
@@ -533,10 +590,12 @@ PT.categories = {
         [17329] = true, -- Nature's Grasp Rank 6
                 [130] = true, -- Slow Fall
                 [1539] = true, -- Feed Pet Effect
-                [1725] = true, -- Distract
                 [4511] = true, -- Phase Shift
                 [18288] = true, -- Amplify Curse
                 [18708] = true, -- Fel Domination
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [1706] = true, -- Levitate
     },
     buffs_offensive = {
         [1248808] = true, -- Revelation (Mage active enchant proc)
@@ -617,6 +676,17 @@ PT.categories = {
                 [1299448] = true, -- Quick Strikes
                 [1310726] = true, -- Expose Prey
                 [1310994] = true, -- Swift Judgement
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [6774] = true, -- Slice and Dice
+        [19577] = true, -- Intimidation (pet next-attack preparation; target stun is 24394)
+        [23881] = true, -- Bloodthirst Rank 1
+        [23892] = true, -- Bloodthirst Rank 2
+        [23893] = true, -- Bloodthirst Rank 3
+        [23894] = true, -- Bloodthirst Rank 4
+        [408505] = true, -- Maelstrom Weapon
+        [425336] = true, -- Rage of the Farseer
+        [1310703] = true, -- Venom
     },
     debuffs_hunters_mark = {
         [1130] = true, -- Hunter's Mark Rank 1
@@ -672,6 +742,10 @@ PT.categories = {
         [8078] = true, -- Thunderclap (NPC attack-speed and movement penalty)
         [1213464] = true, -- Thunderclap (matching NPC applied variant)
         [1316382] = true, -- Dust Storm (applied attack-hit penalty)
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [1278759] = true, -- Hurricane
+        [1278965] = true, -- Hurricane
     },
     debuffs_healing_reduction = {
         [7068] = true, -- Veil of Shadow (75% healing reduction, single target)
@@ -746,6 +820,28 @@ PT.categories = {
         [14280] = true, -- Viper Sting (mana drain)
         [17877] = true, -- Shadowburn (create-item-on-death aura)
         [18867] = true, -- Shadowburn (create-item-on-death aura)
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [1725] = true, -- Distract (enemy stealth-detection penalty)
+        [11198] = true, -- Expose Armor
+        [11596] = true, -- Sunder Armor Rank 4
+        [11597] = true, -- Sunder Armor Rank 5
+        [19254] = true, -- Touch of Weakness
+        [20185] = true, -- Judgement of Light
+        [20186] = true, -- Judgement of Wisdom
+        [20188] = true, -- Judgement of the Crusader
+        [20300] = true, -- Judgement of the Crusader
+        [20301] = true, -- Judgement of the Crusader
+        [20302] = true, -- Judgement of the Crusader
+        [20303] = true, -- Judgement of the Crusader
+        [20344] = true, -- Judgement of Light
+        [20346] = true, -- Judgement of Light
+        [20354] = true, -- Judgement of Wisdom
+        [20355] = true, -- Judgement of Wisdom
+        [1265902] = true, -- Dust Cloud Rank 3 (Hunter pet)
+        [1265903] = true, -- Dust Cloud Rank 4 (Hunter pet)
+        [1265904] = true, -- Dust Cloud Rank 5 (Hunter pet)
+        [1279692] = true, -- Flare
     },
     debuffs_passive = {
         [26013] = true, -- Deserter (battleground queue lockout)
@@ -815,6 +911,16 @@ PT.categories = {
                 [20915] = true, -- Seal of Command
                 [1311649] = true, -- Seal of Fury
                 [1311656] = true, -- Seal of Fury
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [20347] = true, -- Seal of Light
+        [20348] = true, -- Seal of Light
+        [20349] = true, -- Seal of Light
+        [20419] = true, -- Seal of Fury
+        [20421] = true, -- Seal of Fury
+        [20422] = true, -- Seal of Fury
+        [20423] = true, -- Seal of Fury
+        [20920] = true, -- Seal of Command
     },
     buffs_fooddrink = {
         [23493] = true, -- Restoration (battleground health and mana recovery)
@@ -942,6 +1048,28 @@ PT.categories = {
         [24412] = true, -- Arathi Basin Silk Bandage
         [24413] = true, -- Arathi Basin Mageweave Bandage
         [24414] = true, -- Arathi Basin Runecloth Bandage
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [9858] = true, -- Regrowth
+        [9863] = true, -- Tranquility
+        [13542] = true, -- Mend Pet
+        [13543] = true, -- Mend Pet
+        [13544] = true, -- Mend Pet
+        [22842] = true, -- Frenzied Regeneration
+        [25299] = true, -- Rejuvenation
+        [25315] = true, -- Renew
+        [408120] = true, -- Wild Growth
+        [408521] = true, -- Riptide
+        [1238214] = true, -- Wild Growth
+        [1238215] = true, -- Wild Growth
+        [1239242] = true, -- Riptide
+        [1239243] = true, -- Riptide
+        [1240848] = true, -- Prayer of Mending
+        [1277456] = true, -- Contingency Plan (triggered heal over time)
+        [1277457] = true, -- Contingency Plan (triggered heal over time)
+        [1277458] = true, -- Contingency Plan (triggered heal over time)
+        [1277459] = true, -- Contingency Plan (triggered heal over time)
+        [1277460] = true, -- Contingency Plan (triggered heal over time)
     },
 
     buffs_minor_regen = {
@@ -1071,6 +1199,19 @@ PT.categories = {
         [20906] = true,   -- Trueshot Aura Rank 5 (level 60)
         [17007] = true, -- Leader of the Pack (retained talent record)
         [24932] = true, -- Leader of the Pack (applied party aura)
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [8515] = true, -- Windfury Totem
+        [8836] = true, -- Grace of Air
+        [10609] = true, -- Windfury Totem
+        [10612] = true, -- Windfury Totem
+        [10626] = true, -- Grace of Air
+        [15108] = true, -- Windwall
+        [15109] = true, -- Windwall
+        [15110] = true, -- Windwall
+        [20043] = true, -- Aspect of the Wild
+        [20190] = true, -- Aspect of the Wild
+        [25360] = true, -- Grace of Air
     },
     buffs_minor_world = {
         [1296202] = true, -- Rat Familiar (+2 Intellect)
@@ -1275,6 +1416,17 @@ PT.categories = {
                 [7302] = true, -- Ice Armor
                 [13161] = true, -- Aspect of the Beast
                 [14752] = true, -- Divine Spirit
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [10169] = true, -- Amplify Magic
+        [10958] = true, -- Shadow Protection
+        [14818] = true, -- Divine Spirit
+        [25916] = true, -- Greater Blessing of Might
+        [27681] = true, -- Prayer of Spirit
+        [27683] = true, -- Prayer of Shadow Protection
+        [27841] = true, -- Divine Spirit
+        [1299447] = true, -- Aspect of the Beast
+        [1328548] = true, -- Oath of Light
     },
     -- Gathering node detection is intentionally BELOW passive status auras
     -- and other tracking/sensing abilities. These are the four observed
@@ -1284,6 +1436,12 @@ PT.categories = {
         [8387] = true, -- Find Herbs Rank 2
         [2580] = true, -- Find Minerals Rank 1
         [8388] = true, -- Find Minerals Rank 2
+    },
+    debuffs_tracking = {
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [2096] = true, -- Mind Vision Rank 1
+        [10909] = true, -- Mind Vision Rank 2
     },
     buffs_tracking = {
         -- Tracking/sensing and related remote scouting occupy one low-priority
@@ -1299,7 +1457,6 @@ PT.categories = {
                 [132] = true, -- Detect Invisibility
                 [1462] = true, -- Beast Lore
                 [1494] = true, -- Track Beasts
-                [2096] = true, -- Mind Vision
                 [5500] = true, -- Sense Demons
                 [5502] = true, -- Sense Undead
                 [6196] = true, -- Far Sight
@@ -1308,6 +1465,9 @@ PT.categories = {
                 [19883] = true, -- Track Humanoids
                 [19884] = true, -- Track Undead
                 [19885] = true, -- Track Hidden
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [6495] = true, -- Sentry Totem
     },
     -- The remaining sets below are exclusion-only unless separately assigned
     -- an exact tier. Exact IDs are preferred over names; cosmetic spell variants do not imply
@@ -1351,6 +1511,9 @@ PT.categories = {
                 [26177] = true, -- Charge
                 [26178] = true, -- Charge
                 [1317257] = true, -- Strider Kick
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [11329] = true, -- Vanish
     },
 
     buffs_camp_benefits = {
@@ -1502,6 +1665,14 @@ PT.categories = {
         [1785] = true, -- Stealth Rank 2 (Rogue)
         [1786] = true, -- Stealth Rank 3 (Rogue)
         [1787] = true, -- Stealth Rank 4 (Rogue)
+
+        -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
+        [6117] = true, -- Mage Armor
+        [9634] = true, -- Dire Bear Form
+        [15473] = true, -- Shadowform
+        [18790] = true, -- Fel Stamina
+        [18791] = true, -- Touch of Fire
+        [18792] = true, -- Fel Energy
     },
 }
 
