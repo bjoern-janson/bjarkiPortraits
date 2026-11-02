@@ -50,6 +50,10 @@ local function applied(id, category, key, level, helpful)
         equal(filters(broadKey).excludeSpellIDs[id], true,
             label .. " excluded from semantic " .. broadKey)
     end
+    if helpful and level < R.TIER_BY_KEY.HostileHelpful.level then
+        equal(filters("HostileHelpful").excludeSpellIDs[id], true,
+            label .. " informational aura cannot gain priority on a hostile unit")
+    end
 end
 local function noAura(id)
     equal(exactOwners(id), "", tostring(id) .. " has no invented exact aura")
@@ -169,13 +173,107 @@ run("supported form auras keep self-state priority", function()
     applied(15473, "buffs_other", "SelfState", 150, true) -- Shadowform
 end)
 
+-- Test the individual applied IDs. Sampling just the bottom and top ranks
+-- misses gaps between them. Separate the caster, pet and target applications
+-- even when the spellbook gives all of them the same name.
+local reviewedApplications = {
+    { "buffs_hots", "Healing", 251, true, {
+        3627, 8910, 9839, 9840, 9841, -- Rejuvenation
+        8941, 9750, 9856, 9857, 8918, 9862, -- Regrowth and Tranquility
+        3662, 3700, 11693, 11694, 11695, -- Mend Pet and Health Funnel
+        6077, 6078, 10927, 10928, 10929, -- Renew
+        401877, 1240849, 1311593, 1311597, -- Mending and Vigil recipient preparations
+        27813, 17851, 17852, 17854, -- Blessed Recovery and Consume Shadows
+    } },
+    { "buffs_power_word_shield", "PowerWordShield", 256, true, {
+        1277464, 1277465, 1277466, 431624, -- Contingency Plan and Divine Aegis absorbs
+    } },
+    { "buffs_class_baseline", "BaselineClass", 90, true, {
+        1299445, 1299446, 25918, 14819, 10957, -- Aspect, Greater Wisdom, Spirit, Shadow Protection
+        10170, 8451, 10173, 10174, 7320, 10219, 10220, -- Amplify, Dampen and owner Ice Armor
+    } },
+    { "buffs_seals", "Seal", 210, true, { 20918, 20919 } },
+    { "buffs_paladin_auras", "PaladinAura", 60, true, { 24907 } }, -- Moonkin recipient
+    { "buffs_other", "SelfState", 150, true, {
+        22782, 22783, 19478, 27827, -- Mage Armor, pet Tainted Blood and Spirit of Redemption
+    } },
+    { "buffs_tracking", "Tracking", 3, true, { 2970, 11743, 19480 } },
+    { "buffs_defensive", "Defensive", 290, true, {
+        12976, 20128, 437063, -- Last Stand, Redoubt and next-Holy-Light preparation
+    } },
+    { "buffs_innervate", "Innervate", 261, true, {
+        1277326, 1277327, 1277328, 1325257, -- Dark Sacrifice and Mana Tide recipient
+    } },
+    { "buffs_mobility", "Mobility", 160, true, {
+        9592, 10941, 10942, 7870, -- Fade and Succubus Lesser Invisibility
+        23109, 23110, 23147, 23148, 24452, 24453, -- pet Dash, Dive and Prowl
+        26179, 26201, 27685, -- pet Charge self buffs, distinct from its root
+    } },
+    { "buffs_offensive", "Offensive", 280, true, {
+        408255, 462707, 14143, 12966, 12880, -- Eclipse, Cutthroat, Remorseless, Flurry, Enrage
+        1310687, 1310785, 1310786, 19615, -- Sniper Shot range and pet Frenzy
+        19273, 19274, 19275, 1326084, -- Feedback and stored Reckoning attacks
+        28682, 400625, 400670, -- Combustion stacks, Heating Up and Fingers of Frost
+        11683, 11684, 17941, 440873, -- Hellfire self channel, Shadow Trance and Decimation
+    } },
+    { "debuffs_attack_penalty", "StatusEffects", 253, false, { 1278968 } }, -- Hurricane target
+    { "debuffs_other", "StatusEffects", 253, false, {
+        8650, 11197, 8380, -- Expose Armor and Sunder Armor
+        20184, 20345, 21183, 8192, 10953, -- target Judgements and Mind Soothe
+        2943, 19249, 19251, 19252, 19253, -- Touch of Weakness attacker curses
+        18868, 18869, 18870, 18871, -- Shadowburn target mark
+        7651, 11699, 11700, 6226, 11703, 11704, -- Drain Life and Drain Mana
+        1311677, 1311680, 7659, 11717, 1293696, -- curses and Demonic Brand
+    } },
+    { "debuffs_dots", "DoTs", 190, false, {
+        2819, 11353, 11354, 14314, 24586, -- Deadly Poison, Explosive Trap and Scorpid Poison
+        15261, 15267, 19302, 19303, 19304, 19305, -- Holy Fire and Starshards
+    } },
+    { "slows", "Slows", 278, false, {
+        7372, 7373, 14267, 1265041, -- Hamstring, Wing Clip and Tendon Rip
+        17312, 17314, 16353, -- Mind Flay and Frostbrand Attack
+        1237312, 1237313, 13018, 13019, 13021, -- Frostfire Bolt and Blast Wave
+    } },
+    { "slows_chilled", "Slows", 278, false, { 8492, 10159, 10160 } }, -- Cone of Cold
+    { "cc", "Control", 310, false, { 1265057, 1265058, 11725, 11726 } }, -- Mine!, Subjugate
+    { "roots", "Roots", 300, false, { 1277333, 1277334, 1277335 } }, -- Chastise
+}
+for _, group in ipairs(reviewedApplications) do
+    run("reviewed applications in " .. group[1], function()
+        for _, id in ipairs(group[5]) do
+            applied(id, group[1], group[2], group[3], group[4])
+        end
+    end)
+end
+
+-- Database records with unresolved rank acquisition or server routing. Keep
+-- these separate from the applicable ranks if the family is extended later.
+run("unverified variants do not acquire exact priority", function()
+    for _, id in ipairs({
+        414644, 1235826, 1235827, 24119, 24120, 1299332, -- Druid and Hunter Lacerate
+        14893, 1220750, 1326083, -- Inspiration, melee Earth Shock, Missile Barrage
+        13020, 17853, 19655, 19656, 19660, -- Blast Wave, Consume Shadows, Tainted Blood
+    }) do
+        equal(exactOwners(id), "", tostring(id) .. " has no verified exact owner")
+    end
+end)
+run("recipient auras stay distinct from scripts, direct heals and hidden talents", function()
+    for _, id in ipairs({
+        12975, 1325256, -- Last Stand cast and Mana Tide totem summon
+        1311595, 1311596, -- Light's Vigil cast and instant heal
+        408248, 462708, 400669, 18094, 1293695, -- Eclipse, Cutthroat, FoF, Nightfall, Demonic Brand
+    }) do
+        noAura(id)
+    end
+end)
+
 -- Break caught: promoting unsupported spell identities into visible aura
 -- classification while repairing verified entries. Warrior stance state is
 -- deliberately handled by its existing presenter, outside these aura sets.
 for _, fixture in ipairs({
     { 7744, "Will of the Forsaken" },
     { 2457, "Battle Stance" }, { 71, "Defensive Stance" }, { 2458, "Berserker Stance" },
-    { 11129, "unresolved Combustion" }, { 14183, "hidden Premeditation" },
+    { 11129, "hidden Combustion controller" }, { 14183, "hidden Premeditation" },
 }) do
     run(fixture[2] .. " is not blindly added", function() noAura(fixture[1]) end)
 end

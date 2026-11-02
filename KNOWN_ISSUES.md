@@ -1,8 +1,10 @@
 # Known issues and bugs
 
+**0.1.161 class aura repair (2026-11-02).** Portraits adds 157 applied spell IDs from the nine-class audit to existing priority tiers. These include intermediate ranks, Sniper Shot’s range buff, Combustion’s critical-strike buff (28682), and separate recipient effects such as Mana Tide (1325257). Friendly Target-of-Target and Focus-of-Target can recover a readable slow at priority 278 when native filtering is restricted. Current-build display and protected aura access still need an in-game check. The audit’s 14 qualified candidates remain open.
+
 **Class aura repair (2026-11-01):** `0.1.160-class-aura-fixes-test` adds 131 reviewed applied aura/rank IDs across all nine classes. Distract is harmful status, Intimidation's pet preparation is helpful offense (separate from its target stun), and Riposte joins the existing disarm/control category. Mind Vision ranks 1/2 use a harmful tracking filter at the existing tracking priority of 3, with guarded readable recovery. All other existing exact ownership and all existing numeric tier levels are preserved. Source and native-filter regressions pass on Lua 5.1/5.4, including both helpful/harmful polarity and mixed cast/application cases. Primary spell definitions were checked against current Forever database pages; for any listed ID, the source lookup is `https://www.wowhead.com/forever/spell=ID`.
 
-**Current verification boundary:** earlier live observations remain valid, including WotF removing control without an applied buff. The new exact entries and Mind Vision filter/recovery need current-build in-game visibility checks; missing prior entries did not prove native fallback invisibility. Unresolved applied IDs (including Combustion), uncertain older Druid Lacerate variants, and cast-only/hidden records were not inserted. Warrior stance state and the strict-below-ten-seconds portrait timer retain their existing behavior.
+**0.1.160 verification boundary:** earlier live observations remain valid, including WotF removing control without an applied buff. The new exact entries and Mind Vision filter/recovery need current-build in-game visibility checks; missing prior entries did not prove native fallback invisibility. Unresolved applied IDs (including Combustion), uncertain older Druid Lacerate variants, and cast-only/hidden records were not inserted. Warrior stance state and the strict-below-ten-seconds portrait timer retain their existing behavior.
 
 **Ten-second decimals (2026-10-31):** `0.1.159-ten-second-decimals-test` uses one decimal strictly below ten seconds with `/bp decimals` on, whole seconds at ten and above, and a matching compatibility threshold. Decimals off and the existing long-duration hiding rule are unchanged. This supersedes the five-second policy below; live-client verification remains pending.
 
@@ -20,7 +22,7 @@
 
 **v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
 
-Historical status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**. Current candidate source is **0.1.160-class-aura-fixes-test** (2026-11-01); historical items below are not automatically closed by that update.
+Historical status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**. Current candidate source is **0.1.161-class-aura-fixes-test** (2026-11-02); historical items below are not automatically closed by that update.
 
 The items below reflect reports and screenshots from Battleground sessions.
 They remain open until checked in the live client against this build. A report

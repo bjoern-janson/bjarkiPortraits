@@ -142,9 +142,13 @@ PT.categories = {
         [1265055] = true, -- Mine!
         [676] = true, -- Disarm
         [1098] = true, -- Subjugate Demon
+        [11725] = true, -- Subjugate Demon Rank 2
+        [11726] = true, -- Subjugate Demon Rank 3
         [2878] = true, -- Turn Undead
         [1265054] = true, -- Mine!
         [1265056] = true, -- Mine!
+        [1265057] = true, -- Mine! Rank 4
+        [1265058] = true, -- Mine! Rank 5
 
         -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
         [5627] = true, -- Turn Undead
@@ -305,6 +309,10 @@ PT.categories = {
         [15263] = true, -- Holy Fire
         [19296] = true, -- Starshards
         [19299] = true, -- Starshards
+        [19302] = true, -- Starshards Rank 4
+        [19303] = true, -- Starshards Rank 5
+        [19304] = true, -- Starshards Rank 6
+        [19305] = true, -- Starshards Rank 7
         [24118] = true, -- Lacerate
         [24583] = true, -- Scorpid Poison
         [24640] = true, -- Scorpid Poison
@@ -314,13 +322,20 @@ PT.categories = {
         [603] = true, -- Bane of Doom
         [13812] = true, -- Explosive Trap Effect
         [14315] = true, -- Explosive Trap Effect
+        [14314] = true, -- Explosive Trap Effect Rank 2
         [15264] = true, -- Holy Fire
         [15265] = true, -- Holy Fire
         [15266] = true, -- Holy Fire
+        [15261] = true, -- Holy Fire Rank 8
+        [15267] = true, -- Holy Fire Rank 7
         [24587] = true, -- Scorpid Poison (Hunter pet, max rank)
+        [24586] = true, -- Scorpid Poison Rank 3
         [25349] = true, -- Deadly Poison
         [29228] = true, -- Flame Shock
         [434316] = true, -- Deadly Poison
+        [2819] = true, -- Deadly Poison Rank 2
+        [11353] = true, -- Deadly Poison Rank 3
+        [11354] = true, -- Deadly Poison Rank 4
         [1265067] = true, -- Savage Rend Rank 3 (Hunter pet)
         [1265068] = true, -- Savage Rend Rank 4 (Hunter pet)
         [1265069] = true, -- Savage Rend Rank 5 (Hunter pet)
@@ -354,12 +369,17 @@ PT.categories = {
     
         [1265038] = true, -- Tendon Rip
         [1715] = true, -- Hamstring
+        [7372] = true, -- Hamstring Rank 2
+        [7373] = true, -- Hamstring Rank 3
         [2974] = true, -- Wing Clip
         [5116] = true, -- Concussive Shot
         [8034] = true, -- Frostbrand Attack
         [8037] = true, -- Frostbrand Attack
         [8056] = true, -- Frost Shock
         [11113] = true, -- Blast Wave
+        [13018] = true, -- Blast Wave Rank 2
+        [13019] = true, -- Blast Wave Rank 3
+        [13021] = true, -- Blast Wave Rank 5
         [12323] = true, -- Piercing Howl
         [15407] = true, -- Mind Flay
         [17311] = true, -- Mind Flay
@@ -375,16 +395,23 @@ PT.categories = {
         -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
         [10458] = true, -- Frostbrand Attack
         [14268] = true, -- Wing Clip
+        [14267] = true, -- Wing Clip Rank 2
         [16352] = true, -- Frostbrand Attack
+        [16353] = true, -- Frostbrand Attack Rank 5
         [17313] = true, -- Mind Flay
         [18807] = true, -- Mind Flay
+        [17312] = true, -- Mind Flay Rank 3
+        [17314] = true, -- Mind Flay Rank 5
         [25304] = true, -- Frostbolt
         [401502] = true, -- Frostfire Bolt
+        [1237312] = true, -- Frostfire Bolt Rank 2
+        [1237313] = true, -- Frostfire Bolt Rank 3
         [1264739] = true, -- Pinch Rank 3 (Hunter pet)
         [1264741] = true, -- Pinch Rank 4 (Hunter pet)
         [1264742] = true, -- Pinch Rank 5 (Hunter pet)
         [1265040] = true, -- Tendon Rip Rank 3 (Hunter pet)
         [1265042] = true, -- Tendon Rip Rank 5 (Hunter pet)
+        [1265041] = true, -- Tendon Rip Rank 4
     },
     slows_dazed = {
         [1604] = true, -- Dazed (applied movement slow)
@@ -403,6 +430,9 @@ PT.categories = {
 
         -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
         [10161] = true, -- Cone of Cold
+        [8492] = true, -- Cone of Cold Rank 2
+        [10159] = true, -- Cone of Cold Rank 3
+        [10160] = true, -- Cone of Cold Rank 4
     },
     roots = {
         [6533] = true,
@@ -440,6 +470,9 @@ PT.categories = {
         [1265843] = true, -- Web
         [1265878] = true, -- Web
         [1277332] = true, -- Chastise
+        [1277333] = true, -- Chastise Rank 3
+        [1277334] = true, -- Chastise Rank 4
+        [1277335] = true, -- Chastise Rank 5
 
         -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
         [1238289] = true, -- Earthbound
@@ -494,6 +527,10 @@ PT.categories = {
         [13031] = true, -- Ice Barrier Rank 2
         [13032] = true, -- Ice Barrier Rank 3
         [13033] = true, -- Ice Barrier Rank 4
+        [1277464] = true, -- Contingency Plan (triggered absorb)
+        [1277465] = true, -- Contingency Plan (triggered absorb)
+        [1277466] = true, -- Contingency Plan (triggered absorb)
+        [431624] = true, -- Divine Aegis (triggered absorb)
     },
     buffs_shield = {
         [6229] = true, -- Shadow Ward
@@ -568,6 +605,9 @@ PT.categories = {
         [20928] = true, -- Holy Shield
         [1239570] = true, -- Holy Shield
         [1328551] = true, -- Shieldsworn
+        [437063] = true, -- Infusion of Light (Holy Light cast-time proc)
+        [12976] = true, -- Last Stand (maximum health)
+        [20128] = true, -- Redoubt (block proc)
     },
     buffs_utility = {
         [1259416] = true, -- Walk on Air (Skyborne racial, 10 sec)
@@ -661,6 +701,8 @@ PT.categories = {
         
         [1323969] = true, -- Gore Drinker
                 [1949] = true, -- Hellfire
+        [11683] = true, -- Hellfire Rank 2
+        [11684] = true, -- Hellfire Rank 3
                 [5171] = true, -- Slice and Dice
                 [6150] = true, -- Quick Shots
                 [12043] = true, -- Presence of Mind
@@ -671,6 +713,9 @@ PT.categories = {
                 [16246] = true, -- Clearcasting
                 [16886] = true, -- Nature's Grace
                 [19271] = true, -- Feedback
+        [19273] = true, -- Feedback Rank 3
+        [19274] = true, -- Feedback Rank 4
+        [19275] = true, -- Feedback Rank 5
                 [400589] = true, -- Missile Barrage
                 [1284536] = true, -- Holy Purpose
                 [1299448] = true, -- Quick Strikes
@@ -687,6 +732,21 @@ PT.categories = {
         [408505] = true, -- Maelstrom Weapon
         [425336] = true, -- Rage of the Farseer
         [1310703] = true, -- Venom
+        [28682] = true, -- Combustion (Fire crit stack)
+        [462707] = true, -- Cutthroat (next Ambush)
+        [440873] = true, -- Decimation (Soul Fire preparation)
+        [408255] = true, -- Eclipse (applied empowerment)
+        [12880] = true, -- Enrage (Warrior damage proc)
+        [400670] = true, -- Fingers of Frost (applied proc)
+        [12966] = true, -- Flurry (Warrior attack speed)
+        [19615] = true, -- Frenzy (pet attack speed)
+        [400625] = true, -- Heating Up (Pyroblast preparation)
+        [1326084] = true, -- Reckoning (stored attacks)
+        [14143] = true, -- Remorseless (next-attack critical chance)
+        [17941] = true, -- Shadow Trance (Nightfall proc)
+        [1310687] = true, -- Sniper Shot (next-shots range) Rank 1
+        [1310785] = true, -- Sniper Shot (next-shots range) Rank 2
+        [1310786] = true, -- Sniper Shot (next-shots range) Rank 3
     },
     debuffs_hunters_mark = {
         [1130] = true, -- Hunter's Mark Rank 1
@@ -746,6 +806,7 @@ PT.categories = {
         -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
         [1278759] = true, -- Hurricane
         [1278965] = true, -- Hurricane
+        [1278968] = true, -- Hurricane Rank 2 (attack-speed reduction)
     },
     debuffs_healing_reduction = {
         [7068] = true, -- Veil of Shadow (75% healing reduction, single target)
@@ -790,19 +851,29 @@ PT.categories = {
     
         [1265901] = true, -- Dust Cloud
         [453] = true, -- Mind Soothe
+        [8192] = true, -- Mind Soothe Rank 2
+        [10953] = true, -- Mind Soothe Rank 3
         [689] = true, -- Drain Life
         [699] = true, -- Drain Life
         [704] = true, -- Curse of Recklessness
         [709] = true, -- Drain Life
+        [7651] = true, -- Drain Life Rank 4
+        [11699] = true, -- Drain Life Rank 5
+        [11700] = true, -- Drain Life Rank 6
         [1515] = true, -- Tame Beast
         [2908] = true, -- Soothe Animal Rank 1
         [8955] = true, -- Soothe Animal Rank 2
         [9901] = true, -- Soothe Animal Rank 3
         [3043] = true, -- Scorpid Sting
         [5138] = true, -- Drain Mana
+        [6226] = true, -- Drain Mana Rank 2
+        [11703] = true, -- Drain Mana Rank 3
+        [11704] = true, -- Drain Mana Rank 4
         [7386] = true, -- Sunder Armor
         [7405] = true, -- Sunder Armor
         [7658] = true, -- Curse of Recklessness
+        [7659] = true, -- Curse of Recklessness Rank 3
+        [11717] = true, -- Curse of Recklessness Rank 4
         [8647] = true, -- Expose Armor
         [8649] = true, -- Expose Armor
         [12579] = true, -- Winter's Chill
@@ -815,18 +886,32 @@ PT.categories = {
         [1225228] = true, -- Bane of Havoc
         [1265899] = true, -- Dust Cloud
         [1311676] = true, -- Curse of the Elements
+        [1311677] = true, -- Curse of the Elements Rank 3
+        [1311680] = true, -- Curse of the Elements Rank 4
         [3034] = true, -- Viper Sting (mana drain)
         [14279] = true, -- Viper Sting (mana drain)
         [14280] = true, -- Viper Sting (mana drain)
         [17877] = true, -- Shadowburn (create-item-on-death aura)
         [18867] = true, -- Shadowburn (create-item-on-death aura)
+        [18868] = true, -- Shadowburn Rank 3
+        [18869] = true, -- Shadowburn Rank 4
+        [18870] = true, -- Shadowburn Rank 5
+        [18871] = true, -- Shadowburn Rank 6
 
         -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
         [1725] = true, -- Distract (enemy stealth-detection penalty)
         [11198] = true, -- Expose Armor
+        [8650] = true, -- Expose Armor Rank 3
+        [11197] = true, -- Expose Armor Rank 4
         [11596] = true, -- Sunder Armor Rank 4
         [11597] = true, -- Sunder Armor Rank 5
+        [8380] = true, -- Sunder Armor Rank 3
         [19254] = true, -- Touch of Weakness
+        [2943] = true, -- Touch of Weakness (attacker curse)
+        [19249] = true, -- Touch of Weakness (attacker curse)
+        [19251] = true, -- Touch of Weakness (attacker curse)
+        [19252] = true, -- Touch of Weakness (attacker curse)
+        [19253] = true, -- Touch of Weakness (attacker curse)
         [20185] = true, -- Judgement of Light
         [20186] = true, -- Judgement of Wisdom
         [20188] = true, -- Judgement of the Crusader
@@ -838,10 +923,14 @@ PT.categories = {
         [20346] = true, -- Judgement of Light
         [20354] = true, -- Judgement of Wisdom
         [20355] = true, -- Judgement of Wisdom
+        [20184] = true, -- Judgement of Justice
+        [20345] = true, -- Judgement of Light Rank 3
+        [21183] = true, -- Judgement of the Crusader Rank 1
         [1265902] = true, -- Dust Cloud Rank 3 (Hunter pet)
         [1265903] = true, -- Dust Cloud Rank 4 (Hunter pet)
         [1265904] = true, -- Dust Cloud Rank 5 (Hunter pet)
         [1279692] = true, -- Flare
+        [1293696] = true, -- Demonic Brand (target application)
     },
     debuffs_passive = {
         [26013] = true, -- Deserter (battleground queue lockout)
@@ -921,6 +1010,8 @@ PT.categories = {
         [20422] = true, -- Seal of Fury
         [20423] = true, -- Seal of Fury
         [20920] = true, -- Seal of Command
+        [20918] = true, -- Seal of Command Rank 3
+        [20919] = true, -- Seal of Command Rank 4
     },
     buffs_fooddrink = {
         [23493] = true, -- Restoration (battleground health and mana recovery)
@@ -1021,6 +1112,10 @@ PT.categories = {
         [3661] = true, -- Mend Pet
         [3698] = true, -- Health Funnel
         [3699] = true, -- Health Funnel
+        [3700] = true, -- Health Funnel Rank 4
+        [11693] = true, -- Health Funnel Rank 5
+        [11694] = true, -- Health Funnel Rank 6
+        [11695] = true, -- Health Funnel Rank 7
         [6074] = true, -- Renew
         [6075] = true, -- Renew
         [6076] = true, -- Renew
@@ -1030,6 +1125,9 @@ PT.categories = {
         [8940] = true, -- Regrowth
         [16488] = true, -- Blood Craze
         [17850] = true, -- Consume Shadows
+        [17851] = true, -- Consume Shadows Rank 3
+        [17852] = true, -- Consume Shadows Rank 4
+        [17854] = true, -- Consume Shadows Rank 6
         -- First Aid / bandage channels share the Healing lane.
         [746] = true, -- Linen Bandage
         [1159] = true, -- Heavy Linen Bandage
@@ -1051,13 +1149,30 @@ PT.categories = {
 
         -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
         [9858] = true, -- Regrowth
+        [8941] = true, -- Regrowth Rank 5
+        [9750] = true, -- Regrowth Rank 6
+        [9856] = true, -- Regrowth Rank 7
+        [9857] = true, -- Regrowth Rank 8
         [9863] = true, -- Tranquility
+        [8918] = true, -- Tranquility Rank 2
+        [9862] = true, -- Tranquility Rank 3
         [13542] = true, -- Mend Pet
         [13543] = true, -- Mend Pet
         [13544] = true, -- Mend Pet
+        [3662] = true, -- Mend Pet Rank 4
         [22842] = true, -- Frenzied Regeneration
         [25299] = true, -- Rejuvenation
+        [3627] = true, -- Rejuvenation Rank 6
+        [8910] = true, -- Rejuvenation Rank 7
+        [9839] = true, -- Rejuvenation Rank 8
+        [9840] = true, -- Rejuvenation Rank 9
+        [9841] = true, -- Rejuvenation Rank 10
         [25315] = true, -- Renew
+        [6077] = true, -- Renew Rank 5
+        [6078] = true, -- Renew Rank 6
+        [10927] = true, -- Renew Rank 7
+        [10928] = true, -- Renew Rank 8
+        [10929] = true, -- Renew Rank 9
         [408120] = true, -- Wild Growth
         [408521] = true, -- Riptide
         [1238214] = true, -- Wild Growth
@@ -1065,11 +1180,16 @@ PT.categories = {
         [1239242] = true, -- Riptide
         [1239243] = true, -- Riptide
         [1240848] = true, -- Prayer of Mending
+        [401877] = true, -- Prayer of Mending (applied preparation) Rank 1
+        [1240849] = true, -- Prayer of Mending (applied preparation) Rank 3
         [1277456] = true, -- Contingency Plan (triggered heal over time)
         [1277457] = true, -- Contingency Plan (triggered heal over time)
         [1277458] = true, -- Contingency Plan (triggered heal over time)
         [1277459] = true, -- Contingency Plan (triggered heal over time)
         [1277460] = true, -- Contingency Plan (triggered heal over time)
+        [27813] = true, -- Blessed Recovery (periodic heal)
+        [1311593] = true, -- Light's Vigil (ally healing preparation)
+        [1311597] = true, -- Light's Vigil (ally healing preparation)
     },
 
     buffs_minor_regen = {
@@ -1090,9 +1210,13 @@ PT.categories = {
                 [16191] = true, -- Mana Tide
                 [17355] = true, -- Mana Tide
                 [17360] = true, -- Mana Tide
+        [1325257] = true, -- Mana Tide Rank 4 (recipient)
                 [1242688] = true, -- Resourcefulness
                 [1277324] = true, -- Dark Sacrifice
                 [1277325] = true, -- Dark Sacrifice
+        [1277326] = true, -- Dark Sacrifice Rank 3
+        [1277327] = true, -- Dark Sacrifice Rank 4
+        [1277328] = true, -- Dark Sacrifice Rank 5
     },
     buffs_druid_enrage = {
         [5229] = true, -- Enrage (Druid)
@@ -1212,6 +1336,7 @@ PT.categories = {
         [20043] = true, -- Aspect of the Wild
         [20190] = true, -- Aspect of the Wild
         [25360] = true, -- Grace of Air
+        [24907] = true, -- Moonkin Aura (recipient)
     },
     buffs_minor_world = {
         [1296202] = true, -- Rat Familiar (+2 Intellect)
@@ -1393,6 +1518,7 @@ PT.categories = {
         [19854] = true,
         [25290] = true,
         [25894] = true, -- Greater Blessing of Wisdom
+        [25918] = true, -- Greater Blessing of Wisdom Rank 2
 
         -- Kings
         [20217] = true,
@@ -1410,22 +1536,33 @@ PT.categories = {
         [25899] = true, -- Greater Blessing of Sanctuary
                 [604] = true, -- Dampen Magic
                 [8450] = true, -- Dampen Magic
+        [8451] = true, -- Dampen Magic Rank 3
+        [10173] = true, -- Dampen Magic Rank 4
+        [10174] = true, -- Dampen Magic Rank 5
                 [8455] = true, -- Amplify Magic
                 [976] = true, -- Shadow Protection
                 [1008] = true, -- Amplify Magic
                 [7302] = true, -- Ice Armor
+        [7320] = true, -- Ice Armor Rank 2
+        [10219] = true, -- Ice Armor Rank 3
+        [10220] = true, -- Ice Armor Rank 4
                 [13161] = true, -- Aspect of the Beast
                 [14752] = true, -- Divine Spirit
 
         -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
         [10169] = true, -- Amplify Magic
+        [10170] = true, -- Amplify Magic Rank 4
         [10958] = true, -- Shadow Protection
+        [10957] = true, -- Shadow Protection Rank 2
         [14818] = true, -- Divine Spirit
         [25916] = true, -- Greater Blessing of Might
         [27681] = true, -- Prayer of Spirit
         [27683] = true, -- Prayer of Shadow Protection
         [27841] = true, -- Divine Spirit
+        [14819] = true, -- Divine Spirit Rank 3
         [1299447] = true, -- Aspect of the Beast
+        [1299445] = true, -- Aspect of the Beast Rank 2
+        [1299446] = true, -- Aspect of the Beast Rank 3
         [1328548] = true, -- Oath of Light
     },
     -- Gathering node detection is intentionally BELOW passive status auras
@@ -1455,6 +1592,8 @@ PT.categories = {
         [43308] = true, -- Find Fish
                 [126] = true, -- Eye of Kilrogg
                 [132] = true, -- Detect Invisibility
+        [2970] = true, -- Detect Invisibility Rank 2
+        [11743] = true, -- Detect Invisibility Rank 3
                 [1462] = true, -- Beast Lore
                 [1494] = true, -- Track Beasts
                 [5500] = true, -- Sense Demons
@@ -1468,6 +1607,7 @@ PT.categories = {
 
         -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
         [6495] = true, -- Sentry Totem
+        [19480] = true, -- Paranoia (stealth detection)
     },
     -- The remaining sets below are exclusion-only unless separately assigned
     -- an exact tier. Exact IDs are preferred over names; cosmetic spell variants do not imply
@@ -1503,17 +1643,30 @@ PT.categories = {
                 [586] = true, -- Fade
                 [9578] = true, -- Fade
                 [9579] = true, -- Fade
+        [9592] = true, -- Fade Rank 4
+        [10941] = true, -- Fade Rank 5
+        [10942] = true, -- Fade Rank 6
                 [11327] = true, -- Vanish
                 [23099] = true, -- Dash
                 [23145] = true, -- Dive
+        [23109] = true, -- Dash (pet) Rank 2
+        [23110] = true, -- Dash (pet) Rank 3
+        [23147] = true, -- Dive (pet) Rank 2
+        [23148] = true, -- Dive (pet) Rank 3
                 [24450] = true, -- Prowl
+        [24452] = true, -- Prowl (pet) Rank 2
+        [24453] = true, -- Prowl (pet) Rank 3
                 [7371] = true, -- Charge
                 [26177] = true, -- Charge
                 [26178] = true, -- Charge
+        [26179] = true, -- Charge (pet attack preparation) Rank 4
+        [26201] = true, -- Charge (pet attack preparation) Rank 5
+        [27685] = true, -- Charge (pet attack preparation) Rank 6
                 [1317257] = true, -- Strider Kick
 
         -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
         [11329] = true, -- Vanish
+        [7870] = true, -- Lesser Invisibility (Succubus)
     },
 
     buffs_camp_benefits = {
@@ -1668,11 +1821,15 @@ PT.categories = {
 
         -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
         [6117] = true, -- Mage Armor
+        [22782] = true, -- Mage Armor Rank 2
+        [22783] = true, -- Mage Armor Rank 3
         [9634] = true, -- Dire Bear Form
         [15473] = true, -- Shadowform
         [18790] = true, -- Fel Stamina
         [18791] = true, -- Touch of Fire
         [18792] = true, -- Fel Energy
+        [27827] = true, -- Spirit of Redemption (applied form)
+        [19478] = true, -- Tainted Blood Rank 1 (pet preparation)
     },
 }
 

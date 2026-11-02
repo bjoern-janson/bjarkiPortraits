@@ -1413,6 +1413,7 @@ local function buildHost(unit, host)
     for _, spec in ipairs({
         { "CampfireNearbyHarmful", "readableNearbyHarmfulFrame", 4 },
         { "TrackingHarmful", "readableTrackingHarmfulFrame", 3 },
+        { "Slows", "readableSlowsFrame", 278 },
         { "Roots", "readableRootsFrame", 300 },
         { "Control", "readableControlFrame", 310 },
         { "Stun", "readableStunFrame", 320 },
@@ -1461,9 +1462,6 @@ local function buildHost(unit, host)
             local tier = findTierByKey(spec[1])
             if tier then host[spec[2]] = createReadableExactFrame(host, tier.level) end
         end
-
-        local slowsTier = findTierByKey("Slows")
-        host.readableSlowsFrame = createReadableExactFrame(host, slowsTier and slowsTier.level or 278)
 
         local forbearanceTier = findTierByKey("Forbearance")
         host.readableForbearanceFrame = createReadableExactFrame(
