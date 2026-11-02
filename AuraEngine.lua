@@ -254,24 +254,6 @@ local function electReadableCandidate(candidates, byApplicationTime)
     return best, true
 end
 
-local function scanReadableExactAura(unit, filter, spellID)
-    if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return nil, false end
-
-    for index = 1, AURA_SCAN_LIMIT do
-        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
-        if not ok or not R.CanAccess(aura) then return nil, false end
-        if aura == nil then return nil, true end
-
-        local auraSpellID, readable = R.ReadAuraField(aura, "spellId")
-        if not readable or type(auraSpellID) ~= "number" then return nil, false end
-        if auraSpellID == spellID then return aura, true end
-    end
-
-    -- No nil terminator was observed within the bounded scan, so absence is
-    -- unproven even though the requested spell was not found.
-    return nil, false
-end
-
 local function scanReadableExactAuraSet(unit, filter, spellIDs)
     if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex or type(spellIDs) ~= "table" then
         return nil, nil, false
