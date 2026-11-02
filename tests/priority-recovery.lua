@@ -85,7 +85,7 @@ local function host(unit)
     for _, key in ipairs({ "Hostile", "Baseline", "Healing", "WelcomingCampfire",
         "NearbyHarmful", "TrackingHarmful", "Roots", "Control", "Stun", "InterruptSilence", "Wounds", "StatusEffects",
         "ResurrectionSickness", "DoTs", "FormState", "Dazed", "Demoralizing",
-        "BaselineHarmful", "Slows", "Forbearance", "OffensiveHarmful",
+        "BaselineHarmful", "PassiveDebuff", "Slows", "Forbearance", "OffensiveHarmful",
         "WaitingToResurrect", "Ghost", "DivineProtection" }) do
         h["readable" .. key .. "Frame"] = frame()
     end
@@ -143,6 +143,8 @@ local harmfulHelpers = {
     { "Roots", 339, "Roots" }, { "Control", 118, "Control" },
     { "CampfireNearbyHarmful", 1299099, "NearbyHarmful" },
     { "TrackingHarmful", 2096, "TrackingHarmful" },
+    { "PassiveDebuff", 26013, "PassiveDebuff" },
+    { "BaselineClassHarmful", 8733, "BaselineHarmful" },
 }
 for _, f in ipairs(harmfulHelpers) do
     local key, id, frameKey = f[1], f[2], "readable" .. f[3] .. "Frame"
@@ -166,8 +168,8 @@ for _, f in ipairs(harmfulHelpers) do
                 "native exact permission is not relaxed")
             -- Missing timing/ordering or a texture failure does not change
             -- identity: a known informational effect still cannot use175.
-            local excludedOnly = (key == "CampfireNearbyHarmful" or key == "TrackingHarmful")
-                and (mode == "missing-timing" or mode == "missing-ordering" or mode == "texture")
+            local excludedOnly = key ~= "Roots" and key ~= "Control" and
+                (mode == "missing-timing" or mode == "missing-ordering" or mode == "texture")
             equal(native(h, "SmallFriendlyHarmful").enabled, not excludedOnly,
                 "generic fallback respects readable informational exclusions")
         end)
@@ -180,6 +182,31 @@ for _, f in ipairs(harmfulHelpers) do
         equal(h._readableTierOwners[key], nil, "old ownership cleared")
         equal(R.TIER_BY_KEY[key] and native(h, key).enabled, true,
             "native harmful exact lane eligible")
+    end)
+end
+for _, f in ipairs({
+    {"Deserter", 26013, "PassiveDebuff"}, {"Martyrdom", 1292749, "PassiveDebuff"},
+    {"Blessing of Blackfathom", 8733, "BaselineClassHarmful"},
+}) do
+    run(f[1] .. " remains below Thorns on a hostile unit", function()
+        helpful, harmful = {aura(467, 10)}, {aura(f[2], 20)}
+        local h = host()
+        R.UpdateHost(h)
+        equal(h._hostileActive, true, "Thorns is presented")
+        equal(h._hostileSpellID, 467, "helpful winner")
+        local exact, generic = native(h, f[3]), native(h, "SmallFriendlyHarmful")
+        equal(exact.enabled, true, "hostile exact harmful owner stays enabled")
+        check(exact.tier.level + 41 < h.readableHostileFrame.level, "Thorns outranks exact harmful")
+        equal(generic.enabled, false, "lone classified harmful cannot take generic priority")
+        local filters = R.CandidateFilters(generic.tier)
+        equal(filters.excludeSpellIDs[f[2]], true, "classified ID excluded even in a mixed stream")
+        equal(filters.excludeSpellIDs[987654321], nil, "unknown harmful still admitted")
+        harmful[2] = aura(987654321, 5)
+        R.UpdateHost(h)
+        equal(generic.enabled, true, "unrelated harmful keeps generic lane")
+        harmful[2] = SECRET
+        R.UpdateHost(h)
+        equal(generic.enabled, true, "partially readable stream keeps generic lane")
     end)
 end
 -- The exclusion boundary and actual UpdateHost eligibility must both prevent
@@ -328,7 +355,7 @@ for _, unit in ipairs({ "player", "target", "focus", "targettarget", "focustarge
         local roots, control = h.readableRootsFrame, h.readableControlFrame
         if not roots or not control then R.DestroyHost(unit); return end
         roots:Show(); roots.cooldown:SetCooldown(100, 20)
-        for _, key in ipairs({ "NearbyHarmful", "TrackingHarmful" }) do
+        for _, key in ipairs({ "NearbyHarmful", "TrackingHarmful", "PassiveDebuff", "BaselineHarmful" }) do
             local actual = h["readable" .. key .. "Frame"]
             if actual then actual:Show(); actual.cooldown:SetCooldown(100, 20) end
         end
@@ -341,7 +368,7 @@ for _, unit in ipairs({ "player", "target", "focus", "targettarget", "focustarge
         equal(control.shown, false, "Control cleanup hides helper")
         equal(roots.cooldown.duration, nil, "Roots cleanup clears cooldown")
         equal(control.cooldown.duration, nil, "Control cleanup clears cooldown")
-        for _, key in ipairs({ "NearbyHarmful", "TrackingHarmful" }) do
+        for _, key in ipairs({ "NearbyHarmful", "TrackingHarmful", "PassiveDebuff", "BaselineHarmful" }) do
             local actual = h["readable" .. key .. "Frame"]
             if actual then
                 equal(actual.shown, false, key .. " cleanup hides helper")

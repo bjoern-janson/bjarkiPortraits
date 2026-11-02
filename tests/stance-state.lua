@@ -244,6 +244,38 @@ test("hostile Druid Cat Bear fallback remains unchanged",function()
     UnitPowerType=function() return 1,"RAGE" end; s:show("target",5487)
     UnitPowerType=function() return 0,"MANA" end; s:show("target",nil)
 end)
+for _, id in ipairs({2383, 8387, 2580, 8388}) do
+    test("hostile Druid form and gathering rank "..id.." retain their priorities", function()
+        local s = setup()
+        s.classes.target = "DRUID"
+        local gathering = aura(id)
+        gathering.duration, gathering.expirationTime = 0, 0
+        s.helpful = {gathering}
+        for _, state in ipairs({{"ENERGY", 768}, {"RAGE", 5487}, {"MANA"}, {SECRET}}) do
+            UnitPowerType = function() return 0, state[1] end
+            local h = s:show("target", state[2])
+            eq(h._hostileSpellID, id, "gathering remains displayed at its own level")
+            eq(h.readableHostileFrame.shown, true)
+            assert(h.readableHostileFrame.level < h.readableFormStateFrame.level)
+            eq(h.readableFormStateFrame.cooldown.duration, nil, "power state has no clock")
+        end
+    end)
+end
+test("authoritative helpful winners at SelfState or above take precedence over inferred form", function()
+    local s = setup()
+    s.classes.target = "DRUID"
+    UnitPowerType = function() return 3, "ENERGY" end
+    for _, id in ipairs({9634, 642, 467}) do
+        s.helpful = {aura(id)}
+        local h = s:show("target", id == 467 and 768 or nil)
+        eq(h._hostileSpellID, id, "presented exact winner")
+        eq(h.readableHostileFrame.shown, true)
+    end
+    s.helpful = {aura(642), SECRET}
+    local h = s:show("target", 768)
+    eq(h._hostileReadable, false, "partial helpful witness cannot suppress the form")
+    assert(h.readableHostileFrame.level > h.readableFormStateFrame.level)
+end)
 -- Break caught: missing native event route or stale captured alias after rebind.
 test("UNIT_FORM_CHANGED refreshes all five scoped current hosts and coalesces",function()
     local s=setup()
