@@ -26,11 +26,13 @@ jobs:
             "lua${version}" tests/low-priority.lua
             "lua${version}" tests/decimal-threshold.lua
             "lua${version}" tests/priority-overhaul.lua
+            "lua${version}" tests/class-aura-coverage.lua
             "lua${version}" tests/hostile-helpful-priority.lua
             "lua${version}" tests/derived-evidence.lua
             "lua${version}" tests/pending-evidence-recovery.lua
             "lua${version}" tests/access-guards.lua
             "lua${version}" tests/priority-recovery.lua
+            "lua${version}" tests/compact-slows.lua
             "lua${version}" tests/portrait-restoration.lua
             "lua${version}" tests/stance-state.lua
           done

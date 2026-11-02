@@ -40,6 +40,8 @@ R.TIERS = {
     -- Lowest informational lanes immediately above the race-portrait baseline.
     exact("Gathering", "HELPFUL", 1, true, C.buffs_gathering),
     exact("Tracking", "HELPFUL", 3, true, C.buffs_tracking),
+    -- Mind Vision is a target debuff; retain tracking's informational priority.
+    exact("TrackingHarmful", "HARMFUL", 3, false, C.debuffs_tracking, true),
     -- Informational harmful effects share the actual nearby-world level.
     exact("CampfireNearby", "HELPFUL", 4, true, C.buffs_campfire_nearby),
     exact("CampfireNearbyHarmful", "HARMFUL", 4, false,
@@ -207,11 +209,16 @@ R.TIER_AUDIT = {
     overlaps = exactOverlaps,
 }
 
-local helpfulExplicit, harmfulExplicit = {}, {}
+local helpfulExplicit, harmfulExplicit, genericHarmfulExclusions = {}, {}, {}
+local genericHarmfulLevel = R.TIER_BY_KEY.SmallFriendlyHarmful.level
 for _, tier in ipairs(R.TIERS) do
     if tier.exact then
         local destination = tier.helpful and helpfulExplicit or harmfulExplicit
-        for spellID in pairs(tier.spellIDs or {}) do destination[spellID] = true end
+        local lowerHarmfulTier = not tier.helpful and tier.level < genericHarmfulLevel
+        for spellID in pairs(tier.spellIDs or {}) do
+            destination[spellID] = true
+            if lowerHarmfulTier then genericHarmfulExclusions[spellID] = true end
+        end
     end
 end
 
@@ -222,9 +229,14 @@ end
 -- never infer an inaccessible aura's spell ID.
 local excludedHelpful = union("buffs_gathering", "buffs_tracking", "buffs_campfire_nearby",
     "buffs_cosmetic", "buffs_noncombat")
-local excludedHarmful = union("debuffs_campfire_nearby", "debuffs_noncombat", "debuffs_boosted_rest")
+local excludedHarmful = union("debuffs_tracking", "debuffs_campfire_nearby",
+    "debuffs_noncombat", "debuffs_boosted_rest")
 for spellID in pairs(excludedHelpful) do helpfulExplicit[spellID] = true end
-for spellID in pairs(excludedHarmful) do harmfulExplicit[spellID] = true end
+for spellID in pairs(excludedHarmful) do
+    harmfulExplicit[spellID] = true
+    genericHarmfulExclusions[spellID] = true
+end
+R.GENERIC_EXCLUDED_HARMFUL = genericHarmfulExclusions
 R.NONCOMBAT_EXCLUDED_HELPFUL = excludedHelpful
 R.NONCOMBAT_EXCLUDED_HARMFUL = excludedHarmful
 
@@ -237,7 +249,7 @@ function R.CandidateFilters(tier)
     elseif tier.key == "HostileHelpful" then
         out.excludeSpellIDs = excludedHelpful
     elseif tier.key == "SmallFriendlyHarmful" then
-        out.excludeSpellIDs = excludedHarmful
+        out.excludeSpellIDs = genericHarmfulExclusions
     elseif tier.key == "CrowdControl" or tier.key == "PriorityDebuff" then
         out.excludeSpellIDs = harmfulExplicit
     end

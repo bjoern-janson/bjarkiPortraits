@@ -347,6 +347,26 @@ test("mixed visual and pending recovery requests preserve both kinds of work", f
         end
     end
 end)
+test("combat exit retries only the pending derived snapshot", function()
+    for _, unit in ipairs(units) do
+        local s = setup()
+        s.failures[unit] = {[22812]=true}
+        s.auras[unit] = {[22812]=aura(112, 12)}
+        s:bind(unit)
+        eq(s.queries, 9)
+        eq(#s.received, 0)
+        s.failures[unit] = nil
+        s:fire("PLAYER_REGEN_ENABLED")
+        s:fire("PLAYER_REGEN_ENABLED")
+        s:drain()
+        eq(s.queries, 18, "retry pending token once")
+        eq(#s.received, 1)
+        identity(s, s.received[1], unit)
+        s:fire("PLAYER_REGEN_ENABLED")
+        s:drain()
+        eq(s.queries, 18, "completed token stays idle")
+    end
+end)
 assert(#failures == 0, tostring(#failures) .. " pending recovery regression(s) failed:\n"
     .. table.concat(failures, "\n"))
 print("pending-evidence-recovery: " .. passed .. " cases passed")

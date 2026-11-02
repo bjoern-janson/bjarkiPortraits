@@ -126,6 +126,9 @@ events:SetScript("OnEvent", function(_, event, arg1)
         -- a host build request is not required for a stale disabled aura lane.
         R.RefreshAll(true)
         R.ApplyPresentation()
+        for token in pairs(snapshotNeeded) do
+            queueRefresh(token, "combat-exit", true, true)
+        end
     elseif event == "PLAYER_DEAD" or event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST" then
         R.Refresh("player", true)
         -- Death/release can settle after the event and is also visible through
