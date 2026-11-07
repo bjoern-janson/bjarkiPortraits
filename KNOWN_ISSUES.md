@@ -1,5 +1,16 @@
 # Known issues and bugs
 
+**Current candidate: 0.1.172-frog-form-control-test (2026-11-07).** Launch-observed additions 0.1.164–0.1.172 and their exact levels are recorded in [architecture section 34](ARCHITECTURE.md#34-launch-follow-up-01164-through-01172-2026-11-05-to-2026-11-07). They are source-level additions, not a claim that every unit/relation/combat presentation has been live-certified.
+
+**Open: Tracking "last applied" behavior.** Same-tier native election uses reversed aura instance IDs, which do not necessarily change on a buff refresh. The portrait can continue to show an older effect after reapplication. Find Treasure was deliberately moved to Gathering (priority 1); tracking/sensing stays at priority 3. No general Tracking application-time correction has yet been implemented.
+
+**Open: Boosted Rest in combat.** Its informational exact level remains 4. A generic harmful fallback at level 175 can otherwise overpromote it when native identity restrictions apply. Since 0.1.165, that fallback has a native max-duration filter of 3,599 seconds. This prevents hour-long Boosted Rest promotion but also excludes other hour-long/permanent harmful fallback effects. A live combat retest of both the prevention and any collateral visibility remains pending.
+
+**Open: new launch aura coverage.** Sapta Sight, Hunting Kobolds, Violet Flames, Rushing Charge, Savagery, Tamed Strigid Screecher, both Poised applied variants, and the helpful Frog Form transformation have passed classification tests, not a complete in-game cross-relation audit. Frog Form requires a helpful exact Control lane at 310; it must not be mislabeled a harmful Polymorph aura.
+
+**Resolved non-addon alarm:** ToT/ToF frames were initially disabled by an in-game setting, not by bjarkiPortraits. The setting must be enabled to see those frames.
+
+
 **0.1.161 class aura repair (2026-11-02).** Portraits adds 157 applied spell IDs from the nine-class audit to existing priority tiers. These include intermediate ranks, Sniper Shot’s range buff, Combustion’s critical-strike buff (28682), and separate recipient effects such as Mana Tide (1325257). Friendly Target-of-Target and Focus-of-Target can recover a readable slow at priority 278 when native filtering is restricted. Current-build display and protected aura access still need an in-game check. The audit’s 14 qualified candidates remain open.
 
 **Class aura repair (2026-11-01):** `0.1.160-class-aura-fixes-test` adds 131 reviewed applied aura/rank IDs across all nine classes. Distract is harmful status, Intimidation's pet preparation is helpful offense (separate from its target stun), and Riposte joins the existing disarm/control category. Mind Vision ranks 1/2 use a harmful tracking filter at the existing tracking priority of 3, with guarded readable recovery. All other existing exact ownership and all existing numeric tier levels are preserved. Source and native-filter regressions pass on Lua 5.1/5.4, including both helpful/harmful polarity and mixed cast/application cases. Primary spell definitions were checked against current Forever database pages; for any listed ID, the source lookup is `https://www.wowhead.com/forever/spell=ID`.
@@ -22,7 +33,7 @@
 
 **v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
 
-Historical status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**. Current candidate source is **0.1.163-audit-fixes-test** (2026-11-02); historical items below are not automatically closed by that update.
+Historical status recorded 2026-10-08 for **bjarkiPortraits 0.1.80-local**. Current candidate source is **0.1.172-frog-form-control-test** (2026-11-07); historical items below are not automatically closed by that update.
 
 The items below reflect reports and screenshots from Battleground sessions.
 They remain open until checked in the live client against this build. A report

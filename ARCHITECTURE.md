@@ -1,5 +1,7 @@
 # bjarkiPortraits architecture
 
+**Current source (2026-11-07): `0.1.172-frog-form-control-test`.** The launch changes since 0.1.163 are documented in [section 34](#34-launch-follow-up-01164-through-01172-2026-11-05-to-2026-11-07). Historical notes below describe earlier experiments and must not override the current `Priority.lua` / `Spells.lua` definitions.
+
 **Ten-second decimals (2026-10-31):** `0.1.159-ten-second-decimals-test` displays one decimal strictly below ten seconds with `/bp decimals` enabled, whole seconds rounded down from ten through sixty, and the existing hidden countdown above `60.000001`. The compatibility threshold is ten seconds; decimals off remains unchanged. This supersedes the five-second timer policy in section 27. `tests/decimal-threshold.lua` covers 5.0, 9.9/10/10.1, both fallback cases, and the existing hiding boundary.
 
 **Audit repairs (2026-10-31):** `0.1.157-audit-fixes-test` preserves Roots/Control priorities through readable presentation, excludes Quitter from generic harmful promotion, completes Waiting-to-Resurrect elections, and hardens access checks and native portrait restoration. Section 32 records the source-level changes and verification boundary. WotF remains excluded: the user's current Forever observation is a CC removal on use with no applied buff.
@@ -18,7 +20,7 @@
 
 **v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
 
-This document tracks **bjarkiPortraits 0.1.159-ten-second-decimals-test** (2026-10-31). Sections 1–28 are historical architecture and experiment notes; **section 29 corrects the unsolicited priority changes and the Will of the Forsaken aura assumption**. This reference does not claim undocumented guarantees about the WoW: Forever client.
+This document tracks **bjarkiPortraits 0.1.172-frog-form-control-test** (2026-11-07). Sections 1–33 retain historical design and verification notes; **section 34 summarizes the latest launch observations and priorities**. Section 29 corrects the unsolicited priority changes and the Will of the Forsaken aura assumption. Current source definitions take precedence over superseded historical examples. This reference does not claim undocumented guarantees about the WoW: Forever client.
 
 The runtime is split into nine Lua modules, loaded in this order:
 
@@ -634,3 +636,30 @@ Optional `UNIT_FORM_CHANGED` registration triggers a refresh of tracked units. P
 The API scope follows the [Forever native stance bar](https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_ActionBar/Shared/StanceBar.lua), [unit event documentation](https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua), and [unit aura documentation](https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitAuraDocumentation.lua). `UNIT_FORM_CHANGED` carries only a unit token. The form-bar getters describe the local player; the exact aura getter takes a unit token and can return no aura or restrict access.
 
 The packaging workflow compiles ten runtime modules and ten regression scripts, runs all ten scripts under Lua 5.1 and Lua 5.4, and ships the ten modules plus both manifests. The stance tests exercise the actual resolver, host presentation, event routes and slash command with modeled APIs. Live hidden-aura readability, protected values, combat taint, and rendered pixels still require client testing.
+
+
+## 34. Launch follow-up: 0.1.164 through 0.1.172 (2026-11-05 to 2026-11-07)
+
+The November 2026 launch observations were applied incrementally to `Spells.lua`, `Priority.lua`, and version metadata. The current addon runtime is `0.1.172-frog-form-control-test`; both manifests use the same version. Its gameplay mechanics, native unit-frame geometry, portrait foundations, secrecy checks, and remaining module content are unchanged from the last GitHub-synced build except for these explicit aura changes.
+
+| Build | Effect(s) and applied spell IDs | Actual exact lane and level |
+| --- | --- | --- |
+| 0.1.164 | Sapta Sight (8202, 8898, 8899, 8900, 9735); Hunting Kobolds (1246031) | `Tracking`, helpful, **3** |
+| 0.1.165 | Boosted Rest (1229451) remains informational; restricted self/friendly harmful fallback receives `maxDuration = 3599` | `CampfireNearbyHarmful`, harmful, **4**; broad `SmallFriendlyHarmful` stays **175** but is duration-limited |
+| 0.1.166 | Rushing Charge (6268) | `Offensive`, helpful, **280** |
+| 0.1.167 | Find Treasure (2481) moved from Tracking to Gathering | `Gathering`, helpful, **1** |
+| 0.1.168 | Violet Flames (1328375) | `VioletFlames`, helpful, **5**—one above Campfire Nearby **4** |
+| 0.1.169 | Savagery (5515) | `Offensive`, helpful, **280** |
+| 0.1.170 | Tame Strigid Screecher (19686; "Tamed") | Existing `Gathering`, helpful, **1** (no new tier) |
+| 0.1.171 | Poised applied Rogue/Druid buffs (1328826, 1328827) | Existing `Seal`, helpful, **210**, with Seal of Righteousness |
+| 0.1.172 | Creature – Frog Form (3329) | `ControlHelpful`, helpful, **310**, alongside harmful `Control`/Polymorph **310** |
+
+The `ControlHelpful` lane is a separate **polarity** filter, not a stronger control tier: Blizzard's exact `HELPFUL` and `HARMFUL` filters cannot share a single slot. Similarly, `VioletFlames` is the requested one-point differentiation from Campfire Nearby. The lowest tier was reused for the harmless Tamed quest effect, rather than introducing another rank.
+
+**Boosted Rest caveat.** Native spell-ID exclusions may not be enforceable on restricted self/friendly harmful aura data. The `SmallFriendlyHarmful` duration cap keeps the hour-long Boosted Rest out of the 175 fallback, but also excludes *other* harmful auras lasting at least 3,600 seconds or with no duration from that broad fallback. Their exact and other dedicated presentations are not re-ranked; when an exact path is inaccessible, a long-duration aura may disappear from the portrait instead of being promoted.
+
+**Tracking recency caveat.** The native same-tier selector uses reverse `AuraInstanceIDOnly`. It is **not** a guaranteed "last applied" or "last refreshed" order: an aura refresh can retain its previous instance ID. No speculative application-time election or new polling mechanism was added for Tracking. Find Treasure's move to Gathering corrects its relative *tier*, not this separate recency limitation.
+
+**Observed versus verified.** Screenshots provided evidence for the above aura tooltips and a working friendly-target Battle Stance portrait. Regression scripts use modeled WoW APIs; they do not prove every effect will be exposed on every unit, faction or combat secrecy state. ToT/ToF being absent during an early launch check was traced to the **in-game frame visibility setting**, not to an addon defect. Current in-game behavior for the new effects, especially the restricted Boosted Rest transition and friendly/hostile Frog Form visibility, still merits direct testing.
+
+`tests/launch-auras.lua` checks these applied IDs, polarity, exact lane memberships, zero cross-tier duplication, fallback exclusions, the Boosted Rest duration cap and version agreement between runtime and both manifests. `tests/low-priority.lua` now expects Find Treasure and Tame Strigid Screecher in Gathering. The packaging workflow runs both tests with the existing regression suite under Lua 5.1 and 5.4.

@@ -35,6 +35,11 @@ PT.categories = {
     buffs_grounding = {
         [8178] = true, -- Grounding Totem Effect (spell redirection)
     },
+    -- Zenn Foulhoof's quest transformation is HELPFUL (model change only),
+    -- but intentionally shares Polymorph's Control display priority.
+    buffs_control_transforms = {
+        [3329] = true, -- Creature - Frog Form (Zenn Foulhoof; Transformed into Toad)
+    },
     -- Spell silence/interrupt prevention and redirection; not root immunity.
     buffs_self_stun = {
         [1301167] = true, -- Transformative Cocoon (self-stun; currently a helpful aura)
@@ -638,6 +643,8 @@ PT.categories = {
         [1706] = true, -- Levitate
     },
     buffs_offensive = {
+        [5515] = true, -- Savagery (NPC attack-speed buff)
+        [6268] = true, -- Rushing Charge (NPC speed and first-attack damage buff)
         [1248808] = true, -- Revelation (Mage active enchant proc)
         [1323377] = true, -- Revelation (Priest active enchant proc)
         [1323392] = true, -- Revelation (Warlock active enchant proc)
@@ -978,6 +985,8 @@ PT.categories = {
         [1238931] = true, -- Improved Stormstrike (mana-regeneration proc)
     },
     buffs_seals = {
+        [1328826] = true, -- Poised applied buff (Rogue; -10 Energy on next ability)
+        [1328827] = true, -- Poised applied buff (Druid; -10 Energy on next ability)
         [20154] = true, -- Seal of Righteousness Rank 1 (Paladin)
         [20287] = true, -- Seal of Righteousness Rank 2 (Paladin)
         [20288] = true, -- Seal of Righteousness Rank 3 (Paladin)
@@ -1565,14 +1574,15 @@ PT.categories = {
         [1299446] = true, -- Aspect of the Beast Rank 3
         [1328548] = true, -- Oath of Light
     },
-    -- Gathering node detection is intentionally BELOW passive status auras
-    -- and other tracking/sensing abilities. These are the four observed
-    -- Forever ranks, kept together in one native AuraContainer lane.
+    -- Lowest existing helpful tier. Resource detection shares this native
+    -- AuraContainer lane with harmless quest-only states; no new tier.
     buffs_gathering = {
         [2383] = true, -- Find Herbs Rank 1
         [8387] = true, -- Find Herbs Rank 2
         [2580] = true, -- Find Minerals Rank 1
         [8388] = true, -- Find Minerals Rank 2
+        [2481] = true, -- Find Treasure
+        [19686] = true, -- Tame Strigid Screecher (Tamed; 15-minute quest charm)
     },
     debuffs_tracking = {
 
@@ -1584,7 +1594,6 @@ PT.categories = {
         -- Tracking/sensing and related remote scouting occupy one low-priority
         -- helpful tier, ABOVE informational debuffs and gathering, BELOW every
         -- gameplay buff. Preserve exact IDs in broad semantic exclusions too.
-        [2481] = true, -- Find Treasure / treasure tracking
         [5225] = true, -- Druid Track Humanoids (cat form)
         [19878] = true, -- Track Demons
         [19879] = true, -- Track Dragonkin
@@ -1608,6 +1617,14 @@ PT.categories = {
         -- Reviewed Forever applied auras (class cross-reference, 2026-11-01).
         [6495] = true, -- Sentry Totem
         [19480] = true, -- Paranoia (stealth detection)
+
+        -- Launch-observed quest sensing/tracking (2026-11-05).
+        [8202] = true, -- Sapta Sight (Earth Sapta)
+        [8898] = true, -- Sapta Sight (Fire Sapta)
+        [8899] = true, -- Sapta Sight (Water Sapta)
+        [8900] = true, -- Sapta Sight (Air Sapta)
+        [9735] = true, -- Sapta Sight (quest NPC variant)
+        [1246031] = true, -- Hunting Kobolds
     },
     -- The remaining sets below are exclusion-only unless separately assigned
     -- an exact tier. Exact IDs are preferred over names; cosmetic spell variants do not imply
@@ -1717,6 +1734,9 @@ PT.categories = {
         [12627] = true, -- Disease Cloud (persistent emitter aura, not the damage trigger)
         [1321936] = true, -- Disease Cloud (Forever persistent emitter; observed unit ID pending)
         [1283391] = true, -- Campfire Nearby (Forever)
+    },
+    buffs_violet_flames = {
+        [1328375] = true, -- Violet Flames (increases duration of campfire effects gained)
     },
     buffs_welcoming_campfire = {
         [1229739] = true, -- Welcoming Campfire (Forever live variant)

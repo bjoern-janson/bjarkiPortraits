@@ -42,6 +42,8 @@ local gatheringIDs = {
     [8387] = "Find Herbs rank 2",
     [2580] = "Find Minerals rank 1",
     [8388] = "Find Minerals rank 2",
+    [2481] = "Find Treasure",
+    [19686] = "Tame Strigid Screecher",
 }
 local infoIDs = {
     [24755] = "Tricked or Treated",
@@ -59,7 +61,6 @@ local sensingIDs = {
     [19884] = "Track Undead",
     [19885] = "Track Hidden",
     [1494] = "Track Beasts",
-    [2481] = "Find Treasure",
     [43308] = "Find Fish",
     [132] = "Detect Invisibility",
     [126] = "Eye of Kilrogg",
@@ -79,7 +80,7 @@ for id in pairs(gathering.spellIDs) do
     gatheringCount = gatheringCount + 1
     check(gatheringIDs[id] ~= nil, "gathering contains no other tracking spells")
 end
-equal(gatheringCount, 4, "four gathering ranks in the lowest tier")
+equal(gatheringCount, 6, "six gathering and quest effects in the lowest tier")
 for id, name in pairs(infoIDs) do
     check(info.spellIDs[id] == true, name .. " harmful display")
     check(R.NONCOMBAT_EXCLUDED_HARMFUL[id] == true,

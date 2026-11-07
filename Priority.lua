@@ -46,6 +46,8 @@ R.TIERS = {
     exact("CampfireNearby", "HELPFUL", 4, true, C.buffs_campfire_nearby),
     exact("CampfireNearbyHarmful", "HARMFUL", 4, false,
         union("debuffs_campfire_nearby", "debuffs_noncombat", "debuffs_boosted_rest"), true),
+    -- Enchanted campfire status sits exactly one point above Campfire Nearby.
+    exact("VioletFlames", "HELPFUL", 5, true, C.buffs_violet_flames),
     -- Opposite-faction helpful fallback is deliberately low; do not infer a
     -- category from a restricted, arbitrary timed aura.
     semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 5, { maxDuration = math.huge }),
@@ -75,7 +77,12 @@ R.TIERS = {
     exact("Mobility", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 160, true,
         union("buffs_ghostwolf", "buffs_ghostwolf_variants", "buffs_cheetah", "buffs_mobility"), true),
     exact("LoneWolf", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 170, true, C.buffs_lone_wolf, true),
-    semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 175),
+    -- Native ID exclusions can be ignored on restricted self/friendly debuffs.
+    -- Keep hour-long Boosted Rest out of this broad lane using the native
+    -- duration gate. This also excludes other long/permanent fallback auras;
+    -- exact and semantic classifications keep their existing priority lanes.
+    semantic("SmallFriendlyHarmful", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 175,
+        { maxDuration = 3599 }),
     exact("HuntersMark", "HARMFUL|INCLUDE_NAME_PLATE_ONLY", 180, false, C.debuffs_hunters_mark),
     exact("Demoralizing", "HARMFUL", 185, false, C.debuffs_demoralizing, true),
     exact("Consecration", "HARMFUL", 189, false, C.debuffs_consecration, true),
@@ -138,6 +145,9 @@ R.TIERS = {
     semantic("CrowdControl", "HARMFUL|CROWD_CONTROL", 309),
     exact("Control", "HARMFUL", 310, false,
         unionExcept({"stuns", "interrupts", "silences"}, "cc")),
+    -- Helpful quest transformations can share Control priority without
+    -- being incorrectly filtered as harmful Polymorph effects.
+    exact("ControlHelpful", "HELPFUL", 310, true, C.buffs_control_transforms),
     -- Free Action is grouped here for display priority: it prevents stun,
     -- snare and root mechanics, not physical damage itself.
     exact("PhysicalImmunity", "HELPFUL", 315, true, C.immunities_physical, true),
@@ -228,7 +238,7 @@ end
 -- Restricted hostile identities may still prevent enforcing the exclusions;
 -- never infer an inaccessible aura's spell ID.
 local excludedHelpful = union("buffs_gathering", "buffs_tracking", "buffs_campfire_nearby",
-    "buffs_cosmetic", "buffs_noncombat")
+    "buffs_violet_flames", "buffs_cosmetic", "buffs_noncombat")
 local excludedHarmful = union("debuffs_tracking", "debuffs_campfire_nearby",
     "debuffs_noncombat", "debuffs_boosted_rest")
 for spellID in pairs(excludedHelpful) do helpfulExplicit[spellID] = true end
