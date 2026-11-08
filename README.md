@@ -2,11 +2,51 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.199-player-native-fallback-test` (2026-11-08), built on 0.1.178. No in-game commands are needed. PlayerFrame now prepares the native runner-up out of combat and uses it only when an incoming debuff makes the normal second-place election fall back to race. Hostile Targets retain the previously working native experiment; other unit frames are unchanged. Live PlayerFrame rendering still requires verification.
+**Experimental branch:** `0.1.200-pet-family-secondary-test` (2026-11-08), built on 0.1.178. Target/Focus pets now gain a guarded, native aura-presence-gated pet-family secondary fallback. Naked pets show no second circle; genuine aura runner-ups still take precedence. All other units retain their previous behavior. No in-game commands or new settings.
 
 ## Install
 
-Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the twelve `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.200 — confirmed pet-family fallback as a real secondary
+
+A live screenshot shows a **Bird of Prey** (targeted Hunter pet)
+with a higher-priority fiery aura in the large portrait, but no small
+secondary circle. For positively identified Hunter and Warlock pets on
+**Target and Focus**, the small circle now falls back to the pet's
+verified family or demon-summon artwork rather than a fabricated race
+tile. It uses the established `PetPortraits.lua` family classification,
+including current player-pet evidence and a readable GUID, and never
+substitutes a generic Growl icon for an unknown family.
+
+**Presence rule:** The pet-family secondary is shown only when the pet
+has **at least one currently active aura**. Two engine-native
+`CustomAuraContainer` groups (`HELPFUL|INCLUDE_NAME_PLATE_ONLY`
+and `HARMFUL|INCLUDE_NAME_PLATE_ONLY`, `maxFrameCount=1`) each own
+a portrait-sized button whose visible art is the confirmed pet family.
+Blizzard handles button assignment and removal inside its native
+aura engine, including restricted auras. The addon does **not** read
+a secret aura identity, count, duration or a protected native button.
+
+- **Zero auras:** both native groups display no button, and no
+  secondary circle is drawn for the completely naked pet.
+- **One or more auras, without a readable runner-up:** the confirmed
+  family icon appears as the small portrait, without a fabricated
+  countdown.
+- **Two eligible auras with a genuine runner-up:** the existing
+  public/native second-aura presenter draws **above** pet-family art.
+- **Wild beasts, totems, unknown pets and unreadable identities:** do
+  not get guessed family artwork. Target/Focus pet handoffs revoke
+  stale art immediately; changed family art is updated only at a
+  safe out-of-combat boundary.
+
+The existing main pet-family portrait, target/focus aura priorities,
+race fallback for player characters, and other frames are unchanged.
+No commands or toggles are added. Source-backed Lua regression tests
+cover one/two/zero aura presence, Hunter and Warlock family art,
+protected combat target swaps, stale GUID clearing, unknown pets,
+wild creatures, totems, and Focus reuse. **Native rendering on live
+Forever clients remains unverified for this build.**
 
 ## 0.1.199 — prevent PlayerFrame race fallback when a debuff arrives
 
