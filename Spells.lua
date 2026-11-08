@@ -1580,6 +1580,12 @@ PT.categories = {
     -- The *applied buff* is 1321323, not the item-use trigger 1321320.
     buffs_bottom = {
         [1321323] = true, -- Shiny Silver Coin (+30 Fishing, 30 minutes)
+        -- Passive viewpoint-only effects cannot compete with gameplay buffs.
+        -- These are positive CASTER auras (not damage, tracking, or target CC).
+        [1293681] = true, -- Farsen's Far Sight (Farsen's Gift quest viewpoint)
+        [6196] = true, -- Shaman Far Sight
+        [6197] = true, -- Hunter Eagle Eye
+        [126] = true, -- Warlock Eye of Kilrogg
     },
     -- Gathering remains helpful level 1, above the absolute bottom.
     buffs_gathering = {
@@ -1602,15 +1608,14 @@ PT.categories = {
         [10909] = true, -- Mind Vision Rank 2
     },
     buffs_tracking = {
-        -- Tracking/sensing and related remote scouting occupy one low-priority
-        -- helpful tier, ABOVE informational debuffs and gathering, BELOW every
-        -- gameplay buff. Preserve exact IDs in broad semantic exclusions too.
+        -- Tracking and sensing remain informational level 3. Viewpoint-only
+        -- channels (Far Sight, Eagle Eye, Eye of Kilrogg) now belong to
+        -- absolute bottom level 0 alongside Farsen's Far Sight.
         [5225] = true, -- Druid Track Humanoids (cat form)
         [19878] = true, -- Track Demons
         [19879] = true, -- Track Dragonkin
         [19882] = true, -- Track Giants
         [43308] = true, -- Find Fish
-                [126] = true, -- Eye of Kilrogg
                 [132] = true, -- Detect Invisibility
         [2970] = true, -- Detect Invisibility Rank 2
         [11743] = true, -- Detect Invisibility Rank 3
@@ -1618,8 +1623,6 @@ PT.categories = {
                 [1494] = true, -- Track Beasts
                 [5500] = true, -- Sense Demons
                 [5502] = true, -- Sense Undead
-                [6196] = true, -- Far Sight
-                [6197] = true, -- Eagle Eye
                 [19880] = true, -- Track Elementals
                 [19883] = true, -- Track Humanoids
                 [19884] = true, -- Track Undead
