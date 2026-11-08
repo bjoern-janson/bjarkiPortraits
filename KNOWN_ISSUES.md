@@ -1,3 +1,33 @@
+## 2026-11-08 — 0.1.200 targeted pet secondary identity
+
+**Live trigger:** A targeted Hunter pet (“Bird of Prey”) has a
+high-priority fiery effect in its large portrait but no smaller
+secondary. A non-player pet has no player race portrait, so the
+earlier secondary fallback intentionally stayed hidden.
+
+**Change:** Only positively classified Hunter/Warlock pet units on
+Target/Focus can now show a verified family/summon image in the
+second circle. The standard `PetPortraits` classifier supplies
+the owner and family; `ResolveObservedPetSecondaryArt` requires a
+readable current GUID and a real family image, refusing wild beasts,
+totems, unknown pets, stale target identities and generic Growl.
+No private aura spell identity or count is accessed.
+
+**Naked-pet rule:** Two native helpful/harmful group frame providers,
+each limited to one button, conditionally render the same family icon
+when an aura exists. The family fallback is absent when both groups
+have no assigned aura, even if the Target's normal 3D model exists.
+The existing public/native second-aura systems render above this
+fallback, so second-ranked aura artwork retains priority.
+
+**Risks and verification:** Live Forever proof is still needed that
+native `AddAuraGroup` frame providers hide unassigned preallocated
+buttons and update both polarities correctly through combat/target
+handoffs. Two simultaneous helpful/harmful groups may draw the same
+ring twice, requiring cosmetic adjustment if visibly too bold.
+Current system fails closed for an unrecognized pet family or secret
+current GUID. No change to priorities, no new in-game commands.
+
 ## 2026-11-08 — 0.1.199 PlayerFrame secondary race on incoming debuff
 
 **Live report:** On PlayerFrame, a newly received short harmful effect
