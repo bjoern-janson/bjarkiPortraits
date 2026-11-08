@@ -358,6 +358,41 @@ run("hostile target complete main proof selects Camp Benefits second", function(
         "Camp Benefits is the genuine second priority")
     equal(second and second.tier.key, "BaselineClass", "Camp Benefits priority retained")
 end)
+-- Full UpdateHost integration: NPC hostile targets with two publicly
+-- readable harmful auras do not require a nonexistent HELPFUL primary witness.
+-- The real native exact harmful tier must be positively enabled; unknown
+-- player identity/secret aura reads never gain this projection.
+run("hostile NPC harmful primary enables a second portrait candidate", function()
+    local originalIsPlayer = UnitIsPlayer
+    UnitIsPlayer = function() return false end
+    local ok, err = pcall(function()
+        harmful = { aura(772, 24), aura(1715, 28) }
+        for _, debuff in ipairs(harmful) do
+            debuff.isNameplateOnly, debuff.timeMod = false, 1
+        end
+        local h = host()
+        R.UpdateHost(h)
+        equal(h._isPlayer, false, "NPC identity is positively not a player")
+        equal(h._playerReadable, true, "NPC player status is readable")
+        equal(h._hostileRelationReadable, true, "hostile relation is readable")
+        equal(h._hostileUnit, true, "NPC is hostile")
+        equal(h._hostileCount, 0, "no competing helpful main aura")
+        equal(h._hostileAuraListComplete, true, "hostile helpful list is complete")
+        equal(h._exactHarmfulAllowed, true, "native exact harmful filter permitted")
+        equal(native(h, "Slows").enabled, true, "native high-priority slow slot enabled")
+        if not R.GetReadableSecondaryAura then
+            assert(loadfile("SecondaryPortrait.lua"))("bjarkiPortraits", BP)
+        end
+        local second, reason = R.GetReadableSecondaryAura(h)
+        equal(reason, "npc-readable-harmful-projection",
+            "bounded complete NPC harmful projection is admitted")
+        equal(second and second.spellID, 772,
+            "DoT is second beneath the native Slow primary")
+        equal(second and second.tier.key, "DoTs", "lower exact lane is preserved")
+    end)
+    UnitIsPlayer = originalIsPlayer
+    if not ok then error(err) end
+end)
 for _, failure in ipairs(failures) do print("FAIL " .. failure) end
 assert(#failures == 0, "hostile helpful priority: " .. #failures .. " failed checks / "
     .. checks .. " checks in " .. cases .. " cases")

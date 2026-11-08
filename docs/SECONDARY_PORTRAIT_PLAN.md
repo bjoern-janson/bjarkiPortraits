@@ -1,9 +1,23 @@
 # Secondary portrait: two aura priorities + race identity
 
-**Status:** P1 outward badge layout and P2 readable top-two prototype through v0.1.185; static form/stance ranking corrected; universally correct secure cross-tier runner-up remains unavailable  
+**Status:** P1 outer badge layout and P2 bounded readable election through v0.1.188 (including hostile NPC harmful-only); universally secure cross-tier runner-up remains unavailable  
 **Baseline:** `0.1.178-bottom-harmful-consolidation-test` (2026-11-08).  
 **Proposed next development milestone:** `0.1.179-secondary-portrait-prototype` (working name, not a release).  
 **Source of visual direction:** 2026-11-08 in-game player-frame comparison: a tiny Blizzard Shaman Totem-like circular ring at the top corner of the main portrait.
+
+## Follow-up 0.1.188: harmful-only hostile NPCs (2026-11-08)
+
+**Live counterexample:** A Kobold Tunneler has a timed harmful aura on its main Target portrait and two debuff icons below, yet lacks the small secondary portrait. Hostile targets previously required the special `_hostileActive` **helpful** main-aura presenter or an independently proven form. That condition excludes even a readable hostile NPC whose actual main aura is harmful. NPCs also have no race fallback, so the whole badge vanishes.
+
+**Implementation:** A dedicated Target/Focus path accepts **only positively proven non-player hostile units**, requiring `_playerReadable=true` and `_isPlayer=false`, readable hostile relation, a complete public helpful list containing **zero** helpful auras, a complete harmful indexed list with current distinct occurrence identities, native exact harmful permission, and no write failures. After ranking all publicly readable candidates, the projected first harmful owner must be an existing exact spell-ID tier or the native `SmallFriendlyHarmful` fallback with its same public filter. Its corresponding current native container must be **positively enabled**; no private winner is inspected. The second distinct candidate can then occupy the small circle. If any gate fails, or fewer than two effects remain, the badge stays hidden (no invented NPC race).
+
+**Ranking improvement:** `R.TIERS` is consulted in descending numeric priority in the secondary reader; once a known higher tier is proven, a lower semantic tier cannot change that candidate's owner and need not consume a second restricted API probe. For `SmallFriendlyHarmful`, its identical `HARMFUL|INCLUDE_NAME_PLATE_ONLY` indexed source plus verified duration/exclusions avoids a redundant native identity call. All higher semantic filters must still be positively excluded or inspected. No spell classification, numeric priority, native main portrait, polling loop or additional aura container stack was added.
+
+**Important evidence boundary:** This is a bounded **public projection**, not direct confirmation of the secure native main winner. It is intentionally *not* extended to hostile players (where secret/private aura states are common), unreadable NPC identities, NPCs with mixed helpful/harmful aura lists lacking a verified first place, or underdocumented semantic primary effects. Actual NPC visibility in combat and any discrepancies between the public projection and private secure frame must still be tested in Forever. `/bp layout target` emits `secondReason=npc-readable-harmful-projection` when the path succeeds.
+
+**Regression:** `tests/secondary-npc-harmful.lua` covers categorized different-tier and same-tier effects, generic harmful filter proof, semantic secrecy, disabled native slot, unproven identity, hostile-player exclusion, mixed lists, missing second, Focus and ToT exclusion. `tests/hostile-helpful-priority.lua` adds a *real `R.UpdateHost`* NPC fixture verifying the actual relation, current native slot and rank handoff. Release remains experimental and live verification is outstanding.
+
+---
 
 ## Follow-up 0.1.185: rank observed forms instead of assuming they are first (2026-11-08)
 

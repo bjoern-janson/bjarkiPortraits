@@ -363,9 +363,23 @@ local function exactFilterProven(candidate, tier)
     return nil
 end
 
+local rankTiers = {}
+for index, tier in ipairs(R.TIERS or {}) do
+    rankTiers[#rankTiers + 1] = { tier = tier, index = index }
+end
+table.sort(rankTiers, function(a, b)
+    if a.tier.level ~= b.tier.level then return a.tier.level > b.tier.level end
+    return a.index < b.index
+end)
+
 local function candidateRank(host, candidate, cache)
     local winner, tied = nil, false
-    for _, tier in ipairs(R.TIERS or {}) do
+    for _, entry in ipairs(rankTiers) do
+        local tier = entry.tier
+        -- Native visual priority is numeric. A lower tier cannot displace
+        -- an already-proven higher owner, so don't require unnecessary lower
+        -- semantic filter reads to classify the same aura.
+        if winner and tier.level < winner.level then break end
         local matchingPolarity = tier.filter and
             ((tier.filter:sub(1,7) == "HELPFUL") == candidate.helpful)
         if matchingPolarity then
@@ -419,7 +433,17 @@ local function candidateRank(host, candidate, cache)
                 -- needs no redundant native identity filter call. That call
                 -- can be inaccessible to ordinary add-ons even for own buffs.
                 local yes
-                if tier.exact then yes = exactFilterProven(candidate, tier) end
+                if tier.exact then
+                    yes = exactFilterProven(candidate, tier)
+                elseif tier.key == "SmallFriendlyHarmful"
+                    and not candidate.helpful
+                    and tier.filter == "HARMFUL|INCLUDE_NAME_PLATE_ONLY" then
+                    -- semanticFilterMatches already checked the duration cap
+                    -- and excluded IDs. This is the identical public polarity
+                    -- filter used to produce the complete indexed candidate;
+                    -- an additional secret native oracle adds no information.
+                    yes = true
+                end
                 if yes == nil then
                     yes = nativeSlotMatches(host.unit, candidate, tier.filter, cache)
                 end
@@ -473,20 +497,27 @@ function R.GetReadableSecondaryAura(host)
     if R.testMode then return nil, "test-mode" end
     if host._hostileUnit == nil then return nil, "relation-unreadable" end
     local hostile = host._hostileUnit == true
+    local npcHarmfulProjection = false
     if hostile then
         if host._hostileRelationReadable ~= true then
             return nil, "hostile-relation-unreadable"
         end
-        -- Hostile units are NEVER promoted just because an effect is listed.
-        -- Either a fully proven native/readable main aura or an independent,
-        -- positively displayed form witness must establish first place.
-        -- Forbidden/secret aura identities still cause the scan to fail closed.
+        -- Hostile PLAYER units still require the previously verified main
+        -- helpful aura/form. NPCs can sometimes expose complete harmful
+        -- candidates even with no eligible helpful main; use a separate,
+        -- narrowly checked native-exact harmful projection for that case.
         if host._hostileAuraListComplete ~= true or
             host._hostileElectionReadable ~= true then
             return nil, "hostile-list-unreadable"
         end
         if not host._hostileActive and not host._formStateActive then
-            return nil, "hostile-primary-unverified"
+            npcHarmfulProjection = (host.unit == "target" or host.unit == "focus")
+                and host._playerReadable == true and host._isPlayer == false
+                and host._hostileCount == 0
+                and host._exactHarmfulAllowed == true
+            if not npcHarmfulProjection then
+                return nil, "hostile-primary-unverified"
+            end
         end
     elseif host._assistable ~= true then
         return nil, "assist-unreadable"
@@ -507,6 +538,14 @@ function R.GetReadableSecondaryAura(host)
     if (host._containerWriteFailures or 0) ~= 0 then return nil, "native-update-failed" end
     local current, reason = collectCurrentAuras(host.unit)
     if not current then return nil, reason end
+    if npcHarmfulProjection then
+        -- A hostile NPC with any helpful candidate could have a separately
+        -- drawn helpful winner. Require a completely HARMFUL-only public list
+        -- when the main helper supplied no positive aura/form identity.
+        for _, candidate in ipairs(current) do
+            if candidate.helpful then return nil, "npc-mixed-polarity-unverified" end
+        end
+    end
     local ranked, cache = {}, {probes=0}
     for _, candidate in ipairs(current) do
         local tier, why = candidateRank(host, candidate, cache)
@@ -574,10 +613,33 @@ function R.GetReadableSecondaryAura(host)
         and primary.auraInstanceID == second.auraInstanceID then
         return nil, "duplicate-aura"
     end
-    if hostile and not formPrimary then
-        -- For hostile units a public first-place aura must *match* the main
-        -- engine's actually presented occurrence; never call a form primary
-        -- when a stronger readable aura is really on the big portrait.
+    if npcHarmfulProjection then
+        -- A hostile NPC's primary harmful winner may be drawn by a native
+        -- exact slot *or* the existing identity-blind SmallFriendlyHarmful
+        -- fallback. Both use filters whose eligibility was checked against
+        -- the same complete indexed public harmful stream. Do not extend this
+        -- to other semantic tiers that need unreadable private metadata.
+        local genericHarmful = primary.tier.key == "SmallFriendlyHarmful"
+            and host._smallHarmfulEnabled == true
+        if primary.helpful or (not primary.tier.exact and not genericHarmful) then
+            return nil, "npc-primary-not-native-proven"
+        end
+        local nativeIndex
+        for index, tier in ipairs(R.TIERS or {}) do
+            if tier == primary.tier then nativeIndex = index; break end
+        end
+        local native = nativeIndex and host.containers and host.containers[nativeIndex]
+        if not native or type(native.IsEnabled) ~= "function" then
+            return nil, "npc-native-slot-unreadable"
+        end
+        local enabled, known = R.SafeBool(native.IsEnabled, native)
+        if not known or not enabled then
+            return nil, "npc-native-slot-unreadable"
+        end
+        electionReason = "npc-readable-harmful-projection"
+    elseif hostile and not formPrimary then
+        -- Hostile players and hostile NPCs with an independently displayed
+        -- helpful winner retain strict correspondence with the main helper.
         if not host._hostileActive or host._hostileReadable ~= true
             or type(host._hostileAuraInstanceID) ~= "number" then
             return nil, "hostile-primary-unverified"
