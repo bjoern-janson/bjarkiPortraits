@@ -178,7 +178,16 @@ local function debugSecondary(option)
         .. " hList=" .. tostring(host._hostileAuraListComplete)
         .. " hCount=" .. tostring(host._hostileCount)
         .. " nativeHarm=" .. tostring(host._exactHarmfulAllowed)
-        .. " writes=" .. tostring(host._containerWriteFailures or 0))
+        .. " writes=" .. tostring(host._containerWriteFailures or 0)
+        .. " auraEvent=" .. tostring(host._secondaryLastEventEffect or "none"))
+    local dropped = host._secondaryLastFallback
+    if dropped then
+        R.Print("lastDrop reason=" .. tostring(dropped.reason)
+            .. " prior=" .. tostring(dropped.spellID)
+            .. " event=" .. tostring(dropped.event)
+            .. " dirty=" .. tostring(dropped.dirty)
+            .. " writes=" .. tostring(dropped.writes))
+    end
 end
 
 SLASH_BJARKIPORTRAITS1 = "/bp"
