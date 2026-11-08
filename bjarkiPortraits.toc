@@ -2,7 +2,7 @@
 ## Title: bjarkiPortraits
 ## Notes: Portrait aura timers for WoW: Forever
 ## Author: Bjarki / OpenAI
-## Version: 0.1.199-player-native-fallback-test
+## Version: 0.1.200-pet-family-secondary-test
 ## SavedVariables: BjarkiPortraitsDB
 
 Spells.lua
@@ -15,5 +15,6 @@ SecondaryPortrait.lua
 NativeSecondProbe.lua
 AuraEngine.lua
 PetPortraits.lua
+PetSecondary.lua
 Commands.lua
 Main.lua
