@@ -2,7 +2,7 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.185-secondary-form-order-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
+**Experimental branch:** `0.1.186-pet-icon-rim-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
 
 ## Install
 
@@ -13,6 +13,8 @@ Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` dire
 The **same one-aura priority engine** is used for **player, pet, target, focus, target-of-target, target-of-focus and regular party1–party4** (ten unit tokens). PetFrame retains its pet-family artwork as the baseline. Party portraits follow Blizzard's pooled frames and ignore Edit Mode placeholders; raid-style party/raid frames are not covered.
 
 Native unit-frame chrome and spell icons remain the visual foundation. **The main portrait now falls back to Blizzard’s own class icon or 3D model**, according to the game setting. Verified player-race artwork appears in a **small Totem-style secondary circle** on Player, Target, Focus and regular party frames, anchored to the **outer top corners** (player/party upper-left; target/focus upper-right) and drawn **above** native frame artwork, away from rested-Z and party-leader indicators. **ToT, ToF and PetFrame have no secondary circle**; their main portrait aura systems remain unchanged. Where a complete public aura scan and native filter probes are readable, the circle can instead present the second-ranked **distinct** active aura with a native countdown. Unknown, partial, restricted, or indeterminate reads ordinarily fall back to race/hidden. During combat, an **already verified timed** second aura can remain visible if the new read becomes inaccessible without an aura mutation. This last-positive display is revoked on the first UNIT_AURA event without a successful re-election, at its known expiry, or when the unit identity changes. Skyborne still requires a verified face atlas. PetFrame retains one full primary aura system without a secondary circle.
+
+**PetFrame icon edge cleanup (0.1.186):** The local 37px pet portrait uses a tighter `3/64` source-image crop (previously `1/64`) to keep a square spell-icon rim from peeking through the top of its round aperture. This applies to both pet-family fallback artwork and every aura layer via one shared function. The circular Blizzard bezel, portrait image position, and all other frame crops remain unchanged. Verify the visual result on different pets in game.
 
 ## Current priority examples
 

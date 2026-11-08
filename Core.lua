@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.185-secondary-form-order-test"
+R.VERSION = "0.1.186-pet-icon-rim-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 -- Four native Blizzard party portraits share the same aura engine as player/pet.
 -- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
@@ -230,12 +230,19 @@ function R.ResolveRaceBaselineAtlas(unit, confirmedPlayer)
     return CLASSIC_RACE_TEXTURE, {tile[1]/8,(tile[1]+1)/8,row/4,(row+1)/4}
 end
 
--- The Wisdom fixture separates source-art centering from the native aperture.
--- Player's source ring was slightly larger relative to its bezel; halving its
--- old 1/64 trim matches the other apertures without adding zoom anywhere.
+-- Shared source-art crop for native aura, readable aura and pet-family icons.
+-- The local PetFrame has a compact 37px circle: its former 1/64 crop left the
+-- square icon's top rim visible inside the round bezel. Trim the first three
+-- source pixels on all sides for *pet only*. Do not move the native mask/ring,
+-- change target/party framing, or zoom the main player's larger portrait.
 function R.ApplyPortraitIconCrop(icon, host)
     if icon.SetTexCoord then
-        local inset = host and host.unit == "player" and 1 / 128 or 1 / 64
+        local inset = 1 / 64
+        if host and host.unit == "player" then
+            inset = 1 / 128 -- Accepted player optical calibration.
+        elseif host and host.unit == "pet" then
+            inset = 3 / 64 -- Local PetFrame square-icon rim cleanup.
+        end
         pcall(icon.SetTexCoord, icon, inset, 1 - inset, inset, 1 - inset)
     end
 end

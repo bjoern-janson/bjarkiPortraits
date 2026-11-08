@@ -29,6 +29,7 @@ jobs:
             "lua${version}" tests/secondary-real-tiers.lua
             "lua${version}" tests/secondary-hostile-target.lua
             "lua${version}" tests/secondary-form-ranking.lua
+            "lua${version}" tests/pet-icon-crop.lua
             "lua${version}" tests/launch-auras.lua
             "lua${version}" tests/decimal-threshold.lua
             "lua${version}" tests/priority-overhaul.lua
