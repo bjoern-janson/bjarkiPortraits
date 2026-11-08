@@ -2,11 +2,48 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.192-secondary-combat-npc-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
+**Experimental branch:** `0.1.193-combat-continuity-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the eleven `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.193: combat continuity and last-drop diagnostics
+
+Entering combat still returned a visible player's secondary portrait to the
+race icon in the live 0.1.192 screenshot even while the native aura icons
+remained visible. No client `secondReason` was supplied, so this screenshot
+does not establish whether the blocker was secrecy, a native write failure,
+or an aura event.
+
+This test build repairs three **independently reproducible code paths**:
+
+1. `UNIT_AURA` previously marked the last positive secondary stale on *every*
+   event. It now preserves the candidate only when a guarded public event
+   delta proves **solely the removal of unrelated aura-instance IDs**.
+   Full updates, additions, updates, secret/unknown payloads, removal of
+   either the primary or secondary instance, and expiry still invalidate.
+2. Native tier `SetEnabled` / `SetShown` calls are skipped on unchanged,
+   previously successful container states; explicitly forced refreshes and
+   actual state changes are still executed. This avoids redundant combat
+   writes while preserving main portrait behavior and failure guards.
+3. If a new complete election positively identifies the **same** timed
+   second aura during combat, reuse the existing texture and cooldown rather
+   than rewriting them through possibly protected frame APIs. Its current
+   instance, spell, tier, existing expiry, unit identity, and mutation
+   boundary must still pass.
+
+The existing `/bp secondary debug player` command now reports
+`auraEvent` and, if a previous aura badge fell back to race, a
+`lastDrop` line with its exact stored failure reason, previous spell,
+event dirty state and native write-failure count. This records evidence
+for a future live report without inspecting protected auras in chat.
+
+Lua 5.1/5.4 mock tests cover unrelated removal retention, relevant
+primary removal invalidation, new aura invalidation, unchanged-combat
+no-write behavior, and protected native setter avoidance. **This remains
+a live-client test build**, not a guarantee of a secondary where the
+current aura information is truly secret.
 
 ## 0.1.192: combat Boosted Rest and NPC harmful projection
 
