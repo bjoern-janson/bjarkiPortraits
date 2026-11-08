@@ -1218,6 +1218,7 @@ function R.DestroyHost(unit)
         R.buildQueued = true
         return false
     end
+    if R.ReleaseSecondaryPortrait then R.ReleaseSecondaryPortrait(host) end
     if host.ownsLayer and host.layer then host.layer:Hide() end
     R.hosts[unit] = nil
     return true
@@ -1540,9 +1541,6 @@ function R.UpdateHost(host, forceContainerRefresh)
     host._hostilePlayer = hostilePlayer
     if playerReadable then host._isPlayer = isPlayer else host._isPlayer = nil end
     host._playerReadable = playerReadable
-    if R.UpdateSecondaryPortrait then
-        R.UpdateSecondaryPortrait(host, base and playerReadable and isPlayer)
-    end
     if assistReadable then host._assistable = assistable else host._assistable = nil end
     host._assistReadable = assistReadable
 
@@ -1686,6 +1684,13 @@ function R.UpdateHost(host, forceContainerRefresh)
             host._containerWriteFailures = host._containerWriteFailures + 1
         end
     end
+    -- Only a *complete, readable* public election can project a real second
+    -- aura onto the badge. The native tier stack remains the main presenter.
+    if R.ReconcileSecondaryPortrait then
+        R.ReconcileSecondaryPortrait(host, base, playerReadable and isPlayer)
+    elseif R.UpdateSecondaryPortrait then
+        R.UpdateSecondaryPortrait(host, base and playerReadable and isPlayer)
+    end
 end
 
 local function showTest(host)
@@ -1776,6 +1781,9 @@ function R.ApplyPresentation(unit)
                 R.ApplyCountdownFormat(cooldown)
                 alignCountdown(cooldown, host)
             end
+            if host.secondaryCooldown then
+                R.ApplyCountdownFormat(host.secondaryCooldown)
+            end
         end
     end
 end
@@ -1864,6 +1872,9 @@ function R.GetLayoutDebug(unit)
         .. " assist=" .. tostring(host._assistable)
         .. " ghost=" .. tostring(host._ghostActive) .. ":" .. tostring(host._ghostSource or "none")
         .. " secondary=" .. tostring(host._secondaryMode or "unavailable")
+        .. " secondSpell=" .. tostring(host._secondaryAuraSpellID or "none")
+        .. " secondTier=" .. tostring(host._secondaryAuraTier or "none")
+        .. " secondReason=" .. tostring(host._secondaryElectionReason or "none")
         .. " raceBaseline=" .. tostring(host._raceBaselineActive) .. ":"
         .. tostring(host._raceBaselineReason or "unavailable")
         .. " raceToken=" .. tostring(raceToken) .. " raceSex=" .. tostring(raceSex)

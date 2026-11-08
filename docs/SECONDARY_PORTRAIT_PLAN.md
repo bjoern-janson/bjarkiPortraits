@@ -1,9 +1,19 @@
 # Secondary portrait: two aura priorities + race identity
 
-**Status:** P0 NATIVE-FEASIBILITY SPIKE COMPLETED, P1 VISUAL PROTOTYPE BUILT ON EXPERIMENTAL BRANCH (LIVE VISUAL VERIFICATION PENDING), P2 GLOBAL SECOND-WINNER BLOCKED  
+**Status:** P1 BADGE LAYERING REPAIRED IN TEST BUILD; P2 COMPLETE-READABLE TOP-TWO PROTOTYPE BUILT; UNIVERSAL SECURE RUNNER-UP REMAINS UNAVAILABLE  
 **Baseline:** `0.1.178-bottom-harmful-consolidation-test` (2026-11-08).  
 **Proposed next development milestone:** `0.1.179-secondary-portrait-prototype` (working name, not a release).  
 **Source of visual direction:** 2026-11-08 in-game player-frame comparison: a tiny Blizzard Shaman Totem-like circular ring at the top corner of the main portrait.
+
+## Follow-up 0.1.180: upper-layer badge and guarded readable top two (2026-11-08)
+
+The first live screenshot exposed a real P1 defect: the badge's original parent was the **low-strata aura layer**, so its bottom section could disappear behind Blizzard unit-frame art. This version moves the badge to an **independent UIParent overlay** whose strata is above the native unit frame. It is noninteractive and uses a small frame pool, preventing permanent root widgets from accumulating after recycled party slots. Its visibility is independently revoked when the real native unit frame hides.
+
+P2 has a limited usable implementation for **complete, public, friendly-unit aura reads**. `SecondaryPortrait.lua` obtains bounded complete `HELPFUL|INCLUDE_NAME_PLATE_ONLY` and `HARMFUL|INCLUDE_NAME_PLATE_ONLY` snapshots via `C_UnitAuras.GetAuraDataByIndex`; validates accessible spell and aura-instance IDs; reuses the exact/semantic `Priority.lua` tiers; asks the *native* `IsAuraFilteredOutByInstanceID` oracle per candidate/tier; and sorts by tier level, same-tier reverse aura instance ID, or verified application start for the three recency tiers. Two distinct, unambiguous current candidates permit a real timed second icon. The entire election is **discarded**, with race/hidden fallback, on incomplete lists, unreadable filters, conflicting equal-level lanes, unavailable relevant timing, hostile relations, active static witnesses, failed frame writes or event-ineligible bindings. The code keeps a scan/probe budget (48 auras per polarity; 192 native filter probes per host update). There is no combat polling, no duplicated secure aura-tier stack and no secret-value read.
+
+**Remaining limit:** this is a public-only election, not a fully secure proof of the *rendered* primary winner under every native/private aura condition. The supported secure API still does not expose a global runner-up, so hostile and secrecy-heavy combat generally fall back. The current build is for **live testing**, not a claim of universal two-aura coverage. New regressions test top-two different/same tier, semantic lane, stale expiry/identity, restricted filters, native-frame layering, popup-free hit testing and pooled frame reuse. Test the actual large/compact frames, combat, party swaps and 10s countdown before promotion.
+
+---
 
 ## Prototype progress: 0.1.179-secondary-race-prototype (2026-11-08)
 

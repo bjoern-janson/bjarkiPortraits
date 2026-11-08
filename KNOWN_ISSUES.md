@@ -1,5 +1,8 @@
 # Known issues and bugs
 
+**0.1.180 readable secondary aura and layering experiment (2026-11-08):** v0.1.179 placed the Totem-style circle below native frame artwork. v0.1.180 instead uses a noninteractive, pooled UIParent overlay with higher strata, anchored to the real portrait. A **complete readable** helpful/harmful aura snapshot may now elect a distinct second effect on a friendly unit, provided native filter and ordering evidence are all accessible. This is not a secure cross-tier native runner-up. Hostile, incomplete, inaccessible, ambiguous same-level, static-state, or failed-filter cases fall back to race/hidden. Native combat taint, exact live visual layering, scaling and true second-winner agreement remain **unverified in game**; `/bp layout player` reports the diagnostic reason. Main remains stable at 0.1.178.
+
+
 **Experimental 0.1.179 secondary prototype:** verified race artwork now uses a noninteractive small circle; the large portrait falls back to Blizzard class/model artwork. There is **no genuine second-highest aura** yet. The current Forever native aura-slot API lacks a supported global second-winner selection across tiers, and an inaccessible winner must not be guessed. `/bp test` displays synthetic art for visual calibration only. See [the design plan](docs/SECONDARY_PORTRAIT_PLAN.md). Main's 0.1.178 runtime is unaffected.
 
 

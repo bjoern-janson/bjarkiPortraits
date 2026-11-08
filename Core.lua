@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.179-secondary-race-prototype"
+R.VERSION = "0.1.180-secondary-readable-auras-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 -- Four native Blizzard party portraits share the same aura engine as player/pet.
 -- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
@@ -31,7 +31,7 @@ local defaults = {
     showSwipe = false,
     showDecimals = true,
     petPortraits = true,
-    secondaryPortrait = true, -- Race badge; true runner-up election is not yet supported by native APIs.
+    secondaryPortrait = true, -- Race fallback or guarded complete-readable runner-up; never guess secret auras.
 }
 
 function R.Print(message)

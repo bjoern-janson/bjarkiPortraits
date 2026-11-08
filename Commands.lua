@@ -184,8 +184,8 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
         elseif option ~= "" then
             R.Print("usage: /bp secondary [on|off]"); return
         end
-        R.Print("secondary race badge " .. (R.db.secondaryPortrait ~= false and "on" or "off")
-            .. " (second-aura election is not implemented; /bp test previews the circle)")
+        R.Print("secondary circle " .. (R.db.secondaryPortrait ~= false and "on" or "off")
+            .. " (real runner-up only with complete readable evidence; otherwise race/hidden; /bp test previews)")
     elseif command == "swipe" then
         R.db.showSwipe = not R.db.showSwipe; R.ApplyPresentation(); R.Print("swipe " .. tostring(R.db.showSwipe))
     elseif command == "decimals" then

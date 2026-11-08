@@ -25,6 +25,7 @@ jobs:
             done
             "lua${version}" tests/low-priority.lua
             "lua${version}" tests/secondary-portrait.lua
+            "lua${version}" tests/secondary-aura-election.lua
             "lua${version}" tests/launch-auras.lua
             "lua${version}" tests/decimal-threshold.lua
             "lua${version}" tests/priority-overhaul.lua

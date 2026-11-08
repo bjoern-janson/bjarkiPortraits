@@ -14,8 +14,12 @@ local function fakeRegion(kind)
     function r:SetFrameLevel(v) self.frameLevel=v end
     function r:EnableMouse(v) self.mouseEnabled=v end
     function r:SetPoint(...) self.points[#self.points+1]={...} end
+    function r:ClearAllPoints() self.points={} end
     function r:SetAllPoints(w) self.allPoints=w end
     function r:SetAtlas(v,size) self.atlas=v; self.atlasResize=size; self.coords=nil end
+    function r:SetCooldown(start,duration) self.cooldownStart=start;self.cooldownDuration=duration end
+    function r:Clear() self.cooldownDuration=0 end
+    function r:SetDrawSwipe(v) self.swipe=v end
     function r:SetTexture(v) self.texture=v; self.textureWrites=(self.textureWrites or 0)+1; return true end
     function r:SetTexCoord(...) self.coords={...}; self.coordWrites=(self.coordWrites or 0)+1 end
     function r:AddMaskTexture(mask) self.mask=mask end
@@ -24,9 +28,11 @@ local function fakeRegion(kind)
     function r:GetFrameLevel() return self.frameLevel or 2 end
     return r
 end
+UIParent = fakeRegion("ui-parent")
 local creates = 0
-CreateFrame = function(_, _, parent, template)
-    eq(template,"DisableUntrustedLayoutScriptsTemplate","safe layout template")
+CreateFrame = function(kind, _, parent, template)
+    eq(template, kind == "Cooldown" and "CooldownFrameTemplate,DisableUntrustedLayoutScriptsTemplate"
+        or "DisableUntrustedLayoutScriptsTemplate","safe layout template")
     creates=creates+1
     local r=fakeRegion("frame"); r.parent=parent
     return r
@@ -55,14 +61,16 @@ eq(R.CreateSecondaryPortrait(player,"LOW"),true,"player badge built")
 eq(player.secondaryBadge.width,37,"large badge width")
 eq(player.secondaryBorder.width,30,"Blizzard ring dimension")
 eq(player.racePortrait.width,22,"race icon dimension")
-eq(player.secondaryBadge.strata,"LOW","native unit frame strata")
-eq(player.secondaryBadge.frameLevel,7,"above unit frame border")
+eq(player.secondaryBadge.strata,"MEDIUM","badge above the native frame strata")
+eq(player.secondaryBadge.frameLevel,14,"above unit frame border")
+eq(player.secondaryBadge.parent,UIParent,"badge is an unprotected UIParent sibling above native frame")
 eq(player.secondaryBadge.points[1][3],"TOPRIGHT","player badge faces bars")
 eq(player.secondaryBadge.mouseEnabled,false,"no click interception")
 eq(player.racePortrait.mask,player.secondaryMask,"circular icon mask")
 eq(player.secondaryMask.atlas,"CircleMask","native circle mask")
 eq(player.secondaryBorder.atlas,"UI-HUD-UnitFrame-TotemFrame","totem rim only")
 eq(player.secondaryBadge.shown,false,"hidden before eligibility")
+eq(player.secondaryCooldown.shown,false,"secondary cooldown hidden for race art")
 R.UpdateSecondaryPortrait(player,true)
 eq(player.secondaryBadge.shown,true,"verified race visible")
 eq(player._secondaryMode,"race","race state")
@@ -115,4 +123,11 @@ eq(creates,before,"no pet badge work")
 R.HideSecondaryPortrait(player,"host-destroy")
 eq(player.secondaryBadge.shown,false,"host teardown hides badge")
 eq(player.racePortrait.texture,nil,"host teardown clears race")
+local oldBadge = player.secondaryBadge
+R.ReleaseSecondaryPortrait(player)
+eq(player.secondaryBadge,nil,"released host drops badge references")
+local replacement=makeHost("target")
+R.CreateSecondaryPortrait(replacement,"LOW")
+eq(replacement.secondaryBadge,oldBadge,"pooled root badge reused instead of leaked")
+eq(replacement.secondaryBadge.points[1][3],"TOPLEFT","reused badge reanchors to target")
 print("secondary portrait race prototype: " .. checks .. " assertions passed")
