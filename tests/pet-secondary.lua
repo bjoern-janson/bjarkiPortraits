@@ -192,6 +192,20 @@ R.UpdatePetSecondaryFallback(h,true)
 eq(st.root.shown,true,"safe OOC refresh automatically restores pet art")
 eq(st.guid,"Pet-Third","restored pet has correct identity")
 eq(st.art,920026,"restored pet has correct family")
+-- Warlock pets use verified demon summon artwork instead of Hunter family
+-- art. This is the same distinction as the pre-existing pet foundation.
+actor.kind="warlock"; actor.family="Felhunter"; actor.familyID=15
+actor.guid="Pet-Felhunter"
+R.UpdatePetSecondaryFallback(h,true)
+eq(st.art,100691,"Warlock Felhunter uses its summon portrait art")
+eq(st.guid,"Pet-Felhunter","Warlock pet GUID is tracked")
+for _,icon in ipairs(st.textures) do
+    eq(icon.texture,100691,"native pet gates update to Warlock artwork")
+end
+actor.kind="hunter"; actor.family="Owl"; actor.familyID=26
+actor.guid="Pet-BackToOwl"
+R.UpdatePetSecondaryFallback(h,true)
+eq(st.art,920026,"Hunter art restored after Warlock target handoff")
 
 -- No fake pet portrait for a wild creature, minion/totem or unknown family.
 actor.kind="wild"; actor.guid="Creature-Wild"
