@@ -1497,6 +1497,19 @@ end
 
 local function setContainer(container, shown, forceRefresh)
     if not container then return end
+    shown = shown and true or false
+
+    -- This addon exclusively owns the native tier containers. Repeating
+    -- SetEnabled/SetShown on ALL of them at every combat UNIT_AURA/FLAGS event
+    -- adds protected frame writes without changing their intended state.
+    -- The last *successfully applied* state is enough to avoid those writes.
+    -- Real transitions and explicitly forced aura refreshes still execute.
+    if container._bjarkiAppliedShown == shown then
+        if forceRefresh and shown and container.UpdateAllAuras then
+            return pcall(container.UpdateAllAuras, container)
+        end
+        return true
+    end
 
     local wasEnabled
     if forceRefresh and shown and container.IsEnabled then
@@ -1514,7 +1527,11 @@ local function setContainer(container, shown, forceRefresh)
     if forceRefresh and shown and wasEnabled == true and container.UpdateAllAuras then
         refreshedOK = pcall(container.UpdateAllAuras, container)
     end
-    return enabledOK and shownOK and refreshedOK
+    local successful = enabledOK and shownOK and refreshedOK
+    -- A failed write is never recorded as applied. Retry on a future refresh
+    -- and keep the secondary election's native-update failure guard intact.
+    if successful then container._bjarkiAppliedShown = shown end
+    return successful
 end
 
 function R.UpdateHost(host, forceContainerRefresh)
