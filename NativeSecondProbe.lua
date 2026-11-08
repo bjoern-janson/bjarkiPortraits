@@ -1,7 +1,10 @@
 local addonName, BP = ...
 local R = assert(BP.Runtime, "Core.lua must load first")
 
--- Experimental secure-ribbon second portrait, TARGET NPC only.
+-- Experimental secure-ribbon second portrait, TARGET hostile units.
+-- Opposite-faction players and hostile NPCs share the same native path;
+-- the established race fallback remains underneath when player identity
+-- is positively known and a second native effect is unavailable.
 --
 -- A single native CustomAuraContainer owns multiple groups, ordered by the
 -- existing R.TIERS. Each group contributes at most TWO native aura buttons.
@@ -9,7 +12,7 @@ local R = assert(BP.Runtime, "Core.lua must load first")
 -- SECOND globally ordered button occupies the small portrait's position.
 -- No addon Lua value is read from a secure aura button or aura group.
 --
--- It activates automatically on the first eligible hostile-NPC target while
+-- It activates automatically on the first eligible hostile target while
 -- out of combat. No slash command or persistent toggle is required. Unverified
 -- native layout/semantic overlap remain experimental; this does not replace
 -- the primary native tier stack or the readable secondary election.
@@ -248,11 +251,14 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
     if not host or host.unit ~= "target" then return end
 
     -- No commands or persistent experimental toggle. The normal secondary
-    -- preference still applies; only proven hostile non-player Targets qualify.
+    -- preference still applies. A positively identified hostile PLAYER is
+    -- eligible just like a positively identified hostile NPC. Unreadable
+    -- player identity cannot authorize the native target-only experiment.
     local allow = R.db and R.db.enabled == true
         and R.db.secondaryPortrait ~= false
         and enabled == true and hostile == true
-        and playerReadable == true and isPlayer == false
+        and playerReadable == true
+        and type(isPlayer) == "boolean"
 
     if allow and not host._nativeSecondProbe then
         -- Native AddAuraGroup preallocates ten buttons for every group. Defer
@@ -270,9 +276,14 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
     local probe = host._nativeSecondProbe
     if not probe or not probe.ready or not probe.clip then return end
     if allow then
-        -- The old reader remains the fallback on non-NPC targets. On a
-        -- confirmed NPC, only the native second circle is shown.
-        if host.secondaryBadge then pcall(host.secondaryBadge.Hide, host.secondaryBadge) end
+        -- NPCs have no race fallback, so suppress their older public badge.
+        -- Hostile players retain the established race/verified-aura badge
+        -- UNDER the native second. If the native layout has fewer than two
+        -- eligible effects, its fixed viewport is empty and race remains.
+        -- If a second native button exists, that secure icon covers the race.
+        if isPlayer == false and host.secondaryBadge then
+            pcall(host.secondaryBadge.Hide, host.secondaryBadge)
+        end
         if not pcall(probe.clip.Show, probe.clip) then
             host._nativeSecondProbeReason = "clip-show-failed"
         else
