@@ -31,11 +31,11 @@ assert(loadfile('SecondaryPortrait.lua'))('bjarkiPortraits',BP)
 local host={unit='player',_buildComplete=true,_hostileUnit=false,_assistable=true,
     _containerWriteFailures=0,_readableTierOwners={},secondaryBadge=mockRegion(),
     racePortrait=mockRegion(),secondaryCooldown=mockRegion()}
-local auras={}
+local auras, harmful={}, {}
 C_UnitAuras={GetAuraDataByIndex=function(unit,index,filter)
-    if unit=='player' and filter=='HELPFUL|INCLUDE_NAME_PLATE_ONLY' then
-        return auras[index]
-    end
+    if unit~='player' then return nil end
+    if filter:sub(1,7)=='HELPFUL' then return auras[index] end
+    if filter:sub(1,7)=='HARMFUL' then return harmful[index] end
     return nil
 end}
 local function aura(spell,id,shown)
@@ -62,4 +62,20 @@ eq(host._secondaryAuraSpellID,1126,'second positive Mark after Vanish')
 auras={aura(1126,120),aura(467,100),aura(999999,101)}
 R.ReconcileSecondaryPortrait(host,true,true)
 eq(host._secondaryMode,'race','unknown semantic eligibility remains conservative')
-print('secondary real tier eligibility: 8 checks passed')
+-- Friendly harmful Boosted Rest may be a readable second aura even though
+-- the native exact harmful relation gate on player would be false.
+auras={aura(1126,220)}
+harmful={aura(1229451,221)}
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryMode,'aura','friendly bottom status elected behind higher buff')
+eq(host._secondaryAuraSpellID,1229451,'Boosted Rest becomes second')
+eq(host._secondaryAuraTier,'BoostedRest','priority-zero category unchanged')
+-- A higher harmful aura can also displace Boosted Rest into the badge.
+-- This mock supplies the independent completed owner for the slow.
+host._readableTierOwners.Slows={complete=true}
+auras={}
+harmful={aura(1715,321),aura(1229451,322)}
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryMode,'aura','higher harmful winner and bottom status')
+eq(host._secondaryAuraSpellID,1229451,'Boosted Rest follows higher slow')
+print('secondary real tier eligibility passed')
