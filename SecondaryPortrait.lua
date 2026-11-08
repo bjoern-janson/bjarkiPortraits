@@ -52,6 +52,7 @@ local function clearSecondaryAura(host)
     host._secondaryAuraInstanceID = nil
     host._secondaryAuraSpellID = nil
     host._secondaryAuraTier = nil
+    host._secondaryPrimaryAuraInstanceID = nil
     -- A retained positive belongs only to the exact unit/instance and ends
     -- on the next aura event or known expiration. A previous one-shot expiry
     -- callback must not affect the next candidate.
@@ -772,7 +773,7 @@ function R.GetReadableSecondaryAura(host)
             return nil, "hostile-primary-mismatch"
         end
     end
-    return second, electionReason
+    return second, electionReason, primary
 end
 
 -- A form icon is an independent, currently displayed *state*, not an aura.
@@ -857,16 +858,56 @@ local function showSecondaryAura(host, candidate)
     return true
 end
 
--- This event is not a negative observation about every buff, but if combat
--- seals the new aura list, we can no longer prove the cached *ranking* after
--- ANY UNIT_AURA change. Revoke that temporary trust until a new full election.
--- Call before the normal UNIT_AURA host refresh, not after it.
-function R.NoteSecondaryAuraEvent(unit)
+-- UNIT_AURA does not always mean the *two elected* effects changed.
+-- A precise incremental update describing ONLY removal of other aura IDs
+-- leaves the current top two unchanged. In particular, an unrelated aura
+-- can expire as combat begins while the public full aura list becomes secret.
+-- All additions, updates, full/unknown/secret payloads, and removals of
+-- either winner still revoke the previous ranking. No inferred spell data.
+local function onlyUnrelatedRemovals(host, updateInfo)
+    if not R.CanAccess(updateInfo) or type(updateInfo) ~= "table"
+        or not host._secondaryAuraInstanceID then return false end
+    local full, fullOK = read(updateInfo, "isFullUpdate")
+    local added, addedOK = read(updateInfo, "addedAuras")
+    local changed, changedOK = read(updateInfo, "updatedAuraInstanceIDs")
+    local removed, removedOK = read(updateInfo, "removedAuraInstanceIDs")
+    if not (fullOK and addedOK and changedOK and removedOK)
+        or full ~= false then return false end
+
+    local function size(list)
+        if list == nil then return 0 end
+        if not R.CanAccess(list) or type(list) ~= "table" then return nil end
+        local ok, length = pcall(function() return #list end)
+        if ok and type(length) == "number" and length >= 0
+            and length <= AURA_SCAN_LIMIT * 2 then return length end
+        return nil
+    end
+    local addedCount, changedCount, removedCount = size(added), size(changed), size(removed)
+    if addedCount ~= 0 or changedCount ~= 0 or not removedCount
+        or removedCount == 0 then return false end
+    for index = 1, removedCount do
+        local ok, id = pcall(function() return removed[index] end)
+        if not ok or not R.CanAccess(id) or type(id) ~= "number"
+            or id <= 0 or id == host._secondaryAuraInstanceID
+            or id == host._secondaryPrimaryAuraInstanceID then
+            return false
+        end
+    end
+    return true
+end
+
+-- Call before the UNIT_AURA refresh, using its guarded public delta when
+-- available. This function never reads secret aura spell IDs or durations.
+function R.NoteSecondaryAuraEvent(unit, updateInfo)
     if not SECONDARY_UNITS[unit] then return end
     local host = R.hosts and R.hosts[unit]
-    if host and host._secondaryMode == "aura" then
-        host._secondaryAuraEventDirty = true
+    if not host or host._secondaryMode ~= "aura" then return end
+    if onlyUnrelatedRemovals(host, updateInfo) then
+        host._secondaryLastEventEffect = "unrelated-removal"
+        return
     end
+    host._secondaryLastEventEffect = "changed-or-unreadable"
+    host._secondaryAuraEventDirty = true
 end
 
 local HOLD_READ_FAILURE = {
@@ -878,6 +919,7 @@ local HOLD_READ_FAILURE = {
     ["native-filter-unreadable"] = true,
     ["hostile-list-unreadable"] = true,
     ["hostile-relation-unreadable"] = true,
+    ["unchanged-current-positive"] = true,
 }
 local function retainCombatPositive(host, reason)
     if not HOLD_READ_FAILURE[reason] or host._secondaryMode ~= "aura"
@@ -962,16 +1004,39 @@ function R.ReconcileSecondaryPortrait(host, enabled, isPlayer)
         R.PreviewSecondaryPortrait(host)
         return
     end
-    local second, reason = R.GetReadableSecondaryAura(host)
+    local second, reason, primary = R.GetReadableSecondaryAura(host)
+    -- When combat still reveals the SAME complete election, prefer leaving
+    -- the already-drawn icon and countdown alone. Re-writing an unchanged
+    -- cooldown/texture on a combat-protected frame can fail, even though the
+    -- previous timed positive is still valid. A real aura event invalidates
+    -- this shortcut unless its delta proves only unrelated removals.
+    if second and host._secondaryMode == "aura"
+        and second.auraInstanceID == host._secondaryAuraInstanceID
+        and second.spellID == host._secondaryAuraSpellID
+        and second.tier and second.tier.key == host._secondaryAuraTier
+        and retainCombatPositive(host, "unchanged-current-positive") then
+        host._secondaryPrimaryAuraInstanceID =
+            primary and primary.auraInstanceID or nil
+        return
+    end
     if second and showSecondaryAura(host, second) then
+        host._secondaryPrimaryAuraInstanceID =
+            primary and primary.auraInstanceID or nil
         host._secondaryElectionReason = reason
         return
     end
-    -- Entering combat can seal otherwise readable values without an aura
-    -- mutation. Preserve ONLY the last positive, timed secondary until its
-    -- first UNIT_AURA event or known expiration. Never freeze a stale rank
-    -- over a new aura event, a unit switch, or a failed native frame write.
+    -- Entering combat may seal an otherwise readable aura list. Retain only
+    -- the last verified timed aura without an unproven ranking change.
     if not second and retainCombatPositive(host, reason) then return end
+    if host._secondaryMode == "aura" then
+        host._secondaryLastFallback = {
+            reason = second and "presentation-unavailable" or reason,
+            spellID = host._secondaryAuraSpellID,
+            event = host._secondaryLastEventEffect or "none",
+            dirty = host._secondaryAuraEventDirty == true,
+            writes = host._containerWriteFailures or 0,
+        }
+    end
     R.UpdateSecondaryPortrait(host, isPlayer)
     host._secondaryElectionReason = second and "presentation-unavailable" or reason
 end
