@@ -1,5 +1,44 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-08 — native two-cell flow experiment (0.1.195)
+
+**New source-backed capability:** Forever's native `CustomAuraContainer`
+allows multiple `AddAuraGroup` registrations within *one* container;
+each group can use `maxFrameCount=2`, its own native exact/semantic
+filter, the existing aura-instance sorting method, and a global
+`layout.layoutIndex`. The secure `GetFlowLayoutGroupDescriptions`
+sorts groups by that index and lays their current native buttons
+sequentially. This differs materially from reading protected
+`GetAuraDataByIndex` or trying to query a second winner directly.
+
+**Candidate design:** Sort the existing 63 `R.TIERS` in descending
+numeric priority, place them into one target-only native container, and
+clip away the first native 37px cell. The next native button, if any,
+is rendered at the secondary portrait position with its own secure
+icon/cooldown. The fixed viewport never reads child geometry or
+secret aura IDs. A source-backed inbound mock regression checks ordered
+group options, exclusion of overlapping *exact* categories, clipping
+and target-only visibility. The exact spell-ID audit currently finds
+1,557 unique IDs and **zero overlaps between exact tiers**.
+
+**Remaining blockers:** Group membership can overlap across native
+semantic categories, and generic fallbacks must explicitly exclude
+known exact IDs. These are corrected for known exact/generic overlaps
+in the prototype; all semantic overlaps, live anchor offsets,
+native protected visibility, and initialization cost remain unverified.
+The existing large primary stack is unchanged. The native strip is
+disabled unless `/bp native2 on` is selected outside combat, and is
+currently scoped to hostile non-player TARGET only; there is no
+unconditional promise of global top-two accuracy yet.
+
+This is a test of a **supported secure rendering interface**, not
+permission to read private winner tables. We should inspect live
+artwork and same-tier/different-tier cases before considering a
+production refactor. Keep fail-closed normal fallback and no secret
+value processing in addon Lua.
+
+---
+
 **Status:** P1/P2 readable prototype through v0.1.191; verified static Ghost can lead Boosted Rest without duplicate aura; universal secure cross-tier runner-up remains unavailable  
 **Baseline:** `0.1.178-bottom-harmful-consolidation-test` (2026-11-08).  
 **Proposed next development milestone:** `0.1.179-secondary-portrait-prototype` (working name, not a release).  
