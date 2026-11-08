@@ -1327,11 +1327,8 @@ local function buildHost(unit, host)
     if unit ~= "pet" and not R.SMALL_UNITS[unit] and R.CreateSecondaryPortrait then
         R.CreateSecondaryPortrait(host, parentStrata)
     end
-    -- Opt-in protected runner-up layout experiment for TARGET NPCs only.
-    -- It never replaces, reads, or modifies the existing primary tier stack.
-    if unit == "target" and R.CreateNativeSecondProbe then
-        R.CreateNativeSecondProbe(host)
-    end
+    -- Native NPC runner-up groups are created on first eligible out-of-combat
+    -- target, not eagerly for every session. UpdateHost owns the safe trigger.
 
     for index, tier in ipairs(R.TIERS or {}) do
         host._buildStage = "native-slot:" .. tostring(tier.key)
