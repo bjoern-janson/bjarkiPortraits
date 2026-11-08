@@ -1,3 +1,24 @@
+## 2026-11-08: secure-group native2 prototype (0.1.195, live test pending)
+
+The 0.1.194 Kobold debuff-only failure was confirmed as
+`reason=inaccessible-index` from a complete public aura scan. The
+fully native main portrait nevertheless renders one harmful aura.
+
+The new **opt-in** `/bp native2 on` proof tests whether a single
+native aura container with multiple priority-ordered `AddAuraGroup`
+groups can securely lay out a top-two strip while the addon exposes
+only cell two through a clip viewport. The experiment does **not**
+query secret data or replace the primary system. `/bp native2 off`
+reverts to the existing public runner-up.
+
+Unverified: native group layout/overlap across semantic tiers,
+first/second positioning, clip behavior in the live game, native
+button visibility after a target swap, runtime frame construction
+cost. Do not treat a compiled mock or published client source as
+evidence that a second icon was shown. Target NPC only; original
+secondary remains default. If the experiment shows a duplicated
+primary or empty cell, report screenshot and `/bp native2 status`.
+
 ## 2026-11-08: confirmed NPC public-aura denial in 0.1.194
 
 **Live paired observations:** A hostile Kobold with two debuff icons and a
