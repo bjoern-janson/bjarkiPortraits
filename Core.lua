@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.195-native-second-probe-test"
+R.VERSION = "0.1.196-auto-native-second-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 -- Four native Blizzard party portraits share the same aura engine as player/pet.
 -- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
@@ -32,7 +32,6 @@ local defaults = {
     showDecimals = true,
     petPortraits = true,
     secondaryPortrait = true, -- Race fallback or guarded complete-readable runner-up; never guess secret auras.
-    nativeSecondProbe = false, -- Opt-in native second-slot layout experiment, target NPC only.
 }
 
 function R.Print(message)
