@@ -2,11 +2,35 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.195-native-second-probe-test` (2026-11-08), built on 0.1.178. The original readable secondary remains the default; a separate **opt-in, Target-NPC-only native group strip** now tests displaying a second aura entirely inside Blizzard's protected renderer. This is an unproven live-client prototype, not a certified global two-winner implementation.
+**Experimental branch:** `0.1.196-auto-native-second-test` (2026-11-08), built on 0.1.178. No slash commands are needed for normal installation or testing. The native runner-up ribbon initializes automatically on the first eligible hostile-NPC Target while out of combat; other units retain the existing readable secondary. The secure rendering mechanism still requires live in-game verification.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the twelve `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.196 — automatic native secondary; no in-game setup
+
+No `/bp native2 on`, `/bp native2 status`, or other in-game
+setup is required. With the addon installed, simply target a hostile
+NPC out of combat: `AuraEngine.UpdateHost` recognizes the NPC, then
+creates the native ribbon on demand. It remains available as you
+enter combat or switch targets. If the first eligible target appears
+*during* combat, setup is deferred until an ordinary out-of-combat
+refresh; no manual retry is needed.
+
+The old `nativeSecondProbe` saved toggle is ignored. The existing
+`secondaryPortrait` and global addon enabled preferences remain
+respected. On other unit types, established readable election and
+race fallbacks remain unchanged.
+
+**Workflow preference:** Features should work automatically with
+sensible defaults. Avoid new slash commands for enabling, configuration
+or normal testing. Existing diagnostic commands are optional
+troubleshooting tools, not required setup.
+
+The native ribbon still requires live client verification of sorting,
+clipping and exact runner-up identity. The 0.1.195 instructions below
+are historical.
 
 ## 0.1.195 — experimental secure-native second-place ribbon
 
@@ -29,14 +53,13 @@ Totem-style 30-pixel border. No protected button state, aura ID, or
 secret container width is read by addon Lua. This is a **visual
 projection** of a native-ordered strip, not a secret-data extractor.
 
-To test **outside combat**, run `/bp native2 on`, then target a hostile
-Kobold carrying two debuffs. Run `/bp native2 status` to check
-construction; the native ribbon should show the runner-up in the
-outer top-right circle. `/bp native2 off` restores the previous
-public-secondary behavior by rebuilding hosts outside combat.
+Historical 0.1.195 instructions used explicit `/bp native2`
+commands. **Superseded by 0.1.196:** simply target a hostile NPC
+out of combat to initialize the ribbon automatically.
 
 - **Only Target hostile NPCs** can display the prototype. No player,
-  party, pet, Focus or ToT/ToF behavior changes. Off by default.
+  party, pet, Focus or ToT/ToF behavior changes. In 0.1.196 it
+  initializes automatically when first needed out of combat.
 - It adds no priority tiers or spell categories. Known exact IDs are
   made disjoint across exact groups; both generic fallbacks explicitly
   exclude known exact IDs, and the harmful generic also excludes
