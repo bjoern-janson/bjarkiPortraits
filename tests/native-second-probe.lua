@@ -6,7 +6,15 @@ local BP={Runtime={}}
 assert(loadfile("Spells.lua"))("bjarkiPortraits", BP)
 assert(loadfile("Priority.lua"))("bjarkiPortraits", BP)
 local R=BP.Runtime
-R.db={nativeSecondProbe=true}
+-- Persisted 0.1.195 off state must not require an in-game re-enable.
+R.db={enabled=true,secondaryPortrait=true,nativeSecondProbe=false}
+local combat=false
+InCombatLockdown=function() return combat end
+R.SafeBool=function(fn,...)
+    if type(fn)~="function" then return nil,false end
+    local ok,value=pcall(fn,...)
+    return value,ok and type(value)=="boolean"
+end
 R.CanAccess=function(v) return v ~= "SECRET" end
 R.ApplyCountdownFormat=function()end
 R.AURA_ANCHOR_TEMPLATE="DisableUntrustedLayoutScriptsTemplate"
@@ -70,7 +78,17 @@ assert(loadfile("NativeSecondProbe.lua"))("bjarkiPortraits",BP)
 local host={unit="target",portrait=frame("portrait"),
     secondaryBadge=frame("badge")}
 host.secondaryBadge.level=50
-eq(R.CreateNativeSecondProbe(host),true,"target native ribbon built")
+eq(host._nativeSecondProbe,nil,"no eager construction on load")
+R.UpdateNativeSecondProbe(host,true,false,true,false)
+eq(host._nativeSecondProbe,nil,"friendly target allocates no native groups")
+combat=true
+R.UpdateNativeSecondProbe(host,true,true,true,false)
+eq(host._nativeSecondProbe,nil,"first hostile target in combat defers structural setup")
+eq(host._nativeSecondProbeReason,"setup-deferred-until-out-of-combat",
+    "deferred setup is recorded for diagnosis")
+combat=false
+R.UpdateNativeSecondProbe(host,true,true,true,false)
+eq(host._nativeSecondProbe~=nil,true,"eligible NPC builds automatically without commands")
 local p=host._nativeSecondProbe
 eq(p.ready,true,"native container initialized")
 eq(p.clip.clips,true,"fixed clipping viewport")
@@ -116,14 +134,23 @@ eq(p.container.unit,nil,"pooled native group no longer binds prior target")
 local other={unit="target",portrait=frame("portrait"),
     secondaryBadge=frame("badge")}
 other.secondaryBadge.level=60
-eq(R.CreateNativeSecondProbe(other),true,"native ribbon reused")
-eq(other._nativeSecondProbe,p,"reused probe does not allocate duplicates")
+R.UpdateNativeSecondProbe(other,true,true,true,false)
+eq(other._nativeSecondProbe,p,"next eligible target automatically reuses pooled probe")
+eq(other._nativeSecondProbe.ready,true,"reused native strip is ready")
 eq(p.clip.points[2],other.portrait,"reused probe anchors to current portrait")
 R.ReleaseNativeSecondProbe(other)
-R.db.nativeSecondProbe=false
-eq(R.CreateNativeSecondProbe(host),false,"disabled mode creates no new groups")
+R.db.enabled=false
+eq(R.CreateNativeSecondProbe(host),false,"global addon off creates no groups")
+R.UpdateNativeSecondProbe(host,true,true,true,false)
+eq(host._nativeSecondProbe,nil,"disabled addon never auto-allocates")
+R.db.enabled=true
+R.db.secondaryPortrait=false
+R.UpdateNativeSecondProbe(host,true,true,true,false)
+eq(host._nativeSecondProbe,nil,"secondary disabled skips auto setup")
+R.db.secondaryPortrait=true
 local focus={unit="focus",portrait=frame("portrait"),
     secondaryBadge=frame("badge")}
-R.db.nativeSecondProbe=true
 eq(R.CreateNativeSecondProbe(focus),false,"experimental scope is target-only")
+R.UpdateNativeSecondProbe(focus,true,true,true,false)
+eq(focus._nativeSecondProbe,nil,"focus receives no native target ribbon")
 print("native runner-up ribbon: "..checks.." inbound/safety checks passed")
