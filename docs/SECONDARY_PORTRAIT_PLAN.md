@@ -1,9 +1,23 @@
 # Secondary portrait: two aura priorities + race identity
 
-**Status:** P1/P2 readable prototype through v0.1.190; confirmed v0.1.188–0.1.189 initialization defect repaired; universal secure cross-tier runner-up remains unavailable  
+**Status:** P1/P2 readable prototype through v0.1.191; verified static Ghost can lead Boosted Rest without duplicate aura; universal secure cross-tier runner-up remains unavailable  
 **Baseline:** `0.1.178-bottom-harmful-consolidation-test` (2026-11-08).  
 **Proposed next development milestone:** `0.1.179-secondary-portrait-prototype` (working name, not a release).  
 **Source of visual direction:** 2026-11-08 in-game player-frame comparison: a tiny Blizzard Shaman Totem-like circular ring at the top corner of the main portrait.
+
+## Follow-up 0.1.191: Ghost is a static main state, not a secondary-election veto (2026-11-08)
+
+**Observed:** A deceased player, also selected as Target, has the existing Ghost portrait in the large circle and two native debuff icons, including **Boosted Rest**, but the small circle shows the race. The live command reports `secondReason=static-ghost-witness`. Unlike the 0.1.188–0.1.189 load-order defect, this is a direct early-return gate inside the new second-aura reader.
+
+**Resolution:** Preserve `AuraEngine.updateGhostState` and its frame ownership unchanged. Require `_ghostActive=true` with `_ghostSource=unit-state` and a readable positive current `UnitIsGhost`, or `_ghostSource=aura` backed by its existing positively presented Ghost aura. Treat the main Ghost as a static first-place candidate at **Immunity + 2 = 332 presentation level** (this is the current helper's frame level, **not** a new numeric aura tier). When the complete public indexed aura union contains a known lower effect, elect the highest eligible lower aura as the secondary. For harmful `BoostedRest` (priority 0), a verified Ghost main permits this *public* positive to be considered even where native harmful identity filters are relation-gated; the exact current occurrence and normal harmful-filter membership must still be positively readable.
+
+**Occurrence deduplication:** The three `Ghost` harmful IDs (8326, 9036, 1278162) describe the same already presented state. Exclude them from the second-place candidate list whenever the static Ghost presenter is proven. Do not let one Ghost display consume both portrait circles. If Ghost is the only effect, preserve the usual race fallback. If an aura at or above the Ghost presenter's frame level competes for first, do **not** assume a tie-break or fabricate a second icon. Waiting to Resurrect at 332 is an explicit tie case.
+
+**Tests:** The existing `Spells.lua`/`Priority.lua` model now verifies Ghost + Boosted Rest = `verified-ghost-then-aura` with Boosted Rest at 0, current aura-instance identity, proper cooldown and no duplicate Ghost. Reversed Ghost variants, missing Ghost aura but positive unit state, unproven Ghost, missing Boosted Rest instance ID, Ghost-only and exact-priority tie are negative cases. A second test drives the real `R.UpdateHost` path and verifies that the original main Ghost frame stays shown while the second uses the Boosted Rest texture; removing the buff must clear the badge. No polling, private aura access, new priority number or native main changes.
+
+**Remaining limitation:** When Forever restricts the current harmful aura or filtered membership, `GetReadableSecondaryAura` remains conservative; this change does not guarantee secret aura tracking in combat. Live-client verification is still needed with Ghost and Boosted Rest on player and friendly target.
+
+---
 
 ## Follow-up 0.1.190: priority initialization order — confirmed live regression (2026-11-08)
 

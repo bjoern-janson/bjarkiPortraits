@@ -441,6 +441,20 @@ local function plainPolarityMembership(unit, candidate, cache)
     return nil
 end
 
+-- Current Ghost is a positively rendered *state* (the main portrait owns
+-- this already), not a second aura inferred from death or HP. Its harmful
+-- spell IDs may also appear in an indexed list: they are the SAME Ghost.
+local function provenGhost(host)
+    return host._ghostActive == true
+        and ((host._ghostSource == "unit-state" and host._ghostReadable == true)
+            or host._ghostSource == "aura")
+end
+
+local function ghostAura(spellID)
+    local set = BP.categories and BP.categories.immunities_harmful
+    return set and set[spellID] == true
+end
+
 local function candidateRank(host, candidate, cache)
     local tiers = getRankTiers()
     if not tiers then return nil, "tiers-not-ready" end
@@ -470,6 +484,17 @@ local function candidateRank(host, candidate, cache)
                 if not allowed and candidate.helpful and host._hostileUnit == true
                     and host._hostileAuraListComplete == true
                     and host._hostileElectionReadable == true then
+                    allowed = true
+                end
+                -- A positively displayed Ghost establishes first place on a
+                -- friendly unit. Its currently readable, explicit level-zero
+                -- HARMFUL status may be the second effect even if normal
+                -- secure harmful-ID permission is unavailable for self.
+                -- Identity and ordinary filter membership are still checked
+                -- independently below. No allowance for unknown debuffs.
+                if not allowed and tier.key == "BoostedRest"
+                    and candidate.helpful == false and host._hostileUnit == false
+                    and host._assistable == true and provenGhost(host) then
                     allowed = true
                 end
                 if not allowed then
@@ -598,7 +623,12 @@ function R.GetReadableSecondaryAura(host)
     elseif host._assistable ~= true then
         return nil, "assist-unreadable"
     end
-    if host._ghostActive then return nil, "static-ghost-witness" end
+    if host._ghostActive and not provenGhost(host) then
+        return nil, "ghost-unproven"
+    end
+    if host._ghostActive and host._formStateActive then
+        return nil, "ghost-form-conflict"
+    end
     if host._formStateActive and
         (type(host._formStateSpellID) ~= "number" or
             (host._formStateReason ~= "unit-power" and
@@ -618,15 +648,20 @@ function R.GetReadableSecondaryAura(host)
     -- A harmful first-place projection is permitted only when it outranks
     -- every helpful candidate and its corresponding native slot is enabled.
     local ranked, cache = {}, {probes=0}
+    local ghostActive = provenGhost(host)
     for _, candidate in ipairs(current) do
-        local tier, why = candidateRank(host, candidate, cache)
-        if why then return nil, why end
-        if tier then
-            candidate.tier = tier
-            if RECENCY_TIERS[tier.key] then
-                candidate.start = tryGetAuraStart(host.unit, candidate)
+        -- When the existing static main Ghost presenter is authoritative,
+        -- suppress its redundant harmful aura IDs from the second-place list.
+        if not (ghostActive and ghostAura(candidate.spellID)) then
+            local tier, why = candidateRank(host, candidate, cache)
+            if why then return nil, why end
+            if tier then
+                candidate.tier = tier
+                if RECENCY_TIERS[tier.key] then
+                    candidate.start = tryGetAuraStart(host.unit, candidate)
+                end
+                ranked[#ranked+1] = candidate
             end
-            ranked[#ranked+1] = candidate
         end
     end
     -- Insertion sort, bounded to 2 * 48 auras. Tied independent lanes are
@@ -663,7 +698,19 @@ function R.GetReadableSecondaryAura(host)
     end
 
     local primary, second, electionReason
-    if formPrimary then
+    if ghostActive then
+        -- Match the current Ghost presenter's Immunity+2 frame level.
+        -- WaitingToResurrect can tie that level; an unproven tie fails closed.
+        local immunity = R.TIER_BY_KEY and R.TIER_BY_KEY.Immunity
+        local ghostLevel = (immunity and immunity.level or 330) + 2
+        if ranked[1] and ranked[1].tier.level >= ghostLevel then
+            return nil, ranked[1].tier.level == ghostLevel
+                and "ghost-rank-tie" or "ghost-not-primary"
+        end
+        primary = {staticGhost=true, spellID=8326,
+            tier={key="GhostState", level=ghostLevel}}
+        second, electionReason = ranked[1], "verified-ghost-then-aura"
+    elseif formPrimary then
         -- No higher aura: the observed form is visible as the first portrait;
         -- a *lower* aura becomes second, if any.
         primary, second, electionReason = form, ranked[1], "verified-form-then-aura"

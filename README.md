@@ -2,7 +2,7 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.190-lazy-priority-load-order-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
+**Experimental branch:** `0.1.191-ghost-first-secondary-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
 
 ## Install
 
@@ -13,6 +13,12 @@ Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` dire
 **Root cause, reproduced with the actual addon source and the game's manifest order:** `SecondaryPortrait.lua` constructed the sorted `rankTiers` list at **module load**, before `Priority.lua` had populated `R.TIERS`. This initialized a permanently **empty** rank list on the live client, regardless of how many buffs were visible. Consequently `secondReason=not-two-presentable` and race fallback were inevitable after v0.1.188, even though prior offline tests passed (they loaded `Priority.lua` first).
 
 Both manifests now load **`Priority.lua` before `SecondaryPortrait.lua`**, and the secondary ranking table is **lazily cached from the populated source** (with an explicit `tiers-not-ready` failure rather than silently treating every spell as unranked). The original production-order reproduction changes from `second=nil reason=not-two-presentable` to `second=1126 reason=verified-readable` for Thorns (120) + Mark of the Wild (90). `tests/secondary-load-order.lua` tests both manifest orders and the deliberately broken order, so this cannot silently regress. All numeric tier levels and the native primary portrait are unchanged.
+
+## Ghost as the main state; lower harmful auras as the secondary (0.1.191)
+
+A **positively presented** Ghost is a static primary at its existing Immunity-relative frame level, rather than a reason to suppress the secondary circle. If a complete current public harmful aura list contains Boosted Rest (spell **1229451**, priority **0**), it can be shown in the small circle under Ghost, with its real timer. Other existing priority-0 harmful effects remain in their original lane. Duplicate Ghost debuffs (8326, 9036, 1278162) are not counted as additional effects when the static main Ghost presenter already owns them.
+
+The exact lower harmful aura still needs a readable current instance ID, matching native polarity membership, and an eligible friendly unit; an inaccessible spell cannot be guessed. A verified Ghost state alone returns the usual race fallback in the secondary circle. Equal-level native ties (e.g. Waiting to Resurrect at level 332) remain unproven rather than arbitrarily ranked. No primary portrait, numeric tier, or protected API permission has changed.
 
 ## Supported portraits
 
