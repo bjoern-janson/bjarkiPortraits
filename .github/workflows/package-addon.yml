@@ -2,7 +2,7 @@ name: Package addon
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/secondary-portrait-p1]
   pull_request:
     branches: [main]
   workflow_dispatch:
