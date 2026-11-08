@@ -1189,6 +1189,7 @@ function R.DestroyHost(unit)
     if host.testFrame then host.testFrame:Hide() end
     if R.HideSecondaryPortrait then R.HideSecondaryPortrait(host, "host-destroy") end
     if R.HideNativeSecondProbe then R.HideNativeSecondProbe(host, "host-destroy") end
+    if R.HidePetSecondaryFallback then R.HidePetSecondaryFallback(host, "host-destroy") end
     if host.readableHostileFrame then host.readableHostileFrame:Hide() end
     if host.readableBaselineFrame then host.readableBaselineFrame:Hide() end
     if host.readableHealingFrame then hideReadableExact(host.readableHealingFrame) end
@@ -1225,6 +1226,7 @@ function R.DestroyHost(unit)
     end
     if R.ReleaseSecondaryPortrait then R.ReleaseSecondaryPortrait(host) end
     if R.ReleaseNativeSecondProbe then R.ReleaseNativeSecondProbe(host) end
+    if R.ReleasePetSecondaryFallback then R.ReleasePetSecondaryFallback(host) end
     if host.ownsLayer and host.layer then host.layer:Hide() end
     R.hosts[unit] = nil
     return true
@@ -1727,6 +1729,11 @@ function R.UpdateHost(host, forceContainerRefresh)
     end
     if R.UpdateNativeSecondProbe then
         R.UpdateNativeSecondProbe(host, base, hostileUnit, playerReadable, isPlayer)
+    end
+    -- The pet-family fallback uses native HELPFUL/HARMFUL presence groups,
+    -- not private aura enumeration. It stays behind genuine second-aura art.
+    if R.UpdatePetSecondaryFallback then
+        R.UpdatePetSecondaryFallback(host, base)
     end
 end
 
