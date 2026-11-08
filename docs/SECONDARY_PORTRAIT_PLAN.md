@@ -1,5 +1,21 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-08 — 0.1.196 zero-command initialization
+
+The user prefers **no normal in-game commands**. The 0.1.195
+`/bp native2 on|off|status` controls are removed. The engine-native
+Target-NPC ribbon is now constructed lazily on the first eligible
+out-of-combat target update, then remains available automatically
+through later target swaps and combat. It is not allocated eagerly
+during normal login. The old SavedVariables toggle is ignored so a
+prior off value cannot prevent testing. The existing global enable and
+secondary-portrait preferences still apply.
+
+This updates initialization only; the native layout proof must still
+be verified in-game. Preserve developer-only diagnostic commands
+as optional fallbacks rather than requiring them for normal use.
+
+
 ## 2026-11-08 — native two-cell flow experiment (0.1.195)
 
 **New source-backed capability:** Forever's native `CustomAuraContainer`
