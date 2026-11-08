@@ -1,3 +1,26 @@
+## 2026-11-08: v0.1.193 combat race fallback (awaiting client retest)
+
+Screenshot: player enters combat with a visible high-priority fire buff in
+the main portrait, multiple native aura icons, and the secondary circle
+returning to its race fallback. There was no live `secondReason` output,
+so no specific in-game secrecy or native-frame failure is yet proven.
+
+Source audit found three possible premature fallbacks: (1) every
+`UNIT_AURA` previously dirtied the last positive, including an unrelated
+removal-only delta; (2) repeated native SetEnabled/SetShown calls even when
+their previously applied state was unchanged; and (3) re-writing a fully
+confirmed identical secondary candidate instead of retaining its prior
+countdown during combat. The experimental 0.1.193 branch corrects these
+cases with guarded event delta evidence, unchanged-state write caching,
+and exact same-instance retention. Any unverified aura addition/update,
+missing/secret event payload, expiry, or failed native write still
+fails closed. No primary tier level or icon positioning changed.
+
+If the 0.1.193 build still shows the race icon, use
+`/bp secondary debug player` while the failure is visible; the
+`lastDrop` and `auraEvent` evidence can distinguish which guard
+remains responsible without another guessed change.
+
 ## 2026-11-08: v0.1.192 screenshot follow-up (live verification pending)
 
 - **Boosted Rest on entering combat:** The exact harmful relation gate
