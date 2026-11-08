@@ -1,3 +1,33 @@
+## 2026-11-08 — 0.1.199 PlayerFrame secondary race on incoming debuff
+
+**Live report:** On PlayerFrame, a newly received short harmful effect
+(~1.5 seconds remaining) becomes the main portrait, yet the small
+secondary returns to the race icon while other active auras are shown.
+This screenshot does not expose the current Lua rejection reason.
+The source does expose a structural gap: the existing secure
+NativeSecondProbe covered hostile Target only; PlayerFrame still used
+a complete public-only runner-up election which can fail after new
+harmful `UNIT_AURA` updates when public identity is restricted.
+
+**0.1.199 experiment:** Prepare native group ribbon for PlayerFrame
+out of combat, with the second cell anchored at the outer upper-left
+(+5 offset), matching the previous accepted badge location. Leave
+the secure ribbon hidden while the existing public runner-up is
+positively presented. If the public reader falls back to race,
+present native cell #2 *over* that race without querying private
+aura IDs. Require positively friendly player identity, visible
+enabled frame and no independent Ghost/form state; all other
+frames keep their current paths. Ensure player ribbon can be
+initialized without commands on login or the next ordinary OOC
+refresh and cannot be created inside combat.
+
+**Verification:** Lua 5.1/5.4 source-backed mock tests cover states and
+guardrails; client validation of two actual native aura buttons,
+layout order, semantic duplicates and performance is still pending.
+No changes to exact spell priorities, countdown thresholds, or
+native icon dimensions. The earlier request to enlarge 22px icons
+remains outstanding as a separate visual pass.
+
 ## 2026-11-08 — 0.1.197 hostile player race fallback despite visible auras
 
 A screenshot of an opposite-faction player showed the race tile in the
