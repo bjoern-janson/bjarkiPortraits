@@ -2,11 +2,17 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.189-public-filter-evidence-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
+**Experimental branch:** `0.1.190-lazy-priority-load-order-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
 
 ## Install
 
-Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the ten `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the eleven `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## Confirmed 0.1.188–0.1.189 secondary regression (fixed in 0.1.190)
+
+**Root cause, reproduced with the actual addon source and the game's manifest order:** `SecondaryPortrait.lua` constructed the sorted `rankTiers` list at **module load**, before `Priority.lua` had populated `R.TIERS`. This initialized a permanently **empty** rank list on the live client, regardless of how many buffs were visible. Consequently `secondReason=not-two-presentable` and race fallback were inevitable after v0.1.188, even though prior offline tests passed (they loaded `Priority.lua` first).
+
+Both manifests now load **`Priority.lua` before `SecondaryPortrait.lua`**, and the secondary ranking table is **lazily cached from the populated source** (with an explicit `tiers-not-ready` failure rather than silently treating every spell as unranked). The original production-order reproduction changes from `second=nil reason=not-two-presentable` to `second=1126 reason=verified-readable` for Thorns (120) + Mark of the Wild (90). `tests/secondary-load-order.lua` tests both manifest orders and the deliberately broken order, so this cannot silently regress. All numeric tier levels and the native primary portrait are unchanged.
 
 ## Supported portraits
 

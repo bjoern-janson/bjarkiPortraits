@@ -31,6 +31,7 @@ jobs:
             "lua${version}" tests/secondary-npc-harmful.lua
             "lua${version}" tests/secondary-filter-proof.lua
             "lua${version}" tests/secondary-debug.lua
+            "lua${version}" tests/secondary-load-order.lua
             "lua${version}" tests/secondary-form-ranking.lua
             "lua${version}" tests/pet-icon-crop.lua
             "lua${version}" tests/shiny-silver-coin.lua

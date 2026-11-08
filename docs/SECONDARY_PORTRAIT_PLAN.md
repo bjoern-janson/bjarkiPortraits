@@ -1,9 +1,23 @@
 # Secondary portrait: two aura priorities + race identity
 
-**Status:** P1 outer badge layout and P2 bounded readable election through v0.1.189 (ordinary filtered proof + mixed NPC support); universally secure cross-tier runner-up remains unavailable  
+**Status:** P1/P2 readable prototype through v0.1.190; confirmed v0.1.188–0.1.189 initialization defect repaired; universal secure cross-tier runner-up remains unavailable  
 **Baseline:** `0.1.178-bottom-harmful-consolidation-test` (2026-11-08).  
 **Proposed next development milestone:** `0.1.179-secondary-portrait-prototype` (working name, not a release).  
 **Source of visual direction:** 2026-11-08 in-game player-frame comparison: a tiny Blizzard Shaman Totem-like circular ring at the top corner of the main portrait.
+
+## Follow-up 0.1.190: priority initialization order — confirmed live regression (2026-11-08)
+
+**Observation:** The user provided `/bp secondary debug player` and `target`, both with `mode=race` and `secondReason=not-two-presentable` while visibly carrying multiple buffs. The relation fields were positively friendly; `hList=false` describes only the hostile-helper path and is normal for friendly units, not evidence of an empty normal aura list.
+
+**Confirmed source cause:** In 0.1.188, the ranking code was optimized to iterate `rankTiers` sorted by numeric priority. It created this cache **at SecondaryPortrait.lua file load** from `R.TIERS or {}`. Both packaged `.toc` manifests load `SecondaryPortrait.lua` before `Priority.lua`. Thus `R.TIERS` was `nil` when the cache was constructed, leaving it empty permanently and explaining the universal race fallback. Existing tests manually loaded `Priority.lua` first, falsely validating a load order the live client never used.
+
+**Repair:** In both TOCs, move `SecondaryPortrait.lua` to immediately **after** `Priority.lua` and **before** `AuraEngine.lua`. Also make the sorted list a *single lazy cache* built at the first actual ranking call **after** `R.TIERS` is populated; invalidate it only when the source table identity is replaced. If tiers are still unavailable, fail with a specific `tiers-not-ready` reason, never a fake `not-two-presentable`. All original spell sets, numeric priorities, host and native filtering stay intact.
+
+**Regression proof:** Using the same real `Spells.lua/Core.lua/SecondaryPortrait.lua/Priority.lua` order as the old manifest, a 0.1.189 model with publicly readable Thorns (467) and Mark of the Wild (1126) returned **`second=nil, reason=not-two-presentable`** even though `#R.TIERS=63` after load. The corrected source, with the deliberately reversed order, returns **Mark of the Wild (1126), verified-readable**. New `tests/secondary-load-order.lua` checks both manifests and exercises both production and reversed init orders; it also tests temporary tier-table absence/restoration and real priority 120 > 90. CI runs it on Lua 5.1 and 5.4. This is source/fixture verification, **not yet a Forever live display certification**.
+
+**Remaining boundary:** Combat secrecy and native/private first-place winner uncertainty are independent limitations. Do not bypass their existing fail-closed controls. The 0.1.190 change should fix ordinary multi-buff fallback caused by the cache; if a new failure occurs, the now-populated ranking table will finally allow the intended real filters to run, revealing a meaningful next `secondReason`.
+
+---
 
 ## Follow-up 0.1.189: public exact membership proof; NPC mixed-aura ranking (2026-11-08)
 

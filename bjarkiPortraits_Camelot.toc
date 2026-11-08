@@ -2,16 +2,16 @@
 ## Title: bjarkiPortraits
 ## Notes: Portrait aura timers for WoW: Forever
 ## Author: Bjarki / OpenAI
-## Version: 0.1.189-public-filter-evidence-test
+## Version: 0.1.190-lazy-priority-load-order-test
 ## SavedVariables: BjarkiPortraitsDB
 
 Spells.lua
 Core.lua
-SecondaryPortrait.lua
 StanceState.lua
 SharedEvidence.lua
 EvidencePublisher.lua
 Priority.lua
+SecondaryPortrait.lua
 AuraEngine.lua
 PetPortraits.lua
 Commands.lua

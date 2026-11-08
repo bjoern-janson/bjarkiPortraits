@@ -363,14 +363,29 @@ local function exactFilterProven(candidate, tier)
     return nil
 end
 
-local rankTiers = {}
-for index, tier in ipairs(R.TIERS or {}) do
-    rankTiers[#rankTiers + 1] = { tier = tier, index = index }
+-- IMPORTANT: The production TOC used to load SecondaryPortrait.lua BEFORE
+-- Priority.lua. Building this table at module load therefore cached an EMPTY
+-- rank list for the entire session. Every aura was silently ignored and the
+-- badge consistently returned not-two-presentable. Resolve only after the
+-- tiers have actually been registered, and rebuild if a new table replaces it.
+-- This cache is per source tier table, not per unit or aura, so no polling or
+-- repeated sort is introduced during ordinary refreshes.
+local rankTiers, rankTiersSource
+local function getRankTiers()
+    local source = R.TIERS
+    if type(source) ~= "table" or #source == 0 then return nil end
+    if rankTiers and rankTiersSource == source then return rankTiers end
+    local sorted = {}
+    for index, tier in ipairs(source) do
+        sorted[#sorted+1] = { tier = tier, index = index }
+    end
+    table.sort(sorted, function(a, b)
+        if a.tier.level ~= b.tier.level then return a.tier.level > b.tier.level end
+        return a.index < b.index
+    end)
+    rankTiers, rankTiersSource = sorted, source
+    return sorted
 end
-table.sort(rankTiers, function(a, b)
-    if a.tier.level ~= b.tier.level then return a.tier.level > b.tier.level end
-    return a.index < b.index
-end)
 
 -- Some Forever AuraData expose the instance/spell IDs but omit the optional
 -- isNameplateOnly boolean. The inclusive indexed scan alone cannot certify
@@ -427,8 +442,10 @@ local function plainPolarityMembership(unit, candidate, cache)
 end
 
 local function candidateRank(host, candidate, cache)
+    local tiers = getRankTiers()
+    if not tiers then return nil, "tiers-not-ready" end
     local winner, tied = nil, false
-    for _, entry in ipairs(rankTiers) do
+    for _, entry in ipairs(tiers) do
         local tier = entry.tier
         -- Native visual priority is numeric. A lower tier cannot displace
         -- an already-proven higher owner, so don't require unnecessary lower
@@ -555,6 +572,7 @@ function R.GetReadableSecondaryAura(host)
     if not host._buildComplete then return nil, "host-incomplete" end
     if not R.db or R.db.secondaryPortrait == false then return nil, "disabled" end
     if R.testMode then return nil, "test-mode" end
+    if not getRankTiers() then return nil, "tiers-not-ready" end
     if host._hostileUnit == nil then return nil, "relation-unreadable" end
     local hostile = host._hostileUnit == true
     local npcHarmfulProjection = false
