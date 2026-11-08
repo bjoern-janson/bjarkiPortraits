@@ -2,11 +2,42 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.196-auto-native-second-test` (2026-11-08), built on 0.1.178. No slash commands are needed for normal installation or testing. The native runner-up ribbon initializes automatically on the first eligible hostile-NPC Target while out of combat; other units retain the existing readable secondary. The secure rendering mechanism still requires live in-game verification.
+**Experimental branch:** `0.1.197-hostile-player-native-test` (2026-11-08), built on 0.1.178. No slash commands are needed. The native runner-up ribbon initializes automatically on a hostile Target (NPC **or player**) out of combat, while keeping the existing readable secondary and race fallback for other units. Native rendering of enemy-player effects remains an in-game test.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the twelve `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.197 — native second for opposite-faction players
+
+**Observed screenshot:** A selected opposite-faction player has multiple
+native aura icons under the Target frame, but the small circle still
+displays the Undead race tile, and the large portrait shows its native
+3D fallback. The 0.1.196 secure native ribbon only admitted
+`isPlayer=false` hostile NPCs. All hostile players were therefore
+still routed through the older public-only reader, where restricted
+auras often cannot establish the runner-up.
+
+**Change:** The same native group strip is now eligible for positively
+identified hostile players on `target`, as well as hostile NPCs.
+It still requires a readable hostile relation and readable
+`UnitIsPlayer`/GUID identity; unknown and friendly units fail closed.
+The native strip keeps the unchanged priority groups, sorts and native
+aura countdowns. No additional app-level enumeration of protected
+opponent auras is required.
+
+**Race fallback:** For hostile *players*, the existing verified race
+badge remains underneath the secure viewport. When Blizzard lays out
+a second eligible aura, its own native button covers the race; if
+there is no second eligible aura, the race remains as intended.
+For hostile NPCs, the earlier empty/no-race behavior is preserved.
+
+The experiment still has no commands and requires no settings. The
+primary portrait, player/party/Focus/ToT behavior, numeric priorities,
+geometry and current 22px native secondary icon size remain unchanged.
+Native semantic overlaps and actual enemy-player rendering need live
+verification. The separate icon-size improvement is deliberately
+deferred until this behavior is checked.
 
 ## 0.1.196 — automatic native secondary; no in-game setup
 
