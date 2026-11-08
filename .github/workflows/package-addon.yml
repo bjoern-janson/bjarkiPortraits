@@ -20,7 +20,7 @@ jobs:
         run: |
           set -euo pipefail
           for version in 5.1 5.4; do
-            for file in Spells.lua Core.lua SecondaryPortrait.lua NativeSecondProbe.lua StanceState.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua Commands.lua Main.lua tests/*.lua; do
+            for file in Spells.lua Core.lua SecondaryPortrait.lua NativeSecondProbe.lua StanceState.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua PetSecondary.lua Commands.lua Main.lua tests/*.lua; do
               "luac${version}" -p "$file"
             done
             "lua${version}" tests/low-priority.lua
@@ -37,6 +37,7 @@ jobs:
             "lua${version}" tests/secondary-ghost-real-host.lua
             "lua${version}" tests/secondary-form-ranking.lua
             "lua${version}" tests/pet-icon-crop.lua
+            "lua${version}" tests/pet-secondary.lua
             "lua${version}" tests/shiny-silver-coin.lua
             "lua${version}" tests/launch-auras.lua
             "lua${version}" tests/decimal-threshold.lua
@@ -54,7 +55,7 @@ jobs:
       - name: Stage addon
         run: |
           mkdir -p dist/bjarkiPortraits
-          cp Spells.lua Core.lua SecondaryPortrait.lua NativeSecondProbe.lua StanceState.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua Commands.lua Main.lua bjarkiPortraits.toc bjarkiPortraits_Camelot.toc dist/bjarkiPortraits/
+          cp Spells.lua Core.lua SecondaryPortrait.lua NativeSecondProbe.lua StanceState.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua PetSecondary.lua Commands.lua Main.lua bjarkiPortraits.toc bjarkiPortraits_Camelot.toc dist/bjarkiPortraits/
       - uses: actions/upload-artifact@v4
         with:
           name: bjarkiPortraits
