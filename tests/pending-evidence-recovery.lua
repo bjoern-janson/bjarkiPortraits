@@ -160,11 +160,11 @@ for _, event in ipairs(events) do
         s:fire(event, "player")
         eq(s.queries, 0, "player recovery remains deferred")
         eq(#s.timers, 1, "all hosts share one callback")
-        eq(#s.refreshes, 5, "all hosts reconciled immediately")
+        eq(#s.refreshes, #s.R.TRACKED_UNITS, "all current hosts reconciled immediately")
         s:drain()
         eq(s.queries, 18, "nine queries for each pending token")
         eq(#s.received, 2)
-        eq(#s.refreshes, 10, "all hosts retain deferred full reconciliation")
+        eq(#s.refreshes, 2 * #s.R.TRACKED_UNITS, "all current hosts retain deferred full reconciliation")
         local found = {}
         for _, record in ipairs(s.received) do
             identity(s, record, record.unit)
