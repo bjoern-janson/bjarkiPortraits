@@ -103,6 +103,16 @@ selected,reason=R.GetReadableSecondaryAura(h)
 eq(reason,'npc-readable-harmful-projection','verified generic NPC fallback can project')
 eq(selected and selected.auraInstanceID,66,'native generic reverse instance ID order')
 eq(selected and selected.tier.key,'SmallFriendlyHarmful','generic still has existing level 175')
+-- Exact harmful permission may be unknown while the NPC's identity-blind
+-- native harmful slot is positively enabled and publicly visible.
+h=host();h._exactHarmfulAllowed=false
+selected,reason=R.GetReadableSecondaryAura(h)
+eq(reason,'npc-readable-harmful-projection','enabled generic NPC slot admits projection')
+eq(selected and selected.auraInstanceID,66,'NPC generic second remains occurrence-ordered')
+h._smallHarmfulEnabled=false
+selected,reason=R.GetReadableSecondaryAura(h)
+eq(reason,'hostile-primary-unverified','no exact or generic proof fails closed')
+h=host()
 -- An unreadable higher CrowdControl filter could overturn generic priority.
 C_UnitAuras.IsAuraFilteredOutByInstanceID=nil
 selected,reason=R.GetReadableSecondaryAura(h)
