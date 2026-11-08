@@ -1,5 +1,41 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-08 — 0.1.199 guarded PlayerFrame native second
+
+**Motivation:** New PlayerFrame screenshot shows the main short debuff
+on the large portrait, longer buffs/debuffs remain visible, and the
+second small circle falls back to race. The older public election can
+become unavailable on incoming harmful events; a last-positive hold
+is correctly revoked on unknown/new aura mutations, not preserved
+blindly. Only the hostile Target had a native secure runner-up.
+
+**Design:** Preinitialize the same group-based native second on
+`player` at the first eligible out-of-combat host refresh (the
+complement of Target's lazy hostile-only construction), so a combat
+debuff does not require building frames while locked. Locate its
+37px fixed clip cell at the player's *outer top-left* portrait
+corner, with existing +5px inset. Bind the native container to
+the actual `player` token and retain the race baseline below it.
+
+The PlayerFrame native strip is *visible only* if the ordinary
+`SecondaryPortrait` reader has actually fallen back to positively
+verified race, with positively readable friendly player identity,
+enabled unit frame and neither authoritative Ghost nor form/stance
+state active. When a verified public second appears again, hide
+the native strip and leave the old primary+secondary logic intact.
+A native cell with no second effect stays visually empty, retaining
+the race baseline. Hostile Target logic remains unchanged.
+
+**Risks:** The secure native layout is not a public global
+two-winner API, and the group-based projection remains subject to
+semantic membership overlap and differences from public recency
+rules. Initial native-group batch allocation for PlayerFrame
+increases out-of-combat setup work. Live client validation should
+check normal buffs, a freshly received combat debuff, the same
+effect expiring, and class static form states, without commands.
+No new user-facing settings or tiers.
+
+
 ## 2026-11-08 — 0.1.197 native runner-up for hostile players
 
 Previous 0.1.196 automatic native experiment was restricted to hostile
