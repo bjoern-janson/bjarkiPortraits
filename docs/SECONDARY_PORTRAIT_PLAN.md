@@ -1,5 +1,44 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-08 — 0.1.200 conditional targeted-pet family baseline
+
+A Hunter/Warlock pet's original family/summon artwork is meaningful
+secondary fallback when the main portrait is occupied by an aura.
+Target and Focus can now display this independent family image in the
+existing upper-right small-circle position, **only while the pet has
+at least one native aura**. Naked pets keep no second circle, since
+the large portrait already has its native/default family/model identity.
+
+**Evidence:** PetPortraits positively classifies other-player pets
+using the current unit pet API, pet GUID and creature-family mapping;
+only a verified Hunter/Warlock art file or demon summon texture and
+readable current GUID permit the fallback. Wild beasts, totems and
+UNKNOWN_PET are never assigned a guessed race or family icon.
+
+**Secure presence gating:** The independent `PetSecondary.lua`
+module constructs at most two native aura groups per supported
+host, with filter strings `HELPFUL|INCLUDE_NAME_PLATE_ONLY` and
+`HARMFUL|INCLUDE_NAME_PLATE_ONLY`, `maxFrameCount=1`.
+Buttons contain a static masked 22px pet-family icon and 30px
+Blizzard Totem rim instead of displaying a duplicate aura icon.
+These are *native visual existence gates*, not public reads of a
+protected aura's identity or count. Without any aura, neither group
+assigns a visible frame. When there is an aura, the family art can
+sit below an actual second-ranked aura from the old or new renderer.
+
+The host keeps a GUID-scoped art identity. Target swaps revoke
+stale art; family-texture updates are postponed in combat until an
+ordinary safe out-of-combat refresh. Native containers are reused
+across eligible pooled Target/Focus hosts without command switches.
+PetFrame, ToT/ToF and unconfirmed units remain unchanged.
+
+**Live verification:** check Hunter pet + exactly one buff/debuff,
+Hunter pet completely naked, pet with two effects, enemy Warlock pet,
+other-player pet target handoff in combat, and simultaneous helpful
+and harmful effects (overdraw). The regression models test source
+wiring/visibility ownership, not protected engine frame internals.
+
+
 ## 2026-11-08 — 0.1.199 guarded PlayerFrame native second
 
 **Motivation:** New PlayerFrame screenshot shows the main short debuff
