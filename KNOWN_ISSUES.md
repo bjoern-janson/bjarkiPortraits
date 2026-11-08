@@ -1,3 +1,26 @@
+## 2026-11-08: 0.1.194 hostile NPC has native debuffs but no secondary
+
+Kobold Tunneler Target at level 6 shows two native debuff icons and one
+timed main portrait aura, but the secondary circle remains absent
+in the live 0.1.193 screenshot. The current `secondReason` is **unknown**
+because no debug output accompanies this screenshot. Native icons do
+not prove their identity/timing is exposed to addon Lua.
+
+Two overly restrictive independent guards were corrected in the
+experimental 0.1.194 branch: (1) a positively identified hostile NPC
+need not pass the separate HELPFUL-only helper's election before
+its own complete, public helpful+harmful runner-up election; (2) the
+last successfully applied, addon-owned native harmful slot state can
+positively establish enabled status when `IsEnabled()` is unreadable.
+A known disabled state cannot. The same public-occurrence, filtered
+membership, tier ordering, native first-place slot, and no-private-winner
+requirements remain; hostile players are not relaxed.
+
+This is **not yet an in-game confirmed fix**. If the NPC still has no
+secondary, capture `/bp secondary debug target` while it is selected.
+A failed complete read (`inaccessible-index` etc.) requires fresh
+client evidence and cannot be bypassed safely.
+
 ## 2026-11-08: v0.1.193 combat race fallback (awaiting client retest)
 
 Screenshot: player enters combat with a visible high-priority fire buff in
