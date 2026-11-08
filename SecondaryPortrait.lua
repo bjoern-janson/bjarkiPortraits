@@ -607,16 +607,22 @@ function R.GetReadableSecondaryAura(host)
         if host._hostileRelationReadable ~= true then
             return nil, "hostile-relation-unreadable"
         end
-        -- Hostile PLAYER units still need the independently verified
-        -- helpful/form primary. An identified NPC may have both helpful and
-        -- harmful public auras; only after ranking the *entire* complete
-        -- snapshot can we determine whether the first aura is harmful.
-        if host._hostileAuraListComplete ~= true or
-            host._hostileElectionReadable ~= true then
+        -- A positively identified NPC can be checked directly against the
+        -- secondary reader's *own* complete helpful+harmful public snapshot.
+        -- The separate hostile HELPFUL-only helper may be incomplete or its
+        -- same-tier winner may be unorderable even though a higher harmful
+        -- primary wins the combined election. Do not make its outcome a
+        -- prerequisite for this independent NPC projection.
+        --
+        -- Hostile PLAYER units have no such exemption: they still require
+        -- the original independently verified helpful/form primary.
+        local provenNPC = (host.unit == "target" or host.unit == "focus")
+            and host._playerReadable == true and host._isPlayer == false
+        if not provenNPC and (host._hostileAuraListComplete ~= true or
+            host._hostileElectionReadable ~= true) then
             return nil, "hostile-list-unreadable"
         end
-        npcHarmfulProjection = (host.unit == "target" or host.unit == "focus")
-            and host._playerReadable == true and host._isPlayer == false
+        npcHarmfulProjection = provenNPC
             -- Native generic harmful display is a valid NPC path when exact
             -- relation permission is missing; verify its real slot below.
             and (host._exactHarmfulAllowed == true
@@ -756,6 +762,15 @@ function R.GetReadableSecondaryAura(host)
             return nil, "npc-native-slot-unreadable"
         end
         local enabled, known = R.SafeBool(native.IsEnabled, native)
+        if not known then
+            -- R.UpdateHost records only *successful* native SetEnabled and
+            -- SetShown calls on these addon-owned containers. When querying
+            -- IsEnabled is protected, that last successful state is a
+            -- legitimate positive setter witness, not a guessed aura owner.
+            -- Current public aura identity + order are still required above.
+            enabled = native._bjarkiAppliedShown
+            known = type(enabled) == "boolean"
+        end
         if not known or not enabled then
             return nil, "npc-native-slot-unreadable"
         end
