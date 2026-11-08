@@ -152,6 +152,81 @@ eq(other._nativeSecondProbe,p,"next hostile player automatically reuses pooled p
 eq(other._nativeSecondProbe.ready,true,"reused native strip is ready")
 eq(p.clip.points[2],other.portrait,"reused probe anchors to current portrait")
 R.ReleaseNativeSecondProbe(other)
+
+-- PlayerFrame: eagerly prewarm in the first out-of-combat update, while
+-- the normal readable second is still working. A new frost/control debuff
+-- can then seal the public aura scan while the native strip stays active.
+local player={unit="player", portrait=frame("portrait"),
+    secondaryBadge=frame("badge"), _assistable=true,
+    _secondaryMode="aura", _raceBaselineActive=false}
+player.secondaryBadge.level=65
+R.UpdateNativeSecondProbe(player,true,false,true,true)
+local pp=player._nativeSecondProbe
+eq(pp~=nil,true,"player prewarms native ribbon before receiving a debuff")
+eq(pp.ready,true,"player native groups fully initialized out of combat")
+eq(pp.container.unit,"player","native ribbon binds its actual player token")
+eq(pp.clip.points[3],"TOPLEFT","player native ribbon mirrors to outer left")
+eq(pp.clip.points[4],5,"player badge retains accepted +5 outer inset")
+eq(pp.clip.shown,false,"verified readable second remains authoritative")
+eq(pp.groups,p.groups,"player shares same existing tier policy")
+
+-- An incoming combat debuff can make GetAuraDataByIndex inaccessible and
+-- force the public election back to race. Native protected renderer must
+-- then cover the race while preserving the existing fallback below.
+combat=true
+player._secondaryMode="race"
+player._raceBaselineActive=true
+player._secondaryAuraEventDirty=true
+player._secondaryElectionReason="inaccessible-index"
+player.secondaryBadge:Show()
+R.UpdateNativeSecondProbe(player,true,false,true,true)
+eq(pp.clip.shown,true,"incoming combat debuff activates native runner-up")
+eq(player.secondaryBadge.shown,true,"underlying race is not destroyed")
+eq(player._nativeSecondProbeReason,"player-native-race-fallback",
+    "native player fallback reason is explicit")
+eq(pp.container.unit,"player","no target-token leakage on player")
+
+-- When Lua regains complete evidence, keep its existing winner and turn off
+-- the native overlay to avoid competing with static/recency election.
+player._secondaryMode="aura"
+player._raceBaselineActive=false
+R.UpdateNativeSecondProbe(player,true,false,true,true)
+eq(pp.clip.shown,false,"readable second wins again after combat")
+player._secondaryMode="race"
+player._raceBaselineActive=true
+player._ghostActive=true
+R.UpdateNativeSecondProbe(player,true,false,true,true)
+eq(pp.clip.shown,false,"Ghost static state suppresses native guess")
+player._ghostActive=false
+player._formStateActive=true
+R.UpdateNativeSecondProbe(player,true,false,true,true)
+eq(pp.clip.shown,false,"stance/form state suppresses native guess")
+player._formStateActive=false
+R.UpdateNativeSecondProbe(player,true,false,true,false)
+eq(pp.clip.shown,false,"unproven player identity cannot use ribbon")
+R.UpdateNativeSecondProbe(player,true,true,true,true)
+eq(pp.clip.shown,false,"hostile relation cannot masquerade as self")
+R.UpdateNativeSecondProbe(player,false,false,true,true)
+eq(pp.clip.shown,false,"ineligible player frame hides ribbon")
+combat=false
+
+R.ReleaseNativeSecondProbe(player)
+eq(pp.container.unit,nil,"player native groups unbind on release")
+eq(player._nativeSecondProbe,nil,"player native host state released")
+
+-- If the player was first initialized during combat, no protected frame
+-- construction is attempted; the next ordinary OOC refresh constructs it.
+local late={unit="player",portrait=frame("portrait"),
+    secondaryBadge=frame("badge"),_assistable=true,
+    _secondaryMode="race",_raceBaselineActive=true}
+combat=true
+R.UpdateNativeSecondProbe(late,true,false,true,true)
+eq(late._nativeSecondProbe,nil,"combat lock prevents player construction")
+combat=false
+R.UpdateNativeSecondProbe(late,true,false,true,true)
+eq(late._nativeSecondProbe~=nil,true,"OOC player refresh retries without command")
+R.ReleaseNativeSecondProbe(late)
+
 R.db.enabled=false
 eq(R.CreateNativeSecondProbe(host),false,"global addon off creates no groups")
 R.UpdateNativeSecondProbe(host,true,true,true,false)
