@@ -2,11 +2,30 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.191-ghost-first-secondary-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
+**Experimental branch:** `0.1.192-secondary-combat-npc-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the eleven `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.192: combat Boosted Rest and NPC harmful projection
+
+In the screenshots, Boosted Rest (1229451) is the primary portrait
+out of combat but should become **secondary** if a higher-priority effect
+takes first place. The prior secondary reader admitted this self/friendly
+HARMFUL status only when Ghost was the primary. It now also admits the
+currently readable, verified occurrence during ordinary combat; its
+level **0** and required ordinary HARMFUL membership are unchanged.
+If the current list or identity is genuinely secret, this change does
+not fabricate a secondary portrait.
+
+The hostile NPC harmful path no longer insists on broad exact-ID permission
+when an independently enabled native generic harmful container exists.
+It still requires the current public aura lists, a positively identified NPC,
+a proven native first-place harmful slot, and ranked second occurrence.
+Hostile players receive no new privilege, and no private native winner
+is read. Both changes have regression cases; live combat rendering still
+needs confirmation against 0.1.192.
 
 ## Confirmed 0.1.188–0.1.189 secondary regression (fixed in 0.1.190)
 
