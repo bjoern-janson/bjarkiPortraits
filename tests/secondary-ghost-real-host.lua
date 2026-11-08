@@ -95,6 +95,22 @@ eq(h._secondaryAuraSpellID,1229451,'actual host displays Boosted Rest as second'
 eq(h._secondaryAuraTier,'BoostedRest','original bottom tier unchanged')
 eq(h._secondaryElectionReason,'verified-ghost-then-aura','reason records ghost first')
 eq(h.racePortrait.texture,boost.icon,'actual second aura artwork displayed')
+-- A second ordinary refresh has the same intended native slot states.
+-- Simulate protected SetEnabled/SetShown APIs refusing redundant writes:
+-- the addon must not attempt them while already correctly configured.
+local originalSetters={}
+for i,container in ipairs(h.containers) do
+ originalSetters[i]={container.SetEnabled,container.SetShown}
+ container.SetEnabled=function()error('mock protected unchanged SetEnabled')end
+ container.SetShown=function()error('mock protected unchanged SetShown')end
+end
+R.UpdateHost(h)
+eq(h._containerWriteFailures,0,'unchanged native tiers skip protected writes')
+eq(h._secondaryMode,'aura','valid secondary survives same-state host refresh')
+for i,container in ipairs(h.containers) do
+ container.SetEnabled=originalSetters[i][1]
+ container.SetShown=originalSetters[i][2]
+end
 -- A real aura change that removes Boosted Rest must revoke the second icon.
 harmful={ghost}
 R.UpdateHost(h)
