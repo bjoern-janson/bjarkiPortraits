@@ -116,7 +116,7 @@ function R.UpdateSecondaryPortrait(host, permitted)
     else
         ok, result = pcall(icon.SetTexture, icon, art)
         if ok and result ~= false then
-            ok = pcall(icon.SetTexCoord, icon, unpack(coords))
+            ok = pcall(icon.SetTexCoord, icon, coords[1], coords[2], coords[3], coords[4])
         end
     end
     if not ok or result == false then
