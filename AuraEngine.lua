@@ -1188,6 +1188,7 @@ function R.DestroyHost(unit)
     host._readableTierOwners = {}
     if host.testFrame then host.testFrame:Hide() end
     if R.HideSecondaryPortrait then R.HideSecondaryPortrait(host, "host-destroy") end
+    if R.HideNativeSecondProbe then R.HideNativeSecondProbe(host, "host-destroy") end
     if host.readableHostileFrame then host.readableHostileFrame:Hide() end
     if host.readableBaselineFrame then host.readableBaselineFrame:Hide() end
     if host.readableHealingFrame then hideReadableExact(host.readableHealingFrame) end
@@ -1223,6 +1224,7 @@ function R.DestroyHost(unit)
         return false
     end
     if R.ReleaseSecondaryPortrait then R.ReleaseSecondaryPortrait(host) end
+    if R.ReleaseNativeSecondProbe then R.ReleaseNativeSecondProbe(host) end
     if host.ownsLayer and host.layer then host.layer:Hide() end
     R.hosts[unit] = nil
     return true
@@ -1324,6 +1326,11 @@ local function buildHost(unit, host)
     -- ToT/ToF and pet retain their independent primary portrait aura engines.
     if unit ~= "pet" and not R.SMALL_UNITS[unit] and R.CreateSecondaryPortrait then
         R.CreateSecondaryPortrait(host, parentStrata)
+    end
+    -- Opt-in protected runner-up layout experiment for TARGET NPCs only.
+    -- It never replaces, reads, or modifies the existing primary tier stack.
+    if unit == "target" and R.CreateNativeSecondProbe then
+        R.CreateNativeSecondProbe(host)
     end
 
     for index, tier in ipairs(R.TIERS or {}) do
@@ -1720,6 +1727,9 @@ function R.UpdateHost(host, forceContainerRefresh)
         R.ReconcileSecondaryPortrait(host, base, playerReadable and isPlayer)
     elseif R.UpdateSecondaryPortrait then
         R.UpdateSecondaryPortrait(host, base and playerReadable and isPlayer)
+    end
+    if R.UpdateNativeSecondProbe then
+        R.UpdateNativeSecondProbe(host, base, hostileUnit, playerReadable, isPlayer)
     end
 end
 
