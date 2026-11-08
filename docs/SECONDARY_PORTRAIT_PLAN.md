@@ -5,6 +5,23 @@
 **Proposed next development milestone:** `0.1.179-secondary-portrait-prototype` (working name, not a release).  
 **Source of visual direction:** 2026-11-08 in-game player-frame comparison: a tiny Blizzard Shaman Totem-like circular ring at the top corner of the main portrait.
 
+## Follow-up 0.1.183: verified hostile-target and stance-first selection (2026-11-08)
+
+The next live screenshot confirmed a working player secondary aura but exposed a missing target case with **Camp Benefits**. The 0.1.182 reader rejected every `host._hostileUnit=true` target before scanning, even though `AuraEngine.updateReadableHostile` already supports publicly readable hostile HELPFUL auras. Some targets additionally have a positively displayed Warrior/Druid form witness above their ordinary camp status.
+
+The implementation now accepts a hostile-target *readable projection* only with strict current evidence: `host._hostileRelationReadable=true`, a completed and ordered native HELPFUL list from the existing main reader, plus a second complete helpful/harmful indexed scan. Exact helpful spell candidates can use that positively complete public source without claiming permission to change restricted secure exact filters. Unreadable semantic filters, incomplete instances, missing time or current unit identity still fail closed.
+
+Two positive main-portrait paths are permitted:
+
+1. **Readable aura main:** the existing higher-priority hostile helpful main helper must be active and authoritative, and the newly computed #1 aura must match its `spellID`, exact `tier.key`, and **aura-instance ID**. Only then may the indexed #2 appear.
+2. **Static form main:** if the existing main form/stance icon has a positively proven current spell and every ranked public aura has a lower priority than the form's existing 149, then the highest ranked aura is the second portrait. No invented duration is attached to the static form.
+
+Neither path creates a second native per-tier stack, reclassifies Camp Benefits (still BaselineClass 90), assumes hostile PvP buffs are readable, or changes the authoritative main portrait. **When the displayed first-place effect cannot be proven, the secondary stays race/hidden**. ToT/ToF and PetFrame still have no secondary circle.
+
+New unit tests cover Camp Benefits below an authoritative hostile aura, Camp Benefits behind a verified stance, mismatched main identity, secret entries, higher aura blocking a static-first claim and missing relation evidence. The full `R.UpdateHost` integration regression checks that the existing hostile-main helper supplies the needed occurrence ID. Live target-specific verification remains pending; use `/bp layout target` to check `secondReason`, `hostileMain` and `hostileList`.
+
+---
+
 ## Follow-up 0.1.182: preserve readable friendly relation (2026-11-08)
 
 **Observed:** The live `/bp layout player` output says `assistReadable=true assist=true`, `secondary=race`, and `secondReason=relation-unreadable`. Source inspection identified a precise contradiction in `AuraEngine.lua`: `host._hostileUnit = hostileRelationReadable and hostileUnit or nil`. In Lua this expression converts the valid, readable **false** result (friendly) into **nil** (unknown). As a result, the very first gate of `GetReadableSecondaryAura` rejects all friendly hosts, so the prior exact-tier fixes could not take effect in game.

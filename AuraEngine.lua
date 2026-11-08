@@ -945,6 +945,7 @@ local function clearReadableHostile(host)
     host._hostileCount = 0
     host._hostileSpellID = nil
     host._hostileTierKey = nil
+    host._hostileAuraInstanceID = nil
 end
 
 local function updateReadableHostile(host, baseEnabled)
@@ -961,6 +962,9 @@ local function updateReadableHostile(host, baseEnabled)
     host._hostileCount = count
     host._hostileSpellID = best and best.spellID or nil
     host._hostileTierKey = best and best.tier and best.tier.key or nil
+    -- A second public projection may only claim a distinct aura once it can
+    -- prove that the primary native/readable aura is the very same instance.
+    host._hostileAuraInstanceID = best and best.auraInstanceID or nil
     host._hostileActive = false
 
     local frame = host.readableHostileFrame
@@ -1886,6 +1890,11 @@ function R.GetLayoutDebug(unit)
         .. " secondSpell=" .. tostring(host._secondaryAuraSpellID or "none")
         .. " secondTier=" .. tostring(host._secondaryAuraTier or "none")
         .. " secondReason=" .. tostring(host._secondaryElectionReason or "none")
+        .. " hostileMain=" .. tostring(host._hostileActive) .. ":"
+        .. tostring(host._hostileSpellID) .. ":" .. tostring(host._hostileTierKey)
+        .. ":" .. tostring(host._hostileAuraInstanceID)
+        .. " hostileList=" .. tostring(host._hostileAuraListComplete)
+        .. ":" .. tostring(host._hostileElectionReadable)
         .. " raceBaseline=" .. tostring(host._raceBaselineActive) .. ":"
         .. tostring(host._raceBaselineReason or "unavailable")
         .. " raceToken=" .. tostring(raceToken) .. " raceSex=" .. tostring(raceSex)

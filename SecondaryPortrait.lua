@@ -360,6 +360,17 @@ local function candidateRank(host, candidate, cache)
                 -- positively presented readable election of this lane.
                 local owner = host._readableTierOwners and host._readableTierOwners[tier.key]
                 allowed = owner and owner.complete == true or false
+                -- The main engine already has a positively completed, public
+                -- HELPFUL election for a hostile unit. Its exact spell IDs are
+                -- also publicly observable here. Exact native filter access is
+                -- a different permission: it must not veto a separate *readable*
+                -- presentation whose public identity and full list are proven.
+                -- No such relaxation is granted for semantic/unknown auras.
+                if not allowed and candidate.helpful and host._hostileUnit == true
+                    and host._hostileAuraListComplete == true
+                    and host._hostileElectionReadable == true then
+                    allowed = true
+                end
                 if not allowed then
                     if R.ExactFilterAllowed then
                         allowed = R.ExactFilterAllowed(host.unit, tier.helpful,
@@ -445,11 +456,36 @@ function R.GetReadableSecondaryAura(host)
     if not R.db or R.db.secondaryPortrait == false then return nil, "disabled" end
     if R.testMode then return nil, "test-mode" end
     if host._hostileUnit == nil then return nil, "relation-unreadable" end
-    if host._hostileUnit then return nil, "hostile-unavailable" end
-    if host._assistable ~= true then return nil, "assist-unreadable" end
-    if host._formStateActive then return nil, "static-form-witness" end
+    local hostile = host._hostileUnit == true
+    if hostile then
+        if host._hostileRelationReadable ~= true then
+            return nil, "hostile-relation-unreadable"
+        end
+        -- Hostile units are NEVER promoted just because an effect is listed.
+        -- Either a fully proven native/readable main aura or an independent,
+        -- positively displayed form witness must establish first place.
+        -- Forbidden/secret aura identities still cause the scan to fail closed.
+        if host._hostileAuraListComplete ~= true or
+            host._hostileElectionReadable ~= true then
+            return nil, "hostile-list-unreadable"
+        end
+        if not host._hostileActive and not host._formStateActive then
+            return nil, "hostile-primary-unverified"
+        end
+    elseif host._assistable ~= true then
+        return nil, "assist-unreadable"
+    end
     if host._ghostActive then return nil, "static-ghost-witness" end
-    if host._hostileActive then return nil, "other-presentation-witness" end
+    if host._formStateActive and
+        (type(host._formStateSpellID) ~= "number" or
+            (host._formStateReason ~= "unit-power" and
+             not (type(host._formStateReason) == "string" and
+                host._formStateReason:match(":proven$")))) then
+        return nil, "form-unproven"
+    end
+    if host._hostileActive and not hostile then
+        return nil, "other-presentation-witness"
+    end
     -- A host with failed presentation writes or an uncertain live binding
     -- cannot certify that the native first-place view is current.
     if (host._containerWriteFailures or 0) ~= 0 then return nil, "native-update-failed" end
@@ -467,7 +503,6 @@ function R.GetReadableSecondaryAura(host)
             ranked[#ranked+1] = candidate
         end
     end
-    if #ranked < 2 then return nil, "not-two-presentable" end
     -- Insertion sort, bounded to 2 * 48 auras. Tied independent lanes are
     -- indeterminate because native frame levels need not share one owner.
     for index = 2, #ranked do
@@ -481,8 +516,37 @@ function R.GetReadableSecondaryAura(host)
         end
         ranked[j+1] = cand
     end
+    -- A verified current Warrior/Druid form witness has its own portrait
+    -- display just below SelfState (priority 149). If all public candidates
+    -- are lower, that known form is the first portrait, and the highest aura
+    -- is the *second* effect. Do not invent form duration/identity or claim it
+    -- as secondary when an aura of higher priority could obscure the form.
+    if host._formStateActive then
+        local stateLevel = (R.TIER_BY_KEY and R.TIER_BY_KEY.SelfState
+            and R.TIER_BY_KEY.SelfState.level or 150) - 1
+        if #ranked == 0 then return nil, "not-two-presentable" end
+        if ranked[1].tier.level >= stateLevel then
+            return nil, "form-not-proven-primary"
+        end
+        return ranked[1], "verified-form-then-aura"
+    end
+    if #ranked < 2 then return nil, "not-two-presentable" end
     if ranked[1].auraInstanceID == ranked[2].auraInstanceID then
         return nil, "duplicate-aura"
+    end
+    if hostile then
+        -- The full native-elected primary aura already rendered by the main
+        -- engine must agree with our independently ranked, public first-place
+        -- candidate. Otherwise do not risk showing third place as second.
+        if not host._hostileActive or host._hostileReadable ~= true
+            or type(host._hostileAuraInstanceID) ~= "number" then
+            return nil, "hostile-primary-unverified"
+        end
+        if ranked[1].spellID ~= host._hostileSpellID
+            or ranked[1].tier.key ~= host._hostileTierKey
+            or ranked[1].auraInstanceID ~= host._hostileAuraInstanceID then
+            return nil, "hostile-primary-mismatch"
+        end
     end
     return ranked[2], "verified-readable"
 end

@@ -331,6 +331,33 @@ run("real host update permits the secondary reader on a friendly player", functi
     equal(reason, "verified-readable", "friendly player reaches readable election")
     equal(second and second.spellID, 1126, "Mark of the Wild is second to Thorns")
 end)
+-- Real engine integration: the ordinary secure exact HELPFUL filter is
+-- unavailable on this modeled hostile target. A complete, positively readable
+-- hostile helpful election nevertheless owns the primary, so the secondary
+-- public reader can verify the same first occurrence and choose Camp Benefits.
+run("hostile target complete main proof selects Camp Benefits second", function()
+    friendly, controlled = false, false
+    helpful = { aura(1229741, 17, 3600), aura(1283391, 19, 0),
+        aura(1229739, 11, 60) }
+    for _, buff in ipairs(helpful) do
+        buff.isNameplateOnly = false
+        buff.timeMod = 1
+    end
+    local h = host()
+    R.UpdateHost(h)
+    equal(h._hostileUnit, true, "hostile relation is proven")
+    equal(h._hostileAuraListComplete, true, "readable main list completed")
+    equal(h._hostileReadable, true, "main helper has complete authority")
+    equal(h._hostileActive, true, "main helpful winner is visible")
+    equal(h._hostileSpellID, 1229739, "main strongest is Welcoming Campfire")
+    equal(h._hostileAuraInstanceID, 11, "main occurrence ID is preserved")
+    assert(loadfile("SecondaryPortrait.lua"))("bjarkiPortraits", BP)
+    local second, reason = R.GetReadableSecondaryAura(h)
+    equal(reason, "verified-readable", "public primary agreement enables second")
+    equal(second and second.spellID, 1229741,
+        "Camp Benefits is the genuine second priority")
+    equal(second and second.tier.key, "BaselineClass", "Camp Benefits priority retained")
+end)
 for _, failure in ipairs(failures) do print("FAIL " .. failure) end
 assert(#failures == 0, "hostile helpful priority: " .. #failures .. " failed checks / "
     .. checks .. " checks in " .. cases .. " cases")
