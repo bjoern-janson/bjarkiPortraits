@@ -1,5 +1,28 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-08 — 0.1.197 native runner-up for hostile players
+
+Previous 0.1.196 automatic native experiment was restricted to hostile
+non-player Target units. A live opposite-faction player with visible
+auras still showed the old race-only fallback, because
+`R.UpdateNativeSecondProbe` rejected `isPlayer=true` unconditionally.
+This is a separate eligibility bug, not proof of protected aura
+unreadability on that target.
+
+The native ribbon now applies to all positively identified hostile
+Target units (NPCs and players). Enemy players retain their validated
+race baseline *behind* the fixed native second-cell viewport when the
+native result has fewer than two eligible effects. An actual native
+second button paints above that fallback without reading secret
+identities into public Lua. NPCs still have no invented race fallback.
+
+This change retains the existing 63-tier ordering, native
+`AddAuraGroup` mechanism, all main portrait behavior and current
+secondary artwork dimensions. The enemy-player rendering/priority
+semantics require live verification. No new in-game commands.
+The requested 22px icon enlargement remains queued separately.
+
+
 ## 2026-11-08 — 0.1.196 zero-command initialization
 
 The user prefers **no normal in-game commands**. The 0.1.195
