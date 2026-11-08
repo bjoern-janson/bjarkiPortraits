@@ -1,3 +1,27 @@
+## 2026-11-08 — 0.1.197 hostile player race fallback despite visible auras
+
+A screenshot of an opposite-faction player showed the race tile in the
+small Target portrait while multiple aura icons were visible under the
+native Target frame. The prior 0.1.196 native second prototype was
+explicitly guarded by `isPlayer == false`; it could work on hostile
+NPCs but **never** on hostile players. That exclusion, rather than
+proven missing public aura data on this particular opponent, explains
+why this screenshot never exercised the new native rendering path.
+
+0.1.197 admits positively identified hostile players on Target to
+the same automatic secure ribbon. The existing verified race fallback
+remains *under* the native viewport for enemy players, so there is
+still a baseline portrait if no second native candidate is drawn.
+Hostile NPCs continue hiding their old empty badge. Friendly/unknown
+targets, Focus, Player, Party, ToT/ToF and the primary portrait are
+unchanged. The native runner-up is still experimental, and the screenshot
+does not prove two *eligible*, distinct effects under the current tier
+filters. Test the behavior visually without slash commands.
+
+Icon enlargement is a separate, deferred task: current native button
+size is 37 with a 22px inner icon and 30px border; timers can obscure
+the artwork, as observed on Winter Wolf.
+
 ## 2026-11-08 — 0.1.196 no-command native2 handoff
 
 The native aura-group ribbon now initializes automatically on the first
