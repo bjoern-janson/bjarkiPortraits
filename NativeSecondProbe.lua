@@ -1,10 +1,12 @@
 local addonName, BP = ...
 local R = assert(BP.Runtime, "Core.lua must load first")
 
--- Experimental secure-ribbon second portrait, TARGET hostile units.
--- Opposite-faction players and hostile NPCs share the same native path;
--- the established race fallback remains underneath when player identity
--- is positively known and a second native effect is unavailable.
+-- Experimental secure-ribbon runner-up on hostile targets plus a guarded
+-- PlayerFrame fallback when public secondary election loses aura evidence.
+-- Opposite-faction players and hostile NPCs share the native Target path;
+-- on Player, the native second is visible ONLY while the ordinary reader
+-- falls back to race and no independently presented static state competes.
+-- Native rendering does not disclose secret aura identities to Lua.
 --
 -- A single native CustomAuraContainer owns multiple groups, ordered by the
 -- existing R.TIERS. Each group contributes at most TWO native aura buttons.
@@ -12,10 +14,11 @@ local R = assert(BP.Runtime, "Core.lua must load first")
 -- SECOND globally ordered button occupies the small portrait's position.
 -- No addon Lua value is read from a secure aura button or aura group.
 --
--- It activates automatically on the first eligible hostile target while
--- out of combat. No slash command or persistent toggle is required. Unverified
--- native layout/semantic overlap remain experimental; this does not replace
--- the primary native tier stack or the readable secondary election.
+-- Both supported hosts initialize automatically while out of combat:
+-- PlayerFrame prepares once at the first eligible update, Target lazily
+-- initializes on the first hostile unit. No command or saved toggle.
+-- Unverified native layout/semantic overlap remain experimental; this does
+-- not replace the primary native tier stack or the readable election.
 
 local CELL = 37
 local IMAGE = 22
@@ -158,8 +161,17 @@ function R.ReleaseNativeSecondProbe(host)
     host._nativeSecondProbe = nil
 end
 
+local function supportedUnit(unit)
+    return unit == "player" or unit == "target"
+end
+
+local function secondCorner(host)
+    if host.unit == "player" then return "TOPLEFT", 5 end
+    return "TOPRIGHT", -5
+end
+
 function R.CreateNativeSecondProbe(host)
-    if not host or host.unit ~= "target" or not host.portrait
+    if not host or not supportedUnit(host.unit) or not host.portrait
         or not R.db or R.db.enabled ~= true or R.db.secondaryPortrait == false
     then return false end
 
@@ -174,9 +186,10 @@ function R.CreateNativeSecondProbe(host)
         local ok = pcall(function()
             probe.clip:Hide()
             probe.clip:ClearAllPoints()
-            probe.clip:SetPoint("CENTER", host.portrait, "TOPRIGHT", -5, 0)
+            local corner, offset = secondCorner(host)
+            probe.clip:SetPoint("CENTER", host.portrait, corner, offset, 0)
             probe.clip:SetFrameStrata(usableStrata(host))
-            probe.container:SetUnit("target")
+            probe.container:SetUnit(host.unit)
         end)
         if not ok then
             host._nativeSecondProbeReason = "reuse-failed"
@@ -196,7 +209,8 @@ function R.CreateNativeSecondProbe(host)
         probe.clip = clip
         clip:Hide()
         clip:SetSize(CELL, CELL)
-        clip:SetPoint("CENTER", host.portrait, "TOPRIGHT", -5, 0)
+        local corner, offset = secondCorner(host)
+        clip:SetPoint("CENTER", host.portrait, corner, offset, 0)
         clip:SetFrameStrata(usableStrata(host))
         local badge = host.secondaryBadge
         if badge and type(badge.GetFrameLevel) == "function" then
@@ -217,7 +231,7 @@ function R.CreateNativeSecondProbe(host)
         c:SetFrameLevel(clip:GetFrameLevel()+1)
         -- Delay the unit binding until all groups exist. AddAuraGroup
         -- refreshes immediately; binding first would rescan the same live
-        -- target for every newly registered priority group.
+        -- unit (Player or Target) for every registered priority group.
         for rank, plan in ipairs(plans) do
             c:AddAuraGroup(plan.key, plan.tier.filter, {
                 maxFrameCount = 2,
@@ -236,7 +250,7 @@ function R.CreateNativeSecondProbe(host)
             })
             probe.groups = probe.groups + 1
         end
-        c:SetUnit("target")
+        c:SetUnit(host.unit)
         probe.ready = true
     end)
     if not ok then
@@ -248,23 +262,31 @@ function R.CreateNativeSecondProbe(host)
 end
 
 function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPlayer)
-    if not host or host.unit ~= "target" then return end
+    if not host or not supportedUnit(host.unit) then return end
 
-    -- No commands or persistent experimental toggle. The normal secondary
-    -- preference still applies. A positively identified hostile PLAYER is
-    -- eligible just like a positively identified hostile NPC. Unreadable
-    -- player identity cannot authorize the native target-only experiment.
-    local allow = R.db and R.db.enabled == true
+    local base = R.db and R.db.enabled == true
         and R.db.secondaryPortrait ~= false
-        and enabled == true and hostile == true
-        and playerReadable == true
+        and enabled == true and not R.testMode
+
+    -- The player host must be READY before an incoming combat debuff seals
+    -- public aura indexing. Construct it on the first ordinary OOC host
+    -- update, but show it only if the readable second has fallen back to
+    -- race. Keep independently presented Ghost and form/stance ranking as
+    -- the older authoritative implementation.
+    local playerEligible = host.unit == "player" and base
+        and hostile == false and host._assistable == true
+        and playerReadable == true and isPlayer == true
+
+    -- Opposite-faction players and hostile NPCs share the same Target proof.
+    -- Unknown class identity/relation is never promoted to a native ribbon.
+    local targetEligible = host.unit == "target" and base
+        and hostile == true and playerReadable == true
         and type(isPlayer) == "boolean"
 
-    if allow and not host._nativeSecondProbe then
-        -- Native AddAuraGroup preallocates ten buttons for every group. Defer
-        -- that one-time cost until the first relevant NPC is selected rather
-        -- than allocating ~600 aura buttons at login for an unused experiment.
-        -- Structural setup is never attempted during combat.
+    if (playerEligible or targetEligible) and not host._nativeSecondProbe then
+        -- Native groups preallocate a batch per tier. Never construct new
+        -- protected layout frames while combat-locked. A normal OOC
+        -- refresh will retry automatically; no slash command is needed.
         local combat, readable = R.SafeBool(InCombatLockdown)
         if not readable or combat then
             host._nativeSecondProbeReason = "setup-deferred-until-out-of-combat"
@@ -275,21 +297,30 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
 
     local probe = host._nativeSecondProbe
     if not probe or not probe.ready or not probe.clip then return end
-    if allow then
-        -- NPCs have no race fallback, so suppress their older public badge.
-        -- Hostile players retain the established race/verified-aura badge
-        -- UNDER the native second. If the native layout has fewer than two
-        -- eligible effects, its fixed viewport is empty and race remains.
-        -- If a second native button exists, that secure icon covers the race.
-        if isPlayer == false and host.secondaryBadge then
+
+    local playerFallback = playerEligible
+        and host._secondaryMode == "race"
+        and host._raceBaselineActive == true
+        and host._ghostActive ~= true and host._formStateActive ~= true
+    local show = targetEligible or playerFallback
+
+    if show then
+        -- Target NPCs have no legitimate race baseline; hide their legacy
+        -- badge. Player and hostile-player badges remain underneath the
+        -- native second cell, so zero/one eligible auras still show race.
+        -- No native button/secret frame geometry is inspected by Lua.
+        if targetEligible and isPlayer == false and host.secondaryBadge then
             pcall(host.secondaryBadge.Hide, host.secondaryBadge)
         end
         if not pcall(probe.clip.Show, probe.clip) then
             host._nativeSecondProbeReason = "clip-show-failed"
         else
-            host._nativeSecondProbeReason = "npc-native-ribbon"
+            host._nativeSecondProbeReason = playerFallback
+                and "player-native-race-fallback"
+                or "target-native-ribbon"
         end
     else
-        hide(host, "unit-ineligible")
+        hide(host, playerEligible and "readable-second-or-static-owner"
+            or "unit-ineligible")
     end
 end
