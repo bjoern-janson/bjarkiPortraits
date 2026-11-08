@@ -591,6 +591,14 @@ end
 
 function R.ReconcileSecondaryPortrait(host, enabled, isPlayer)
     if not supportsSecondary(host) then return end
+    -- The new public reader must never attempt to write a visible aura into
+    -- a host that is not carrying a fully constructed secondary badge. Partial
+    -- or mocked native host trees are still valid for main portrait updates.
+    if not host.secondaryBadge or not host.racePortrait then
+        hideBadge(host, "badge-unavailable")
+        host._secondaryElectionReason = "badge-unavailable"
+        return
+    end
     if not enabled or not R.db or R.db.secondaryPortrait == false then
         hideBadge(host, "ineligible")
         return
