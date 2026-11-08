@@ -210,8 +210,9 @@ function R.CreateNativeSecondProbe(host)
         -- The engine's own secret layout moves its children when auras change.
         c:SetPoint("TOPLEFT", clip, "TOPLEFT", -CELL, 0)
         c:SetFrameLevel(clip:GetFrameLevel()+1)
-        c:SetUnit("target")
-
+        -- Delay the unit binding until all groups exist. AddAuraGroup
+        -- refreshes immediately; binding first would rescan the same live
+        -- target for every newly registered priority group.
         for rank, plan in ipairs(plans) do
             c:AddAuraGroup(plan.key, plan.tier.filter, {
                 maxFrameCount = 2,
@@ -230,6 +231,7 @@ function R.CreateNativeSecondProbe(host)
             })
             probe.groups = probe.groups + 1
         end
+        c:SetUnit("target")
         probe.ready = true
     end)
     if not ok then
