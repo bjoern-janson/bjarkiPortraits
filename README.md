@@ -2,7 +2,7 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.186-pet-icon-rim-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
+**Experimental branch:** `0.1.187-shiny-silver-coin-bottom-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
 
 ## Install
 
@@ -18,7 +18,7 @@ Native unit-frame chrome and spell icons remain the visual foundation. **The mai
 
 ## Current priority examples
 
-- **Priority 0, absolute bottom:** Boosted Rest (1229451), Tricked or Treated (24755), and both harmful Tamed quest effects (19685/19686), in one `BoostedRest` aura lane.
+- **Priority 0, absolute bottom:** Shiny Silver Coin (applied **helpful** aura 1321323, +30 Fishing for 30 minutes) in `BottomHelpful`; Boosted Rest (1229451), Tricked or Treated (24755) and both harmful Tamed effects (19685/19686) remain in `BoostedRest`. The helpful/harmful native filters require **two slots at the same numeric priority**, not another priority tier.
 - **Gathering 1:** Find Herbs, Find Minerals, Find Treasure. **Tracking 3:** sensing buffs, Sapta Sight, Hunting Kobolds. **Campfire Nearby 4** and **Violet Flames 5**.
 - **Seal 210** includes Poised; **Offensive 280** includes Rushing Charge and Savagery; harmful **Control 310** includes Polymorph, while helpful **ControlHelpful 310** covers Frog Form.
 

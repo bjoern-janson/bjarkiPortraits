@@ -15,14 +15,18 @@ local function equal(actual, expected, label)
 end
 local gathering = assert(R.TIER_BY_KEY.Gathering)
 local info = assert(R.TIER_BY_KEY.BoostedRest)
+local bottomHelpful = assert(R.TIER_BY_KEY.BottomHelpful)
 local tracking = assert(R.TIER_BY_KEY.Tracking)
 local trackingHarmful = assert(R.TIER_BY_KEY.TrackingHarmful)
 local ambient = assert(R.TIER_BY_KEY.CampfireNearby)
 local ambientHarmful = assert(R.TIER_BY_KEY.CampfireNearbyHarmful)
 local fallback = assert(R.TIER_BY_KEY.HostileHelpful)
 
-equal(gathering.level, 1, "Find Herbs/Minerals lowest aura tier")
+equal(gathering.level, 1, "Gathering remains priority one above bottom")
 equal(info.level, 0, "passive informational harmful is absolute lowest aura tier")
+equal(bottomHelpful.level, info.level, "helpful coin shares numeric bottom tier")
+check(bottomHelpful.helpful and bottomHelpful.exact, "bottom helpful uses its own native exact polarity")
+check(bottomHelpful.spellIDs[1321323] == true, "coin applied aura is bottom helpful")
 equal(tracking.level, 3, "tracking/sensing immediately above gathering")
 equal(trackingHarmful.level, tracking.level, "harmful tracking shares the informational priority")
 equal(ambient.level, 4, "original ambient buff above tracking")
@@ -32,7 +36,7 @@ check(gathering.helpful and gathering.exact, "gathering is exact helpful")
 check(not info.helpful and info.exact, "informational effects are exact harmful")
 check(tracking.helpful and tracking.exact, "tracking is exact helpful")
 for _, tier in ipairs(R.TIERS) do
-    if tier ~= gathering and tier ~= tracking and tier ~= trackingHarmful and tier ~= info then
+    if tier ~= gathering and tier ~= tracking and tier ~= trackingHarmful and tier ~= info and tier ~= bottomHelpful then
         check(tier.level >= 4, "all remaining aura tiers above race-fallback lanes: " .. tier.key)
     end
 end

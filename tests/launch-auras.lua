@@ -28,6 +28,7 @@ local function member(category, tier, level, helpful, ids)
     end
 end
 
+member("buffs_bottom", "BottomHelpful", 0, true, { 1321323 })
 member("buffs_gathering", "Gathering", 1, true, { 2383, 8387, 2580, 8388, 2481 })
 member("buffs_tracking", "Tracking", 3, true, { 8202, 8898, 8899, 8900, 9735, 1246031 })
 member("buffs_campfire_nearby", "CampfireNearby", 4, true, { 1283391 })

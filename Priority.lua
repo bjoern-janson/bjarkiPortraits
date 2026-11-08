@@ -45,6 +45,9 @@ R.TIERS = {
     exact("BoostedRest", "HARMFUL", 0, false,
         union("debuffs_boosted_rest", "debuffs_noncombat", "debuffs_pet_taming"),
         true, C.debuffs_pet_taming),
+    -- Same numeric lowest priority as BoostedRest (0), but Blizzard's
+    -- native aura slots require separate HELP/HARMFUL polarity filters.
+    exact("BottomHelpful", "HELPFUL", 0, true, C.buffs_bottom),
     -- Gathering remains the next-lowest aura priority, helpful level 1.
     exact("Gathering", "HELPFUL", 1, true, C.buffs_gathering),
     exact("Tracking", "HELPFUL", 3, true, C.buffs_tracking),
@@ -245,7 +248,7 @@ end
 -- sets filter those broad lanes, not the explicit Gathering/Tracking/info lanes.
 -- Restricted hostile identities may still prevent enforcing the exclusions;
 -- never infer an inaccessible aura's spell ID.
-local excludedHelpful = union("buffs_gathering", "buffs_tracking", "buffs_campfire_nearby",
+local excludedHelpful = union("buffs_bottom", "buffs_gathering", "buffs_tracking", "buffs_campfire_nearby",
     "buffs_violet_flames", "buffs_cosmetic", "buffs_noncombat")
 local excludedHarmful = union("debuffs_pet_taming", "debuffs_tracking", "debuffs_campfire_nearby",
     "debuffs_noncombat", "debuffs_boosted_rest")

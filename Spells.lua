@@ -1574,8 +1574,14 @@ PT.categories = {
         [1299446] = true, -- Aspect of the Beast Rank 3
         [1328548] = true, -- Oath of Light
     },
-    -- Lowest existing helpful tier. Resource detection shares this native
-    -- AuraContainer lane with harmless quest-only states; no new tier.
+    -- Helpful noncombat information at absolute bottom (level 0). The
+    -- bottom HARMFUL lane cannot receive helpful auras through its filter,
+    -- so this shares its numeric priority but uses the matching polarity.
+    -- The *applied buff* is 1321323, not the item-use trigger 1321320.
+    buffs_bottom = {
+        [1321323] = true, -- Shiny Silver Coin (+30 Fishing, 30 minutes)
+    },
+    -- Gathering remains helpful level 1, above the absolute bottom.
     buffs_gathering = {
         [2383] = true, -- Find Herbs Rank 1
         [8387] = true, -- Find Herbs Rank 2

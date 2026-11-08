@@ -1,5 +1,8 @@
 # Known issues and bugs
 
+**0.1.187 Shiny Silver Coin bottom priority (2026-11-08):** The screenshot shows a 30-minute +30 Fishing **helpful** buff. The applied aura is spell `1321323`; `1321320` is the item-use/trigger spell and is not classified. To share **numeric level 0** with harmful Boosted Rest/Tricked or Treated/Tamed, `Priority.lua` has a minimal `BottomHelpful` native HELPFUL exact lane at 0 (a helpful aura cannot be put into the existing HARMFUL-filtered BoostedRest slot). `buffs_bottom` contains only the applied coin aura; the Important/HostileHelpful generic fallback exclusion prevents inappropriate promotion. Gathering 1 and every other numeric tier stay unchanged. The helpful and harmful bottom lanes can each have a candidate; simultaneous cross-polarity tie resolution remains native-container-dependent. The effect's live portrait visibility still needs checking on target/self after /reload.
+
+
 **0.1.186 PetFrame source-icon rim cleanup (2026-11-08):** A screenshot of the player's Imp shows a straight top-edge fragment from a square spell icon inside the small circular pet portrait, while the same effect appears better cropped on Target. PetFrame is a 37px icon aperture; its previous `1/64` source crop removed less than a rendered pixel from each side. The shared `R.ApplyPortraitIconCrop` now uses `3/64` **only on local `pet`**, covering secure/readable pet aura icons and pet-family artwork without moving the Blizzard ring or mask. Player, Target, Focus, ToT/ToF and party icon crops remain unchanged. Source-level regressions confirm the values and both callers; whether this fully conceals every native spell-icon border still requires live visual testing.
 
 
