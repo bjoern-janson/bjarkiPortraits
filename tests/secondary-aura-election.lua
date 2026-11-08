@@ -124,6 +124,58 @@ eq(host._secondaryMode,'race','expired combat-held positive is not shown forever
 eq(host._secondaryAuraSpellID,nil,'expired positive identity cleared')
 C_UnitAuras.GetAuraDataByIndex=readableIndex
 combat=false
+-- A genuine UNIT_AURA removal of an UNRELATED lower aura cannot
+-- change a verified first/second pair. Preserve the prior timed secondary if
+-- the full current aura list becomes protected when combat begins.
+clock=110
+setAuras('player',{aura(101,501,170,60),aura(102,502,170,60),
+    aura(103,503,170,60)})
+combat=false
+C_UnitAuras.GetAuraDataByIndex=readableIndex
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryPrimaryAuraInstanceID,501,'positive first-place occurrence retained')
+eq(host._secondaryAuraInstanceID,502,'positive second-place occurrence retained')
+R.NoteSecondaryAuraEvent('player',{isFullUpdate=false,
+    removedAuraInstanceIDs={503},addedAuras={},updatedAuraInstanceIDs={}})
+eq(host._secondaryAuraEventDirty,false,'unrelated lower removal does not dirty top two')
+combat=true
+C_UnitAuras.GetAuraDataByIndex=sealIndex
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryMode,'aura','combat secrecy retains second after unrelated removal')
+eq(host._secondaryElectionReason,'combat-positive-retained:inaccessible-index',
+   'precise unrelated removal retention is visible in diagnostic')
+-- If combat still exposes both eligible instances, we should not re-write
+-- an identical badge through potentially protected texture/cooldown methods.
+C_UnitAuras.GetAuraDataByIndex=readableIndex
+local textureSetter = host.racePortrait.SetTexture
+host.racePortrait.SetTexture=function() error('modeled protected no-op texture write') end
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryMode,'aura','unchanged combat second needs no texture rewrite')
+eq(host._secondaryElectionReason,'combat-positive-retained:unchanged-current-positive',
+   'same positive can retain its existing timer')
+host.racePortrait.SetTexture=textureSetter
+-- A removal of the PRIMARY occurrence is significant even if the second
+-- instance survives: it may now be the first portrait, not the second.
+R.NoteSecondaryAuraEvent('player',{isFullUpdate=false,
+    removedAuraInstanceIDs={501},addedAuras={},updatedAuraInstanceIDs={}})
+eq(host._secondaryAuraEventDirty,true,'primary removal invalidates second ranking')
+C_UnitAuras.GetAuraDataByIndex=sealIndex
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryMode,'race','unknown current ranking after primary removal fails closed')
+-- No payload or a new addition must also invalidate the last positive.
+combat=false
+C_UnitAuras.GetAuraDataByIndex=readableIndex
+R.ReconcileSecondaryPortrait(host,true,true)
+R.NoteSecondaryAuraEvent('player',{isFullUpdate=false,
+    removedAuraInstanceIDs={},addedAuras={aura(103,504)},updatedAuraInstanceIDs={}})
+eq(host._secondaryAuraEventDirty,true,'newly added aura cannot be ignored')
+R.ReconcileSecondaryPortrait(host,true,true)
+R.NoteSecondaryAuraEvent('player')
+eq(host._secondaryAuraEventDirty,true,'missing delta remains unknown')
+R.ReconcileSecondaryPortrait(host,true,true)
+combat=false
+C_UnitAuras.GetAuraDataByIndex=readableIndex
+
 -- Without a usable current GUID, a recycled nonplayer unit must NEVER keep
 -- a stale portrait across combat. ToT and ToF have no badge at all.
 local other=makeHost(); other.unit='target'
