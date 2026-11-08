@@ -2,7 +2,7 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.184-outer-badges-combat-evidence-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
+**Experimental branch:** `0.1.185-secondary-form-order-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
 
 ## Install
 
@@ -27,6 +27,10 @@ Use `/bp help` for commands, `/bp inspect <unit>` for eligible observed auras, `
 ## Secondary aura prototype — bounded readable path
 
 **[Design and acceptance plan](docs/SECONDARY_PORTRAIT_PLAN.md)** records the full objective and native API limitations. Version 0.1.180 adds a *conservative* public aura election, independent of the unchanged secure main portrait: complete helpful/harmful indexed lists (up to 48 entries each), verified occurrence IDs, native per-tier filter checks, and bounded probe work (192 per refresh). It understands same-tier native ID order, the three application-time tiers, exact/semantic priorities, and refuses ambiguous equal-level lanes or unavailable timing. It now runs on positively readable **friendly units** and on **targeted hostile units only when their complete public aura evidence and the independently displayed first-place portrait agree**. An independently proven stance/form may also be first when its rank exceeds every readable aura. The client can still withhold hostile aura data, so this does not guarantee a second icon in PvP or restricted combat. For known exact auras, their membership in a completed compatible native polarity scan can prove native eligibility without the extra `IsAuraFilteredOutByInstanceID` lookup; nameplate-only mismatches still require negative checks. Unclassified/semantic aura eligibility still requires the native filter oracle. The 0.1.182 fix preserves an explicitly readable **false** hostile relation as friendly, instead of treating it as unknown. In 0.1.184, the optional combat hold is labeled `secondReason=combat-positive-retained:<reason>` to distinguish last-positive evidence from a current election; it never guesses a new effect while aura data is secret. It falls back to race when any required evidence is absent. **Universal combat/hostile coverage is still not guaranteed; no secure global second-winner API has been discovered.** The synthetic `/bp test` remains distinct from live evidence.
+
+### Static form / stance ordering (0.1.185)
+
+A positively displayed Warrior stance or Druid form is a **static candidate at priority 149**, not an automatic first-place winner. When a stronger aura is first, the form can be the second portrait without a fabricated cooldown; if two auras are stronger, the true second aura remains second. When the form outranks every aura, the highest-ranked aura is second. For example, **Welcoming Campfire (257) → Battle Stance (149) → Camp Benefits (90)** shows Battle Stance in the small circle, not race or Camp Benefits. These are source/regression expectations, not yet confirmed for every live-client state.
 
 ## Documentation and tests
 

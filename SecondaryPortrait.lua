@@ -532,54 +532,109 @@ function R.GetReadableSecondaryAura(host)
         end
         ranked[j+1] = cand
     end
-    -- A verified current Warrior/Druid form witness has its own portrait
-    -- display just below SelfState (priority 149). If all public candidates
-    -- are lower, that known form is the first portrait, and the highest aura
-    -- is the *second* effect. Do not invent form duration/identity or claim it
-    -- as secondary when an aura of higher priority could obscure the form.
+    -- A positively displayed Warrior stance/Druid form is a real, static
+    -- portrait candidate at level 149 (just below the SelfState native lane).
+    -- It is NOT automatically primary: a higher-level aura can cover it. A
+    -- previous implementation incorrectly rejected that common case and
+    -- returned the race badge whenever a buff outranked the active stance.
+    -- Rank the state alongside auras without inventing an aura instance ID or
+    -- treating the state as an applied timed aura.
+    local form, formPrimary = nil, false
     if host._formStateActive then
         local stateLevel = (R.TIER_BY_KEY and R.TIER_BY_KEY.SelfState
             and R.TIER_BY_KEY.SelfState.level or 150) - 1
-        if #ranked == 0 then return nil, "not-two-presentable" end
-        if ranked[1].tier.level >= stateLevel then
-            return nil, "form-not-proven-primary"
+        form = {staticForm = true, spellID = host._formStateSpellID,
+            tier = {key = "FormState", level = stateLevel}}
+        if ranked[1] and ranked[1].tier.level == stateLevel then
+            -- No assumed tie break between native aura and static presenter.
+            return nil, "form-rank-tie"
         end
-        return ranked[1], "verified-form-then-aura"
+        formPrimary = not ranked[1] or ranked[1].tier.level < stateLevel
     end
-    if #ranked < 2 then return nil, "not-two-presentable" end
-    if ranked[1].auraInstanceID == ranked[2].auraInstanceID then
+
+    local primary, second, electionReason
+    if formPrimary then
+        -- No higher aura: the observed form is visible as the first portrait;
+        -- a *lower* aura becomes second, if any.
+        primary, second, electionReason = form, ranked[1], "verified-form-then-aura"
+    else
+        primary, second, electionReason = ranked[1], ranked[2], "verified-readable"
+        if form and primary and primary.tier.level > form.tier.level then
+            if not second or second.tier.level < form.tier.level then
+                -- One stronger aura covers the form; the form sits between
+                -- that aura and weaker buffs such as Camp Benefits (90).
+                second, electionReason = form, "verified-aura-then-form"
+            elseif second.tier.level == form.tier.level then
+                return nil, "form-rank-tie"
+            end
+        end
+    end
+    if not primary or not second then return nil, "not-two-presentable" end
+    if primary.auraInstanceID and second.auraInstanceID
+        and primary.auraInstanceID == second.auraInstanceID then
         return nil, "duplicate-aura"
     end
-    if hostile then
-        -- The full native-elected primary aura already rendered by the main
-        -- engine must agree with our independently ranked, public first-place
-        -- candidate. Otherwise do not risk showing third place as second.
+    if hostile and not formPrimary then
+        -- For hostile units a public first-place aura must *match* the main
+        -- engine's actually presented occurrence; never call a form primary
+        -- when a stronger readable aura is really on the big portrait.
         if not host._hostileActive or host._hostileReadable ~= true
             or type(host._hostileAuraInstanceID) ~= "number" then
             return nil, "hostile-primary-unverified"
         end
-        if ranked[1].spellID ~= host._hostileSpellID
-            or ranked[1].tier.key ~= host._hostileTierKey
-            or ranked[1].auraInstanceID ~= host._hostileAuraInstanceID then
+        if primary.spellID ~= host._hostileSpellID
+            or primary.tier.key ~= host._hostileTierKey
+            or primary.auraInstanceID ~= host._hostileAuraInstanceID then
             return nil, "hostile-primary-mismatch"
         end
     end
-    return ranked[2], "verified-readable"
+    return second, electionReason
+end
+
+-- A form icon is an independent, currently displayed *state*, not an aura.
+-- Prefer the image already proved and drawn by our form presenter; use the
+-- public spell texture only when the icon cannot be read from that presenter.
+-- Neither path can authorize a fabricated cooldown or aura instance.
+local function currentFormTexture(host, spellID)
+    if not host._formStateActive or host._formStateSpellID ~= spellID then return nil end
+    local frame = host.readableFormStateFrame
+    local formIcon = frame and frame.icon
+    if formIcon and type(formIcon.GetTexture) == "function" then
+        local ok, value = pcall(formIcon.GetTexture, formIcon)
+        if ok and R.CanAccess(value) and validIcon(value) then return value end
+    end
+    local getter = C_Spell and C_Spell.GetSpellTexture or GetSpellTexture
+    if type(getter) == "function" then
+        local ok, value = pcall(getter, spellID)
+        if ok and R.CanAccess(value) and validIcon(value) then return value end
+    end
+    return nil
 end
 
 local function showSecondaryAura(host, candidate)
     local icon, cooldown = host.racePortrait, host.secondaryCooldown
-    local texture, readable = read(candidate.aura, "icon")
-    if not readable or not validIcon(texture) then return false end
-    local duration, durOK = read(candidate.aura, "duration")
-    if not durOK or type(duration) ~= "number" or duration < 0 then return false end
-    local expiration, expOK, timeMod, modOK
-    if duration > 0 then
-        expiration, expOK = read(candidate.aura, "expirationTime")
-        timeMod, modOK = read(candidate.aura, "timeMod")
-        if not expOK or not modOK or type(expiration) ~= "number" then return false end
-        if timeMod == nil then timeMod = 1 end
-        if type(timeMod) ~= "number" or timeMod <= 0 or timeMod == math.huge then return false end
+    if not icon or not host.secondaryBadge or not candidate then return false end
+    local texture, duration, expiration, timeMod
+    local staticForm = candidate.staticForm == true
+    if staticForm then
+        texture = currentFormTexture(host, candidate.spellID)
+        if not texture then return false end
+        duration = 0 -- no fabricated aura duration or cooldown for a stance
+    else
+        local readable
+        texture, readable = read(candidate.aura, "icon")
+        if not readable or not validIcon(texture) then return false end
+        local durOK
+        duration, durOK = read(candidate.aura, "duration")
+        if not durOK or type(duration) ~= "number" or duration < 0 then return false end
+        if duration > 0 then
+            local expOK, modOK
+            expiration, expOK = read(candidate.aura, "expirationTime")
+            timeMod, modOK = read(candidate.aura, "timeMod")
+            if not expOK or not modOK or type(expiration) ~= "number" then return false end
+            if timeMod == nil then timeMod = 1 end
+            if type(timeMod) ~= "number" or timeMod <= 0 or timeMod == math.huge then return false end
+        end
     end
     local success, wrote = pcall(icon.SetTexture, icon, texture)
     if not success or wrote == false then return false end
@@ -596,14 +651,14 @@ local function showSecondaryAura(host, candidate)
     end
     if not pcall(host.secondaryBadge.Show, host.secondaryBadge) then return false end
     host._secondaryArtKey = nil
-    host._secondaryMode = "aura"
-    host._secondaryAuraInstanceID = candidate.auraInstanceID
+    host._secondaryMode = staticForm and "form" or "aura"
+    host._secondaryAuraInstanceID = staticForm and nil or candidate.auraInstanceID
     host._secondaryAuraSpellID = candidate.spellID
     host._secondaryAuraTier = candidate.tier.key
     host._secondaryPositiveGeneration = (host._secondaryPositiveGeneration or 0) + 1
     -- Only a timed positive has a clock that can bound temporary retention.
     -- A permanent/unreadable lifetime is never kept on old evidence alone.
-    host._secondaryPositiveExpiry = duration > 0 and expiration or nil
+    host._secondaryPositiveExpiry = (not staticForm and duration > 0) and expiration or nil
     host._secondaryAuraEventDirty = false
     host._secondaryExpiryTimerGeneration = nil
     host._secondaryPositiveGUID = nil

@@ -364,5 +364,33 @@ test("secret and irrelevant event units cannot enter stance work",function()
     end
     eq(#s.queries,0); eq(s.formCalls,0); eq(#s.timers,0)
 end)
+-- Genuine own Warrior UpdateHost path, not a hand-authored active-form flag.
+-- Higher native/readable auras can cover a correctly presented lower-priority
+-- stance. The secondary must then rank the active stance instead of returning
+-- race merely because the form is not the visible primary.
+test("own Warrior with higher aura elects static stance second",function()
+    local s=setup()
+    s.helpful={
+        {spellId=1229739,isHelpful=true,icon=30001,auraInstanceID=101,
+            duration=48,expirationTime=148,timeMod=1,isNameplateOnly=false},
+        {spellId=1229741,isHelpful=true,icon=30002,auraInstanceID=102,
+            duration=2100,expirationTime=2200,timeMod=1,isNameplateOnly=false},
+        {spellId=1283391,isHelpful=true,icon=30003,auraInstanceID=103,
+            duration=900,expirationTime=1000,timeMod=1,isNameplateOnly=false},
+    }
+    local h=s.R.hosts.player
+    s.R.UpdateHost(h)
+    eq(h._hostileUnit,false,"real host still sees readable friendly player")
+    eq(h._formStateActive,true,"positive own stance displayed underneath stronger aura")
+    eq(h._formStateSpellID,2457,"current Battle Stance identity")
+    eq(h._formStateReason,"player-forms:proven","own stance proof not inferred")
+    assert(loadfile("SecondaryPortrait.lua"))("bjarkiPortraits",{Runtime=s.R})
+    local second,why=s.R.GetReadableSecondaryAura(h)
+    eq(why,"verified-aura-then-form","higher Welcoming Campfire keeps first place")
+    eq(second and second.staticForm,true,"second is current stance, not race")
+    eq(second and second.spellID,2457,"second retains Battle Stance")
+    eq(second and second.tier.level,149,"static form uses existing level")
+end)
+
 print("stance-state: "..cases.." cases, "..#failures.." failures")
 assert(#failures==0,table.concat(failures,"\n"))

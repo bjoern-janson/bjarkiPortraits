@@ -88,12 +88,18 @@ eq(reason,'verified-form-then-aura','verified form qualifies as first portrait')
 eq(candidate and candidate.spellID,1229741,'Camp Benefits is the first aura after form')
 R.ReconcileSecondaryPortrait(h,true,false)
 eq(h._secondaryAuraSpellID,1229741,'Camp Benefits displays beside form')
--- If another aura outranks the form, the form can no longer be claimed as
--- the primary by this projected reader; do not fabricate a badge selection.
+-- If a stronger aura outranks the form, it becomes the real primary.
+-- The existing main-presenter identity must agree BEFORE a lower static form
+-- can become the second portrait (no guess on mismatched hostile witnesses).
 lists.helpful={aura(1229741,17),aura(1229739,20,60)}
 candidate,reason=R.GetReadableSecondaryAura(h)
-eq(candidate,nil,'higher aura invalidates assumed primary form')
-eq(reason,'form-not-proven-primary','form case fails closed')
+eq(candidate,nil,'mismatched hostile main cannot authorize form as second')
+eq(reason,'hostile-primary-mismatch','higher aura requires matching main witness')
+h._hostileSpellID=1229739;h._hostileTierKey='HonorlessTarget';h._hostileAuraInstanceID=20
+candidate,reason=R.GetReadableSecondaryAura(h)
+eq(reason,'verified-aura-then-form','stronger hostile aura is primary')
+eq(candidate and candidate.staticForm,true,'verified static form is second')
+eq(candidate and candidate.spellID,71,'Defensive Stance is second')
 -- A genuine unreadable indexed aura invalidates the election, not just its
 -- place in the sorted set. This must also apply to hostile units.
 lists.helpful={aura(1229741,17),'SECRET'}

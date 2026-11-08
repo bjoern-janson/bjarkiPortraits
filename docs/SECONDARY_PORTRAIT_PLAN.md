@@ -1,9 +1,25 @@
 # Secondary portrait: two aura priorities + race identity
 
-**Status:** P1 layering prototype plus exact-aura eligibility repair at v0.1.181; P2 supports bounded **readable friendly** top-two selection only; universally correct secure cross-tier runner-up remains unavailable  
+**Status:** P1 outward badge layout and P2 readable top-two prototype through v0.1.185; static form/stance ranking corrected; universally correct secure cross-tier runner-up remains unavailable  
 **Baseline:** `0.1.178-bottom-harmful-consolidation-test` (2026-11-08).  
 **Proposed next development milestone:** `0.1.179-secondary-portrait-prototype` (working name, not a release).  
 **Source of visual direction:** 2026-11-08 in-game player-frame comparison: a tiny Blizzard Shaman Totem-like circular ring at the top corner of the main portrait.
+
+## Follow-up 0.1.185: rank observed forms instead of assuming they are first (2026-11-08)
+
+**New live counterexample:** A level-9 Warrior out of combat has a timed flame aura on the large portrait, Camp Benefits visibly active, but the secondary displays race. The previous `GetReadableSecondaryAura` branch saw `_formStateActive`, insisted it must be the first portrait and returned `form-not-proven-primary` if any aura outranked the observed form. That is incorrect: native higher-priority auras can cover the static form. This is a source-confirmed false-negative path; the screenshot alone does not expose its `secondReason`.
+
+**Fix:** Put each **positively proven current** Warrior stance / Druid form at its existing static portrait level `SelfState - 1 = 149`, beside independently ranked public auras. Do not add it to the native aura table or fabricate an aura instance ID.
+
+- If the form outranks all auras, it is first and the strongest readable aura can be second (existing behavior).
+- If one aura outranks the form, the **form is second** unless another aura outranks the form. For example, Welcoming Campfire (257) > Battle Stance (149) > Camp Benefits (90).
+- If two independent auras outrank the form, those two auras occupy the circles. A form alone yields race fallback.
+- A form **used as the secondary** uses the already positively drawn addon form icon (or a readable public spell icon), with **no countdown**. Permanent/static state never participates in timed combat-retention.
+- Hostile first-place aura still requires matching spell, lane and aura-instance ID from the main engine. An unreadable/mismatched primary, missing form icon, unverifiable form state or tie remains a race/hidden fallback.
+
+**Verification:** A new regression against the real `Spells.lua`/`Priority.lua` map covers form-first, form-second, form-third, no-aura fallback, unproven forms, missing texture and hostile-main agreement. An additional actual `R.UpdateHost` fixture tests that the own Warrior stance witness survives beneath a higher aura and is selected as the second portrait. The numeric priority table, race fallback, primary secure stack, ToT/ToF/pet opt-outs, combat restrictions and no-polling policy remain unchanged. Live verification still required.
+
+---
 
 ## Follow-up 0.1.184: outer top corners and last-positive combat transition (2026-11-08)
 
