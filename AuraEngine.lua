@@ -1316,7 +1316,9 @@ local function buildHost(unit, host)
     anchor:SetFrameLevel(0)
     R.CreatePortraitImageMask(host)
     -- PetFrame uses verified family art as its fallback, never a player race.
-    if unit ~= "pet" and R.CreateSecondaryPortrait then
+    -- Secondary badges belong only on full/regular party frames. Compact
+    -- ToT/ToF and pet retain their independent primary portrait aura engines.
+    if unit ~= "pet" and not R.SMALL_UNITS[unit] and R.CreateSecondaryPortrait then
         R.CreateSecondaryPortrait(host, parentStrata)
     end
 

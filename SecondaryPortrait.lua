@@ -8,8 +8,18 @@ local R = assert(BP.Runtime, "Core.lua must load first")
 -- badge falls back to verified race art. Never read forbidden secure winners.
 -- The main native/class portrait remains untouched.
 
+-- The optional circle is intentionally limited to full and regular party
+-- portraits. ToT/ToF retain their existing PRIMARY aura engine unchanged.
+local SECONDARY_UNITS = {
+    player = true, target = true, focus = true,
+    party1 = true, party2 = true, party3 = true, party4 = true,
+}
+local function supportsSecondary(host)
+    return host and SECONDARY_UNITS[host.unit] == true
+end
+
 local MIRROR_LEFT = {
-    target = true, focus = true, focustarget = true,
+    target = true, focus = true,
 }
 local STRATA_ABOVE = {
     BACKGROUND = "LOW", LOW = "MEDIUM", MEDIUM = "HIGH", HIGH = "DIALOG",
@@ -22,7 +32,6 @@ local badgePool = {}
 local AURA_SCAN_LIMIT = 48
 local MAX_FILTER_PROBES = 192 -- bounded per host refresh; no polling
 local COMPACT = {
-    targettarget = true, focustarget = true,
     party1 = true, party2 = true, party3 = true, party4 = true,
 }
 
@@ -78,7 +87,7 @@ function R.ReleaseSecondaryPortrait(host)
 end
 
 function R.CreateSecondaryPortrait(host, nativeStrata)
-    if not host or host.unit == "pet" or not host.layer or not host.portrait
+    if not supportsSecondary(host) or not host.layer or not host.portrait
         or not host.unitFrame then return false end
     local compact = COMPACT[host.unit] == true
     local width, imageSize, borderSize = compact and 29 or 37,
@@ -166,7 +175,7 @@ function R.CreateSecondaryPortrait(host, nativeStrata)
 end
 
 function R.UpdateSecondaryPortrait(host, permitted)
-    if not host or host.unit == "pet" then return end
+    if not supportsSecondary(host) then return end
     if not R.db or R.db.secondaryPortrait == false then
         hideBadge(host, "disabled")
         return
@@ -218,9 +227,8 @@ end
 -- to calibrate the new circle against a second spell icon before a secure
 -- second-place election has been proven. There is no live-aura inference.
 function R.PreviewSecondaryPortrait(host)
-    if not host or host.unit == "pet" or not host.secondaryBadge or not host.racePortrait
+    if not supportsSecondary(host) or not host.secondaryBadge or not host.racePortrait
         or not R.db or R.db.secondaryPortrait == false then return end
-    clearSecondaryAura(host)
     clearSecondaryAura(host)
     local icon = host.racePortrait
     local ok, result = pcall(icon.SetTexture, icon, "Interface\\Icons\\Spell_Holy_SealOfWisdom")
@@ -320,6 +328,25 @@ local function semanticFilterMatches(candidate, filters)
     return true
 end
 
+-- All exact portrait lanes use either HELPFUL/HARMFUL or the same
+-- polarity with INCLUDE_NAME_PLATE_ONLY. The complete indexed scan already
+-- certifies that a candidate belongs to its *inclusive* polarity set.
+-- For ordinary polarity-only lanes, a positively readable nameplate-only
+-- bit must also be false; if unreadable/missing, ask the native oracle.
+-- Never bypass the native oracle for semantic filters (IMPORTANT/CC/etc.).
+local function exactFilterProven(candidate, tier)
+    local base = candidate.helpful and "HELPFUL" or "HARMFUL"
+    if tier.filter == base .. "|INCLUDE_NAME_PLATE_ONLY" then return true end
+    if tier.filter ~= base then return nil end
+    local nameplateOnly, known = read(candidate.aura, "isNameplateOnly")
+    if known and type(nameplateOnly) == "boolean" then
+        return not nameplateOnly
+    end
+    -- Optional field unavailable: cannot claim normal HELPFUL/HARMFUL
+    -- membership solely from the wider INCLUDE_NAME_PLATE_ONLY scan.
+    return nil
+end
+
 local function candidateRank(host, candidate, cache)
     local winner, tied = nil, false
     for _, tier in ipairs(R.TIERS or {}) do
@@ -361,7 +388,14 @@ local function candidateRank(host, candidate, cache)
                 if allowed == nil then return nil, "filter-unreadable" end
             end
             if allowed then
-                local yes = nativeSlotMatches(host.unit, candidate, tier.filter, cache)
+                -- A verified exact ID in a compatible indexed polarity scan
+                -- needs no redundant native identity filter call. That call
+                -- can be inaccessible to ordinary add-ons even for own buffs.
+                local yes
+                if tier.exact then yes = exactFilterProven(candidate, tier) end
+                if yes == nil then
+                    yes = nativeSlotMatches(host.unit, candidate, tier.filter, cache)
+                end
                 if yes == nil then return nil, "native-filter-unreadable" end
                 if yes then
                     if not winner or tier.level > winner.level then
@@ -406,13 +440,16 @@ local function tryGetAuraStart(unit, candidate)
 end
 
 function R.GetReadableSecondaryAura(host)
-    if not host or host.unit == "pet" or not host._buildComplete
-        or not R.db or R.db.secondaryPortrait == false
-        or R.testMode or host._hostileUnit ~= false
-        or host._assistable ~= true or host._formStateActive
-        or host._ghostActive or host._hostileActive then
-        return nil, "not-eligible"
-    end
+    if not supportsSecondary(host) then return nil, "unit-excluded" end
+    if not host._buildComplete then return nil, "host-incomplete" end
+    if not R.db or R.db.secondaryPortrait == false then return nil, "disabled" end
+    if R.testMode then return nil, "test-mode" end
+    if host._hostileUnit == nil then return nil, "relation-unreadable" end
+    if host._hostileUnit then return nil, "hostile-unavailable" end
+    if host._assistable ~= true then return nil, "assist-unreadable" end
+    if host._formStateActive then return nil, "static-form-witness" end
+    if host._ghostActive then return nil, "static-ghost-witness" end
+    if host._hostileActive then return nil, "other-presentation-witness" end
     -- A host with failed presentation writes or an uncertain live binding
     -- cannot certify that the native first-place view is current.
     if (host._containerWriteFailures or 0) ~= 0 then return nil, "native-update-failed" end
@@ -489,7 +526,7 @@ local function showSecondaryAura(host, candidate)
 end
 
 function R.ReconcileSecondaryPortrait(host, enabled, isPlayer)
-    if not host or host.unit == "pet" then return end
+    if not supportsSecondary(host) then return end
     if not enabled or not R.db or R.db.secondaryPortrait == false then
         hideBadge(host, "ineligible")
         return
@@ -509,7 +546,10 @@ function R.ReconcileSecondaryPortrait(host, enabled, isPlayer)
         return
     end
     local second, reason = R.GetReadableSecondaryAura(host)
-    if second and showSecondaryAura(host, second) then return end
+    if second and showSecondaryAura(host, second) then
+        host._secondaryElectionReason = reason
+        return
+    end
     R.UpdateSecondaryPortrait(host, isPlayer)
-    host._secondaryElectionReason = reason or "presentation-unavailable"
+    host._secondaryElectionReason = second and "presentation-unavailable" or reason
 end

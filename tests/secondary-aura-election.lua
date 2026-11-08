@@ -42,7 +42,7 @@ C_UnitAuras={
 local function aura(spell,id,expire,duration,importantFlag)
     return {spellId=spell,auraInstanceID=id,icon=1000+spell,
         expirationTime=expire or 110,duration=duration or 10,
-        timeMod=1,important=importantFlag or false}
+        timeMod=1,important=importantFlag or false,isNameplateOnly=false}
 end
 local function setAuras(unit, t)
     seen[unit]=t;byId={}
@@ -74,6 +74,24 @@ eq(host._secondaryAuraInstanceID,11,'occurrence identity preserved')
 eq(host.racePortrait.texture,1102,'second aura icon shown')
 eq(host.secondaryCooldown.duration,10,'native timer configured')
 eq(host.secondaryBadge.shown,true,'badge visible above native')
+eq(host._secondaryElectionReason,'verified-readable','reason reports positive election')
+-- Exact spell membership is already proven by the full indexed polarity scan.
+-- The separate native filter oracle can fail or be absent for addon callers.
+-- Its failure must not prevent an otherwise fully readable exact-aura pair.
+local originalNativeOracle = C_UnitAuras.IsAuraFilteredOutByInstanceID
+C_UnitAuras.IsAuraFilteredOutByInstanceID = nil
+setAuras('player',{aura(101,31),aura(102,32),aura(103,33)})
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryMode,'aura','known exact auras work without native identity oracle')
+eq(host._secondaryAuraSpellID,102,'verified second exact aura retained')
+-- Normal HELPFUL exact lanes must not consume nameplate-only auras merely
+-- because the inclusive scan could see them.
+local exclusive = aura(101,91); exclusive.isNameplateOnly=true
+setAuras('player',{exclusive,aura(102,92)})
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryMode,'race','nameplate-only aura excluded from normal exact lane')
+C_UnitAuras.IsAuraFilteredOutByInstanceID = originalNativeOracle
+
 -- Two auras in the same native lane use its reverse instance-ID order.
 setAuras('player',{aura(101,51),aura(104,42),aura(103,12)})
 R.ReconcileSecondaryPortrait(host,true,true)
@@ -94,11 +112,11 @@ eq(host._secondaryAuraSpellID,nil,'stale secondary identity cleared')
 setAuras('player',{aura(101,2),aura(102,'SECRET')})
 R.ReconcileSecondaryPortrait(host,true,true)
 eq(host._secondaryMode,'race','incomplete identity cannot present aura')
-setAuras('player',{aura(101,1),aura(102,2)})
+setAuras('player',{aura(101,1),aura(102,2),aura(999,3,110,10,true)})
 local orig=C_UnitAuras.IsAuraFilteredOutByInstanceID
 C_UnitAuras.IsAuraFilteredOutByInstanceID=function() return 'SECRET' end
 R.ReconcileSecondaryPortrait(host,true,true)
-eq(host._secondaryMode,'race','secret native filter rejects second')
+eq(host._secondaryMode,'race','secret semantic filter still rejects unproven runner-up')
 C_UnitAuras.IsAuraFilteredOutByInstanceID=orig
 -- No stale data on hostile or ineligible units.
 host._hostileUnit=true
@@ -108,6 +126,16 @@ host._hostileUnit=false
 R.ReconcileSecondaryPortrait(host,false,true)
 eq(host._secondaryMode,'hidden','disabled native host revokes badge')
 eq(host._secondaryAuraSpellID,nil,'revoked host clears identity')
+local scoped = makeHost()
+scoped.unit = 'targettarget'
+local result, why = R.GetReadableSecondaryAura(scoped)
+eq(result,nil,'ToT has no secondary election')
+eq(why,'unit-excluded','explicit ToT exclusion reason')
+scoped.unit = 'focustarget'
+result, why = R.GetReadableSecondaryAura(scoped)
+eq(result,nil,'ToF has no secondary election')
+eq(why,'unit-excluded','explicit ToF exclusion reason')
+
 -- Equal numeric levels in distinct native slots are not silently sorted.
 mid.level=280
 R.ReconcileSecondaryPortrait(host,true,true)

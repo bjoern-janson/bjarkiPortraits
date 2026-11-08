@@ -1,9 +1,26 @@
 # Secondary portrait: two aura priorities + race identity
 
-**Status:** P1 BADGE LAYERING REPAIRED IN TEST BUILD; P2 COMPLETE-READABLE TOP-TWO PROTOTYPE BUILT; UNIVERSAL SECURE RUNNER-UP REMAINS UNAVAILABLE  
+**Status:** P1 layering prototype plus exact-aura eligibility repair at v0.1.181; P2 supports bounded **readable friendly** top-two selection only; universally correct secure cross-tier runner-up remains unavailable  
 **Baseline:** `0.1.178-bottom-harmful-consolidation-test` (2026-11-08).  
 **Proposed next development milestone:** `0.1.179-secondary-portrait-prototype` (working name, not a release).  
 **Source of visual direction:** 2026-11-08 in-game player-frame comparison: a tiny Blizzard Shaman Totem-like circular ring at the top corner of the main portrait.
+
+## Follow-up 0.1.181: exact-tier evidence and ToT/ToF opt-out (2026-11-08)
+
+A second live report found the aura badge still falling back to race. Source inspection identified a **false-negative path**, not a proven singular live cause: 0.1.180 asks the native `IsAuraFilteredOutByInstanceID` oracle to approve every candidate, including an exact known helpful/harmful aura whose membership is already witnessed by a **completed indexed native polarity scan**. In restricted contexts the extra call may be unavailable even when the indexed record, current instance ID and applied spell ID are readable.
+
+`SecondaryPortrait.lua` now uses this narrowly permitted proof for **exact lanes only**:
+
+- The candidate has a readable current `auraInstanceID` and `spellId` from the completed `HELPFUL|INCLUDE_NAME_PLATE_ONLY` or `HARMFUL|INCLUDE_NAME_PLATE_ONLY` scan; it belongs to the configured exact tier's spell-ID set and is allowed by the current relation/owner rules.
+- For a tier whose filter includes `INCLUDE_NAME_PLATE_ONLY`, the candidate is already a member of the exact same native-inclusive polarity and needs **no second identity-filter lookup**.
+- For a plain `HELPFUL` or `HARMFUL` tier, the aura's `isNameplateOnly` must be **positively readable and false**. If the bit is unavailable, the addon still tries the native oracle; if neither can prove the result, it falls back to race. A positive nameplate-only bit explicitly **excludes** the candidate from that plain tier.
+- Semantic categories (Important, Crowd Control, Big Defensive, etc.), ambiguous same-level lanes, inaccessible reads and all unknown-state cases **still require native evidence** or fail closed. No guessed icon, fabricated duration, polling loop or duplicate 62-lane stack is introduced.
+
+The other user-requested adjustment is scope: **ToT and ToF no longer create, preview, reconcile or display any secondary badge**. Their original full priority main portraits remain unchanged. The secondary circle now belongs to Player, Target, Focus and the four regular party slots, **not PetFrame**.
+
+The new `tests/secondary-real-tiers.lua` exercises actual `Spells.lua`/`Priority.lua` memberships (Mark of the Wild vs Thorns) with the extra native oracle **absent**; other tests cover inclusive-filter correctness, restricted semantic fallbacks, and ToT/ToF exclusion. Testable locally does not establish complete Forever in-game behavior. The next live diagnostic is `/bp layout player` with two known active buffs and `/bp test` off; inspect `secondReason` before further assumptions.
+
+---
 
 ## Follow-up 0.1.180: upper-layer badge and guarded readable top two (2026-11-08)
 
@@ -35,8 +52,8 @@ Race artwork is **never drawn inside the main portrait** by bjarkiPortraits afte
 
 The primary must not be weakened, delayed or misranked to make the secondary appear.
 
-**Enabled units:** `player`, `target`, `focus`, `targettarget` (ToT), `focustarget` (ToF), `party1` through `party4` on the regular Blizzard party frames.  
-**Excluded:** local `pet` and party-pet frames for this feature. PetFrame **retains** its full single-portrait aura priority engine and pet-family artwork. Raid-style party/raid frames are likewise out of scope; do not hook arbitrary CompactUnitFrames.
+**Enabled units (current approved scope):** `player`, `target`, `focus`, `party1` through `party4` on the regular Blizzard party frames.  
+**Excluded:** `targettarget` (ToT), `focustarget` (ToF), local `pet` and party-pet frames for this feature. PetFrame **retains** its full single-portrait aura priority engine and pet-family artwork. Raid-style party/raid frames are likewise out of scope; do not hook arbitrary CompactUnitFrames.
 
 There should be no additional portrait-priority tier, no new spell-ID classification, no extra guessing about states, no global polling loop, no addon-config framework, and **no duplicate copy of every tier container for every host**.
 
@@ -123,8 +140,8 @@ For `player`, `target`, `focus`: add a noninteractive secondary rim and verified
 **P2 — True second-winner presentation**  
 Wire the shared, feasibility-proven election to both circles; ensure source identification, distinctness, priority correctness, same-tier ties and cleanup on expiration. **Exit:** native/readable cross-lane cases pass without guessing when access is restricted.
 
-**P3 — Compact and party-frame rollout**  
-Extend to ToT, ToF and the four normal party frames via existing host pool, with smaller artwork and independently measured anchors. PetFrame remains one portrait. **Exit:** combat-safe unit recycling, visibility, party swaps, Edit Mode, pet/vehicle handoff and frame-scale changes pass.
+**P3 — Regular party-frame rollout**  
+Extend to the four normal party frames via the existing host pool, with smaller artwork and independently measured anchors. **ToT and ToF are excluded by user choice for now**, along with PetFrame. **Exit:** combat-safe unit recycling, visibility, party swaps, Edit Mode, pet/vehicle handoff and frame-scale changes pass.
 
 **P4 — Live verification and release**  
 Use test mode and controlled in-game cases, not just Lua mocks. Once the primary is never regressed and two winners are credible across supported relations, enable the small badge by default. Update README/ARCHITECTURE/KNOWN_ISSUES and package. **Exit:** regression suite + live screenshots approved; document any client-imposed gaps.
