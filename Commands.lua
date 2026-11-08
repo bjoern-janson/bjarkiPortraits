@@ -195,7 +195,7 @@ SLASH_BJARKIPORTRAITS2 = "/bjarkiportraits"
 SlashCmdList.BJARKIPORTRAITS = function(message)
     local command, option, detail = (message or ""):lower():match("^%s*(%S*)%s*(%S*)%s*(%S*)")
     if command == "" or command == "help" then
-        R.Print("/bp or /bjarkiportraits test | on | off | player | pet | party1-4 | target | focus | tot | fot | swipe | decimals | secondary [on|off|debug [unit]] | native2 [on|off|status] | pets [status|on|off|debug [unit]] | geometry [unit] | layout [unit] | inspect [unit] | stance [player|target|focus|tot|tof] | debug | audit | reset")
+        R.Print("/bp or /bjarkiportraits test | on | off | player | pet | party1-4 | target | focus | tot | fot | swipe | decimals | secondary [on|off|debug [unit]] | pets [status|on|off|debug [unit]] | geometry [unit] | layout [unit] | inspect [unit] | stance [player|target|focus|tot|tof] | debug | audit | reset")
     elseif command == "test" then
         R.testMode = not R.testMode
         R.RefreshAll()
@@ -229,41 +229,6 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
         end
         R.Print("secondary circle " .. (R.db.secondaryPortrait ~= false and "on" or "off")
             .. " (real runner-up only with complete readable evidence; otherwise race/hidden; /bp test previews)")
-    elseif command == "native2" then
-        -- The native group ribbon is an experimental *engine-rendered*
-        -- target-NPC second; it is not the existing readable election.
-        if option == "" or option == "status" then
-            local host = R.hosts and R.hosts.target
-            R.Print("native2 version=" .. tostring(R.VERSION)
-                .. " enabled=" .. tostring(R.db.nativeSecondProbe == true)
-                .. " groups=" .. tostring(host and host._nativeSecondProbe
-                    and host._nativeSecondProbe.groups or 0)
-                .. " reason=" .. tostring(host and host._nativeSecondProbeReason or "host-absent"))
-            return
-        end
-        if option ~= "on" and option ~= "off" then
-            R.Print("usage: /bp native2 [on|off|status]"); return
-        end
-        local inCombat, combatKnown = R.SafeBool(InCombatLockdown)
-        if not combatKnown or inCombat then
-            R.Print("native2 setup requires out-of-combat"); return
-        end
-        local enable = option == "on"
-        R.db.nativeSecondProbe = enable
-        -- Group setup is a one-time, out-of-combat native frame operation.
-        -- Rebuild so a disabled experiment allocates *zero* native groups.
-        if R.DestroyAll and R.BuildAll then
-            if not R.DestroyAll() then
-                R.Print("native2 host restoration pending; retry after combat")
-                return
-            end
-            R.BuildAll()
-        end
-        local host = R.hosts and R.hosts.target
-        R.Print("native2 " .. (enable and "on" or "off")
-            .. " groups=" .. tostring(host and host._nativeSecondProbe
-                and host._nativeSecondProbe.groups or 0)
-            .. " reason=" .. tostring(host and host._nativeSecondProbeReason or "none"))
     elseif command == "swipe" then
         R.db.showSwipe = not R.db.showSwipe; R.ApplyPresentation(); R.Print("swipe " .. tostring(R.db.showSwipe))
     elseif command == "decimals" then
