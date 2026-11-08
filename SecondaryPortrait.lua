@@ -486,15 +486,16 @@ local function candidateRank(host, candidate, cache)
                     and host._hostileElectionReadable == true then
                     allowed = true
                 end
-                -- A positively displayed Ghost establishes first place on a
-                -- friendly unit. Its currently readable, explicit level-zero
-                -- HARMFUL status may be the second effect even if normal
-                -- secure harmful-ID permission is unavailable for self.
-                -- Identity and ordinary filter membership are still checked
-                -- independently below. No allowance for unknown debuffs.
+                -- A complete public aura scan can positively prove a
+                -- friendly harmful Boosted Rest instance even if the native
+                -- harmful exact filter is relation-gated on self/friendlies.
+                -- Rank that *observed* effect at its existing priority zero
+                -- when another higher aura becomes primary on combat entry.
+                -- Its plain HARMFUL membership is checked independently below;
+                -- this never admits unavailable/secret aura identities.
                 if not allowed and tier.key == "BoostedRest"
                     and candidate.helpful == false and host._hostileUnit == false
-                    and host._assistable == true and provenGhost(host) then
+                    and host._assistable == true then
                     allowed = true
                 end
                 if not allowed then
@@ -615,7 +616,10 @@ function R.GetReadableSecondaryAura(host)
         end
         npcHarmfulProjection = (host.unit == "target" or host.unit == "focus")
             and host._playerReadable == true and host._isPlayer == false
-            and host._exactHarmfulAllowed == true
+            -- Native generic harmful display is a valid NPC path when exact
+            -- relation permission is missing; verify its real slot below.
+            and (host._exactHarmfulAllowed == true
+                or host._smallHarmfulEnabled == true)
         if not npcHarmfulProjection and not host._hostileActive
             and not host._formStateActive then
             return nil, "hostile-primary-unverified"
