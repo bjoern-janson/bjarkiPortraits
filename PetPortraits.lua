@@ -281,6 +281,45 @@ local function foundationTexture(unit)
     return spellTexture(summon), "pet"
 end
 
+-- Reuse the same positive pet-classification engine for the secondary
+-- portrait's *family* foundation. Unlike the main pet fallback, this must
+-- NEVER fall back to generic Growl, guessed creature type, or a totem icon.
+-- A stable readable GUID accompanies the artwork so pooled target/focus
+-- tokens cannot retain a previous pet's family picture on reassignment.
+-- Visibility is owned separately by a native aura-presence gate.
+function R.ResolveObservedPetSecondaryArt(unit)
+    if unit ~= "target" and unit ~= "focus" then
+        return nil, nil, "unit-excluded"
+    end
+    if not R.db or not R.db.enabled or not R.db.petPortraits then
+        return nil, nil, "disabled"
+    end
+    local owner, own, name, id = classify(unit)
+    local texture
+    if owner == "HUNTER" then
+        texture = familyTexture(id)
+        -- For a confirmed local pet, an actual pet action icon is better
+        -- than inventing an unavailable family portrait, but cannot be
+        -- borrowed from an opposing player's different pet.
+        if not texture and own then texture = petActionTexture() end
+    elseif owner == "WARLOCK" then
+        texture = spellTexture(WARLOCK_NAMES[name] or WARLOCK_IDS[id])
+    else
+        return nil, nil, "not-recognized-hunter-warlock-pet"
+    end
+    if not R.CanAccess(texture)
+        or not ((type(texture) == "number" and texture > 0 and texture < math.huge)
+            or (type(texture) == "string" and texture ~= "")) then
+        return nil, nil, "family-art-unavailable"
+    end
+    local guid, readable = R.SafeString(UnitGUID, unit)
+    if not readable or not R.CanAccess(guid)
+        or type(guid) ~= "string" or guid == "" then
+        return nil, nil, "pet-guid-unreadable"
+    end
+    return texture, guid, "confirmed-pet-family"
+end
+
 local function createHostTexture(host)
     local texture = host.layer:CreateTexture(nil, "ARTWORK", nil, 1)
     -- Family/totem artwork must use the same rectangle and edge treatment as
