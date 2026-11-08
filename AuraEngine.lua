@@ -1129,75 +1129,8 @@ local function createTestFrame(host)
     return frame
 end
 
--- Race-face foundation on the existing portrait layer, above the native
--- texture and below every addon aura/status frame. The atlas's own texcoords
--- are authoritative; ApplyPortraitIconCrop must NOT overwrite atlas UVs.
--- This creates no new frame, native hook, mask or update timer.
-local function createRaceBaseline(host)
-    host._buildStage = "race-baseline"
-    local ok, texture = pcall(host.layer.CreateTexture, host.layer, nil, "OVERLAY", nil, 2)
-    if not ok or not R.CanAccess(texture) or not texture then return end
-    local positioned = pcall(R.ApplyPortraitImageLayout, texture, host)
-    local mask = host.imageMask or host.portraitMask
-    if not positioned or not mask or type(texture.AddMaskTexture) ~= "function"
-        or not pcall(texture.AddMaskTexture, texture, mask) then
-        pcall(texture.Hide, texture)
-        return
-    end
-    pcall(texture.Hide, texture)
-    host.racePortrait = texture
-end
-
-local function updateRaceBaseline(host, permitted)
-    local texture = host and host.racePortrait
-    if not texture then return end
-    local previouslyActive = host._raceBaselineActive == true
-    host._raceBaselineActive = false
-    local art, coordsOrReason, isAtlas
-    if permitted then
-        art, coordsOrReason, isAtlas = R.ResolveRaceBaselineAtlas(host.unit, true)
-    else
-        coordsOrReason = "ineligible"
-    end
-    host._raceBaselineReason = art and "ready" or coordsOrReason
-    if art then
-        local key=(isAtlas and "atlas:" or "texture:") .. art
-            .. (coordsOrReason and (":" .. table.concat(coordsOrReason, ",")) or "")
-        if previouslyActive and host._raceBaselineAtlas == key then
-            host._raceBaselineActive = true
-            return
-        end
-        if host._raceBaselineAtlas ~= key then
-            local ok, result
-            if isAtlas then
-                -- SetAtlas sets the atlas sub-rectangle: a subsequent
-                -- SetTexCoord(0,1,0,1) would incorrectly show the whole sheet.
-                ok, result = pcall(texture.SetAtlas, texture, art)
-            else
-                ok, result = pcall(texture.SetTexture, texture, art)
-                if ok and result ~= false then
-                    ok = pcall(texture.SetTexCoord, texture, unpack(coordsOrReason))
-                end
-            end
-            ok = ok and result ~= false
-            if not ok then
-                host._raceBaselineReason = "atlas-set-error"
-                pcall(texture.Hide, texture)
-                return
-            end
-            host._raceBaselineAtlas = key
-        end
-        local ok = pcall(texture.Show, texture)
-        if ok then
-            host._raceBaselineActive = true
-            return
-        end
-        host._raceBaselineReason = "show-error"
-    end
-    -- Recycled targets must never retain the old race portrait, including
-    -- during secret-unit, nonplayer, vehicle and missing-atlas transitions.
-    if previouslyActive then pcall(texture.Hide, texture) end
-end
+-- Secondary portrait/race fallback is isolated in SecondaryPortrait.lua.
+-- Main portrait falls back directly to Blizzard's native class/model artwork.
 
 local function hostStillCurrent(host)
     if not host or host._buildComplete ~= true or host._restorePending then return false end
@@ -1250,7 +1183,7 @@ function R.DestroyHost(unit)
     for _, owner in pairs(host._readableTierOwners or {}) do hideReadableExact(owner.frame) end
     host._readableTierOwners = {}
     if host.testFrame then host.testFrame:Hide() end
-    if host.racePortrait then host.racePortrait:Hide() end
+    if R.HideSecondaryPortrait then R.HideSecondaryPortrait(host, "host-destroy") end
     if host.readableHostileFrame then host.readableHostileFrame:Hide() end
     if host.readableBaselineFrame then host.readableBaselineFrame:Hide() end
     if host.readableHealingFrame then hideReadableExact(host.readableHealingFrame) end
@@ -1382,7 +1315,9 @@ local function buildHost(unit, host)
     anchor:SetFrameLevel(0)
     R.CreatePortraitImageMask(host)
     -- PetFrame uses verified family art as its fallback, never a player race.
-    if unit ~= "pet" then createRaceBaseline(host) end
+    if unit ~= "pet" and R.CreateSecondaryPortrait then
+        R.CreateSecondaryPortrait(host, parentStrata)
+    end
 
     for index, tier in ipairs(R.TIERS or {}) do
         host._buildStage = "native-slot:" .. tostring(tier.key)
@@ -1605,7 +1540,9 @@ function R.UpdateHost(host, forceContainerRefresh)
     host._hostilePlayer = hostilePlayer
     if playerReadable then host._isPlayer = isPlayer else host._isPlayer = nil end
     host._playerReadable = playerReadable
-    updateRaceBaseline(host, base and playerReadable and isPlayer)
+    if R.UpdateSecondaryPortrait then
+        R.UpdateSecondaryPortrait(host, base and playerReadable and isPlayer)
+    end
     if assistReadable then host._assistable = assistable else host._assistable = nil end
     host._assistReadable = assistReadable
 
@@ -1766,6 +1703,7 @@ local function showTest(host)
         pcall(host.testFrame.cooldown.SetCooldown, host.testFrame.cooldown, GetTime(), 10)
     end
     host.testFrame:Show()
+    if R.PreviewSecondaryPortrait then R.PreviewSecondaryPortrait(host) end
 end
 
 function R.Refresh(unit, forceContainerRefresh)
@@ -1925,6 +1863,7 @@ function R.GetLayoutDebug(unit)
         .. " assistReadable=" .. tostring(host._assistReadable)
         .. " assist=" .. tostring(host._assistable)
         .. " ghost=" .. tostring(host._ghostActive) .. ":" .. tostring(host._ghostSource or "none")
+        .. " secondary=" .. tostring(host._secondaryMode or "unavailable")
         .. " raceBaseline=" .. tostring(host._raceBaselineActive) .. ":"
         .. tostring(host._raceBaselineReason or "unavailable")
         .. " raceToken=" .. tostring(raceToken) .. " raceSex=" .. tostring(raceSex)

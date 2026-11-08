@@ -1,5 +1,8 @@
 # Known issues and bugs
 
+**Experimental 0.1.179 secondary prototype:** verified race artwork now uses a noninteractive small circle; the large portrait falls back to Blizzard class/model artwork. There is **no genuine second-highest aura** yet. The current Forever native aura-slot API lacks a supported global second-winner selection across tiers, and an inaccessible winner must not be guessed. `/bp test` displays synthetic art for visual calibration only. See [the design plan](docs/SECONDARY_PORTRAIT_PLAN.md). Main's 0.1.178 runtime is unaffected.
+
+
 **Current candidate: 0.1.178-bottom-harmful-consolidation-test (2026-11-08).** See [architecture section 35](ARCHITECTURE.md#35-pet-regular-party-frames-skyborne-safety-and-absolute-bottom-tier-0117301178-2026-11-07-to-2026-11-08) for the post-0.1.172 changes and [the planned secondary portrait](docs/SECONDARY_PORTRAIT_PLAN.md) for the next feature (not yet implemented). Prior sections retain historical caveats; no full live-client certification is claimed.
 
 **Open: Tracking "last applied" behavior.** Same-tier native election uses reversed aura instance IDs, which do not necessarily change on a buff refresh. The portrait can continue to show an older effect after reapplication. Find Treasure was deliberately moved to Gathering (priority 1); tracking/sensing stays at priority 3. No general Tracking application-time correction has yet been implemented.

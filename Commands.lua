@@ -155,7 +155,7 @@ SLASH_BJARKIPORTRAITS2 = "/bjarkiportraits"
 SlashCmdList.BJARKIPORTRAITS = function(message)
     local command, option, detail = (message or ""):lower():match("^%s*(%S*)%s*(%S*)%s*(%S*)")
     if command == "" or command == "help" then
-        R.Print("/bp or /bjarkiportraits test | on | off | player | pet | party1-4 | target | focus | tot | fot | swipe | decimals | pets [status|on|off|debug [unit]] | geometry [unit] | layout [unit] | inspect [unit] | stance [player|target|focus|tot|tof] | debug | audit | reset")
+        R.Print("/bp or /bjarkiportraits test | on | off | player | pet | party1-4 | target | focus | tot | fot | swipe | decimals | secondary [on|off] | pets [status|on|off|debug [unit]] | geometry [unit] | layout [unit] | inspect [unit] | stance [player|target|focus|tot|tof] | debug | audit | reset")
     elseif command == "test" then
         R.testMode = not R.testMode
         R.RefreshAll()
@@ -177,6 +177,15 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
         setToggle("targettarget", not R.db.targettarget); R.Print("targettarget " .. tostring(R.db.targettarget))
     elseif command == "fot" or command == "focustarget" then
         setToggle("focustarget", not R.db.focustarget); R.Print("focustarget " .. tostring(R.db.focustarget))
+    elseif command == "secondary" then
+        if option == "on" or option == "off" then
+            R.db.secondaryPortrait = option == "on"
+            R.RefreshAll()
+        elseif option ~= "" then
+            R.Print("usage: /bp secondary [on|off]"); return
+        end
+        R.Print("secondary race badge " .. (R.db.secondaryPortrait ~= false and "on" or "off")
+            .. " (second-aura election is not implemented; /bp test previews the circle)")
     elseif command == "swipe" then
         R.db.showSwipe = not R.db.showSwipe; R.ApplyPresentation(); R.Print("swipe " .. tostring(R.db.showSwipe))
     elseif command == "decimals" then

@@ -1,9 +1,21 @@
 # Secondary portrait: two aura priorities + race identity
 
-**Status:** APPROVED DESIGN / NOT IMPLEMENTED  
+**Status:** P0 NATIVE-FEASIBILITY SPIKE COMPLETED, P1 VISUAL PROTOTYPE BUILT ON EXPERIMENTAL BRANCH (LIVE VISUAL VERIFICATION PENDING), P2 GLOBAL SECOND-WINNER BLOCKED  
 **Baseline:** `0.1.178-bottom-harmful-consolidation-test` (2026-11-08).  
 **Proposed next development milestone:** `0.1.179-secondary-portrait-prototype` (working name, not a release).  
 **Source of visual direction:** 2026-11-08 in-game player-frame comparison: a tiny Blizzard Shaman Totem-like circular ring at the top corner of the main portrait.
+
+## Prototype progress: 0.1.179-secondary-race-prototype (2026-11-08)
+
+**P0 evidence / unresolved blocker.** Forever's [Blizzard_CustomAuraContainer.lua](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_AuraContainer/Blizzard_CustomAuraContainer.lua) accepts fixed `AddAuraSlot` sort enums, then chooses **one** winner using `AuraContainerUtil.GetAuraSortComparator`. The supported inbound options do **not** allow an arbitrary custom rank comparator or an exclusion based on the winner of another tier. [Blizzard_AuraContainerSlots.lua](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerSlots.lua) retains candidate sets and their winner in the secure environment—not a public, untrusted combat-data channel. We cannot honestly elect a cross-tier global second while preserving primary semantics by reading those private fields or cloning 62 containers per badge. This is a **documented missing public mechanism**, not evidence that every possible future client feature is impossible.
+
+**P1 prototype implementation.** `SecondaryPortrait.lua` creates a small, noninteractive, native Totem-style circular rim and mask on each eligible host except PetFrame. It mirrors toward the health bars and uses positively verified `ResolveRaceBaselineAtlas` identity. The large portrait no longer gets race-overlaid; when no aura wins, Blizzard’s native 3D/class-icon option is visible. The existing Skyborne fail-closed art rule is preserved. `/bp secondary on|off` enables/disables this circle; existing `/bp test` shows a deliberately **synthetic** secondary icon for screenshot calibration. The local pet keeps full primary aura priority and its pet-family foundation.
+
+**P2 is not implemented.** There is *no global runner-up election*, live second aura or secondary countdown in 0.1.179. In ordinary play, the small circle shows only verified race identity (or hides). Do not represent it as a full two-aura release. In-game screenshots for Player/Target/Focus/ToT/ToF/party, UI scale and overlaps are still required before P1 is visually certified. The next real task is finding/validating a **supported secure top-two mechanism**; a less-complete readability-limited selection mode would need an explicit product decision.
+
+**Regression:** `tests/secondary-portrait.lua` checks geometry, mirror, mask, native atlas UVs, teardown, recycled-unit clearing, toggle, test-only art and PetFrame exclusion. CI runs Lua 5.1 and 5.4 including the new script.
+
+---
 
 ## 1. Product decision and scope
 
@@ -129,4 +141,4 @@ Use test mode and controlled in-game cases, not just Lua mocks. Once the primary
 - Exact compact badge rim/icon pixels and countdown placement require real screenshots; the Shaman border atlas is a visual starting point, not a mandated widget.
 - On a target that is not positively a player, secondary fallback remains hidden rather than inventing a generic race or creature icon.
 
-**Scope control:** this document records the agreed feature direction and technical acceptance tests. **No secondary badge or two-winner algorithm is implemented in 0.1.178.** Do not silently change numeric priorities or rewrite the current native aura-election behavior while implementing visual scaffolding.
+**Scope control:** this document records the agreed feature direction and technical acceptance tests. **0.1.178 has neither. Experimental 0.1.179 implements the race-only/test badge, but NOT the two-winner algorithm.** Do not silently change numeric priorities or rewrite the current native aura-election behavior while implementing visual scaffolding.

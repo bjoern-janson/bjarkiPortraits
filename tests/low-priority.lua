@@ -156,6 +156,6 @@ check(engineSource:find('updateReadableHarmfulTier(host, base, "BoostedRest"', 1
     "bottom harmful readable owner follows priority zero")
 check(engineSource:find('local function updateReadableHarmfulTier(host, baseEnabled, tierKey', 1, true) ~= nil,
     "reuses the pre-existing guarded harmful helper")
-check(engineSource:find('createRaceBaseline(host)', 1, true) ~= nil,
-    "native portrait race foundation remains the fallback")
+check(engineSource:find('R.CreateSecondaryPortrait(host, parentStrata)', 1, true) ~= nil,
+    "race art now uses secondary circle, never a main overlay")
 print("bjarkiPortraits low-priority tiers: " .. checks .. " assertions passed")
