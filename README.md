@@ -2,11 +2,51 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.198-viewpoint-bottom-test` (2026-11-08), built on 0.1.178. No slash commands are needed. The native runner-up ribbon initializes automatically on a hostile Target (NPC **or player**) out of combat, while keeping the existing readable secondary and race fallback for other units. Native rendering of enemy-player effects remains an in-game test.
+**Experimental branch:** `0.1.199-player-native-fallback-test` (2026-11-08), built on 0.1.178. No in-game commands are needed. PlayerFrame now prepares the native runner-up out of combat and uses it only when an incoming debuff makes the normal second-place election fall back to race. Hostile Targets retain the previously working native experiment; other unit frames are unchanged. Live PlayerFrame rendering still requires verification.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the twelve `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.199 — prevent PlayerFrame race fallback when a debuff arrives
+
+**Observed:** A live PlayerFrame has a ~1.5-second blue harmful effect in
+the large portrait and longer-lived auras in the normal buff/debuff row,
+but the small circle falls back to race. This reproduces the same
+public-data problem previously identified on hostile NPCs:
+`SecondaryPortrait.GetReadableSecondaryAura` needs a complete current
+index scan across both polarities. On a new harmful `UNIT_AURA` update,
+the existing last-positive retention is correctly invalidated; if the
+current list or filter is inaccessible, no second candidate can be
+verified by ordinary Lua.
+
+**Guarded native fallback:** Reuse the secure `NativeSecondProbe`
+mechanism already tested for hostile Targets. PlayerFrame prepares
+one native group strip on its first eligible **out-of-combat** update,
+before incoming combat debuffs can restrict public aura reads.
+Its fixed second-cell viewport sits at the **outer top-left** of the
+Player portrait (same +5 pixel accepted offset). It remains hidden
+as long as the existing readable second-aura or form election succeeds.
+Only when the public reader falls back to a positively verified
+**race** baseline may native rendering cover it with the second
+engine-ordered aura. The race remains underneath when no second native
+button exists.
+
+**Guards:** The new fallback is *player-only*, requires positively
+confirmed player/friendly identity and actual enabled frame,
+and does not override independently presented Ghost or form/stance
+states. Target hostile native rendering remains unchanged; Focus,
+Party, Pet, ToT/ToF remain on prior systems. No primary-portrait,
+priority, spell, art size, or timer formatting change.
+
+**Tests:** `tests/native-second-probe.lua` exercises automatic
+PlayerFrame prewarming, mirrored placement, transition from a
+verified readable second to race during a secret combat debuff
+update, recovery to the public second, static-state suppression,
+combat-construction deferral and pooled frame cleanup. Native
+secure button layout remains an **in-game verification boundary**:
+these mocks do not claim to reproduce the secret live layout.
+No new commands or settings are required.
 
 ## 0.1.198 — Far Sight family moved to absolute bottom
 
