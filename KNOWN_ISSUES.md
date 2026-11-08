@@ -1,3 +1,19 @@
+## 2026-11-08 — 0.1.196 no-command native2 handoff
+
+The native aura-group ribbon now initializes automatically on the first
+positively identified hostile NPC selected as Target **outside combat**.
+No `/bp native2` command is needed or accepted. This prevents the native
+group constructor's batch preallocation on ordinary login and friendly
+targeting. If first encountered in combat, automatic construction waits
+until the next normal out-of-combat host refresh, without polling.
+
+Existing prior `nativeSecondProbe=false` saved settings are ignored;
+the global enabled and normal `secondaryPortrait` settings remain
+authoritative. Optional `/bp secondary debug target` remains available
+for troubleshooting, not routine testing. There is still **no live
+confirmation** of the native second-cell clipping or semantic overlap
+correctness; this change concerns setup and initialization only.
+
 ## 2026-11-08: secure-group native2 prototype (0.1.195, live test pending)
 
 The 0.1.194 Kobold debuff-only failure was confirmed as
