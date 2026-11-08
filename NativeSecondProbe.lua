@@ -9,8 +9,9 @@ local R = assert(BP.Runtime, "Core.lua must load first")
 -- SECOND globally ordered button occupies the small portrait's position.
 -- No addon Lua value is read from a secure aura button or aura group.
 --
--- This deliberately remains opt-in while live rendering, semantic overlap
--- and engine layout on WoW: Forever are tested. It is NOT a replacement for
+-- It activates automatically on the first eligible hostile-NPC target while
+-- out of combat. No slash command or persistent toggle is required. Unverified
+-- native layout/semantic overlap remain experimental; this does not replace
 -- the primary native tier stack or the readable secondary election.
 
 local CELL = 37
@@ -156,7 +157,8 @@ end
 
 function R.CreateNativeSecondProbe(host)
     if not host or host.unit ~= "target" or not host.portrait
-        or not R.db or R.db.nativeSecondProbe ~= true then return false end
+        or not R.db or R.db.enabled ~= true or R.db.secondaryPortrait == false
+    then return false end
 
     local plans = groupPlans()
     if not plans then
@@ -243,17 +245,33 @@ function R.CreateNativeSecondProbe(host)
 end
 
 function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPlayer)
-    if not host or not host._nativeSecondProbe then return end
-    local probe = host._nativeSecondProbe
-    if not probe.ready or not probe.clip then return end
-    -- This experiment is intentionally limited to a confirmed hostile NPC
-    -- on Target. Never show on friendly targets or hostile players.
-    local allow = R.db and R.db.nativeSecondProbe == true
+    if not host or host.unit ~= "target" then return end
+
+    -- No commands or persistent experimental toggle. The normal secondary
+    -- preference still applies; only proven hostile non-player Targets qualify.
+    local allow = R.db and R.db.enabled == true
+        and R.db.secondaryPortrait ~= false
         and enabled == true and hostile == true
         and playerReadable == true and isPlayer == false
+
+    if allow and not host._nativeSecondProbe then
+        -- Native AddAuraGroup preallocates ten buttons for every group. Defer
+        -- that one-time cost until the first relevant NPC is selected rather
+        -- than allocating ~600 aura buttons at login for an unused experiment.
+        -- Structural setup is never attempted during combat.
+        local combat, readable = R.SafeBool(InCombatLockdown)
+        if not readable or combat then
+            host._nativeSecondProbeReason = "setup-deferred-until-out-of-combat"
+            return
+        end
+        if not R.CreateNativeSecondProbe(host) then return end
+    end
+
+    local probe = host._nativeSecondProbe
+    if not probe or not probe.ready or not probe.clip then return end
     if allow then
-        -- Prevent the old readable badge and new native second from drawing
-        -- over each other. A hostile NPC has no race fallback to lose.
+        -- The old reader remains the fallback on non-NPC targets. On a
+        -- confirmed NPC, only the native second circle is shown.
         if host.secondaryBadge then pcall(host.secondaryBadge.Hide, host.secondaryBadge) end
         if not pcall(probe.clip.Show, probe.clip) then
             host._nativeSecondProbeReason = "clip-show-failed"
