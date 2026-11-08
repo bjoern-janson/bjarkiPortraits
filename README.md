@@ -2,11 +2,37 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.197-hostile-player-native-test` (2026-11-08), built on 0.1.178. No slash commands are needed. The native runner-up ribbon initializes automatically on a hostile Target (NPC **or player**) out of combat, while keeping the existing readable secondary and race fallback for other units. Native rendering of enemy-player effects remains an in-game test.
+**Experimental branch:** `0.1.198-viewpoint-bottom-test` (2026-11-08), built on 0.1.178. No slash commands are needed. The native runner-up ribbon initializes automatically on a hostile Target (NPC **or player**) out of combat, while keeping the existing readable secondary and race fallback for other units. Native rendering of enemy-player effects remains an in-game test.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the twelve `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.198 — Far Sight family moved to absolute bottom
+
+A live Farsen's Far Sight quest screenshot showed a viewpoint channel
+(“Cannot move while using Farsen's Gift”) on the main portrait. Move
+the *applied caster aura* (spell 1293681) to the existing exact
+`BottomHelpful` tier, priority **0**. Also demote the three class
+viewpoint channels from `Tracking` (priority 3) to the same bottom
+helpful tier: Shaman Far Sight **6196**, Hunter Eagle Eye **6197**, and
+Warlock Eye of Kilrogg **126**.
+
+The existing helpful bottom lane and all numeric levels remain
+unchanged; this only changes four explicit ID memberships in
+`Spells.lua`. No other tracking/sensing effects (including Mind
+Vision and Sentry Totem) are moved. Every affected spell remains
+excluded from the native broad `Important` and hostile-helpful
+fallbacks, so it cannot be promoted above combat buffs. There are
+no duplicate exact-tier owners, and the native secondary group
+generator uses the same updated priority table.
+
+Regression tests verify IDs, level 0, helpful polarity, tracking
+exclusion, native filters, exact-tier disjointness, and that the
+preexisting Gathering/Tracking priorities are unchanged.
+No in-game commands or new settings are needed. Live verification
+of a particular quest's aura instance still depends on readable
+client data and native filter availability.
 
 ## 0.1.197 — native second for opposite-faction players
 
@@ -227,7 +253,7 @@ Native unit-frame chrome and spell icons remain the visual foundation. **The mai
 
 ## Current priority examples
 
-- **Priority 0, absolute bottom:** Shiny Silver Coin (applied **helpful** aura 1321323, +30 Fishing for 30 minutes) in `BottomHelpful`; Boosted Rest (1229451), Tricked or Treated (24755) and both harmful Tamed effects (19685/19686) remain in `BoostedRest`. The helpful/harmful native filters require **two slots at the same numeric priority**, not another priority tier.
+- **Priority 0, absolute bottom:** Shiny Silver Coin (1321323) and viewpoint-only helpful effects Farsen's Far Sight (1293681), Shaman Far Sight (6196), Hunter Eagle Eye (6197), and Warlock Eye of Kilrogg (126) in `BottomHelpful`; Boosted Rest (1229451), Tricked or Treated (24755) and both harmful Tamed effects (19685/19686) remain in `BoostedRest`. Helpful/harmful retain their existing separate native slots at identical numeric priority.
 - **Gathering 1:** Find Herbs, Find Minerals, Find Treasure. **Tracking 3:** sensing buffs, Sapta Sight, Hunting Kobolds. **Campfire Nearby 4** and **Violet Flames 5**.
 - **Seal 210** includes Poised; **Offensive 280** includes Rushing Charge and Savagery; harmful **Control 310** includes Polymorph, while helpful **ControlHelpful 310** covers Frog Form.
 
