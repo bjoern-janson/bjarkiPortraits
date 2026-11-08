@@ -85,6 +85,36 @@ eq(h._secondaryMode,'aura','NPC badge displays a real secondary debuff')
 eq(h._secondaryAuraSpellID,772,'NPC secondary texture is correct')
 eq(h.secondaryBadge.shown,true,'NPC badge is visible without race fallback')
 eq(h.secondaryCooldown.duration,11,'NPC second uses native aura duration')
+-- The hostile helpful-only helper is NOT the authority on a harmful NPC.
+-- Its winner may be indeterminate even though this reader can independently
+-- prove the complete public helpful+harmful union and harmful first place.
+h=host()
+h._hostileAuraListComplete=false
+h._hostileElectionReadable=false
+selected,reason=R.GetReadableSecondaryAura(h)
+eq(reason,'npc-readable-harmful-projection','NPC can use its own complete union instead of helper result')
+eq(selected and selected.spellID,772,'NPC second is still Rend under incomplete helper')
+-- An unreadable IsEnabled is not evidence that an addon-owned container was
+-- disabled. The successfully applied setter state is a bounded witness.
+h=host()
+local slowIndex
+for i,tier in ipairs(R.TIERS) do
+    if tier.key=='Slows' then slowIndex=i; break end
+end
+assert(slowIndex)
+h.containers[slowIndex].IsEnabled=function() return 'SECRET' end
+h.containers[slowIndex]._bjarkiAppliedShown=true
+selected,reason=R.GetReadableSecondaryAura(h)
+eq(reason,'npc-readable-harmful-projection','last successful native enable proves exact NPC slot')
+eq(selected and selected.spellID,772,'native fallback still uses complete public occurrence')
+h.containers[slowIndex]._bjarkiAppliedShown=false
+selected,reason=R.GetReadableSecondaryAura(h)
+eq(reason,'npc-native-slot-unreadable','known disabled native slot is refused')
+h.containers[slowIndex]._bjarkiAppliedShown=nil
+selected,reason=R.GetReadableSecondaryAura(h)
+eq(reason,'npc-native-slot-unreadable','unknown native state without prior success fails closed')
+h=host()
+
 -- A pair within one exact tier uses the native reverse aura-instance order.
 contents.harmful={aura(772,34),aura(6546,21)}
 selected,reason=R.GetReadableSecondaryAura(h)
