@@ -120,13 +120,26 @@ eq(keys.SmallFriendlyHarmful.options.candidateFilters.isPriorityAura,
 
 R.UpdateNativeSecondProbe(host,true,true,true,false)
 eq(p.clip.shown,true,"verified NPC probe is shown")
-eq(host.secondaryBadge.shown,false,"legacy badge hidden under native ribbon")
+eq(host.secondaryBadge.shown,false,"legacy NPC badge hidden under native ribbon")
+-- Opposite-faction players previously showed only race even with two
+-- visible auras, since the secure native ribbon excluded ALL players.
+-- The native second can now cover a verified race baseline without Lua
+-- reading the hostile player's protected aura identities.
+host.secondaryBadge:Show()
 R.UpdateNativeSecondProbe(host,true,true,true,true)
-eq(p.clip.shown,false,"hostile player excluded")
+eq(p.clip.shown,true,"opposite-faction player receives native runner-up")
+eq(host.secondaryBadge.shown,true,"hostile player's race underlay remains available")
+eq(p.container.unit,"target","hostile player uses same native target token")
+R.UpdateNativeSecondProbe(host,true,true,false,true)
+eq(p.clip.shown,false,"hostile player with unreadable identity excluded")
+R.UpdateNativeSecondProbe(host,true,true,true,nil)
+eq(p.clip.shown,false,"unknown player-versus-NPC distinction excluded")
+R.UpdateNativeSecondProbe(host,true,false,true,true)
+eq(p.clip.shown,false,"friendly player excluded")
 R.UpdateNativeSecondProbe(host,true,false,true,false)
-eq(p.clip.shown,false,"friendly unit excluded")
-R.UpdateNativeSecondProbe(host,false,true,true,false)
-eq(p.clip.shown,false,"inactive host excluded")
+eq(p.clip.shown,false,"friendly NPC excluded")
+R.UpdateNativeSecondProbe(host,false,true,true,true)
+eq(p.clip.shown,false,"inactive hostile player excluded")
 
 R.ReleaseNativeSecondProbe(host)
 eq(host._nativeSecondProbe,nil,"host releases native probe ownership")
@@ -134,8 +147,8 @@ eq(p.container.unit,nil,"pooled native group no longer binds prior target")
 local other={unit="target",portrait=frame("portrait"),
     secondaryBadge=frame("badge")}
 other.secondaryBadge.level=60
-R.UpdateNativeSecondProbe(other,true,true,true,false)
-eq(other._nativeSecondProbe,p,"next eligible target automatically reuses pooled probe")
+R.UpdateNativeSecondProbe(other,true,true,true,true)
+eq(other._nativeSecondProbe,p,"next hostile player automatically reuses pooled probe")
 eq(other._nativeSecondProbe.ready,true,"reused native strip is ready")
 eq(p.clip.points[2],other.portrait,"reused probe anchors to current portrait")
 R.ReleaseNativeSecondProbe(other)
@@ -151,6 +164,6 @@ R.db.secondaryPortrait=true
 local focus={unit="focus",portrait=frame("portrait"),
     secondaryBadge=frame("badge")}
 eq(R.CreateNativeSecondProbe(focus),false,"experimental scope is target-only")
-R.UpdateNativeSecondProbe(focus,true,true,true,false)
+R.UpdateNativeSecondProbe(focus,true,true,true,true)
 eq(focus._nativeSecondProbe,nil,"focus receives no native target ribbon")
 print("native runner-up ribbon: "..checks.." inbound/safety checks passed")
