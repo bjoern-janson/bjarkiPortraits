@@ -54,6 +54,12 @@ local infoIDs = {
     [19685] = "Tame Nightsaber Stalker",
     [19686] = "Tame Strigid Screecher",
 }
+local bottomSightIDs = {
+    [1293681] = "Farsen's Far Sight",
+    [6196] = "Shaman Far Sight",
+    [6197] = "Hunter Eagle Eye",
+    [126] = "Warlock Eye of Kilrogg",
+}
 local sensingIDs = {
     [5225] = "Track Humanoids (Druid)",
     [19883] = "Track Humanoids",
@@ -68,9 +74,6 @@ local sensingIDs = {
     [1494] = "Track Beasts",
     [43308] = "Find Fish",
     [132] = "Detect Invisibility",
-    [126] = "Eye of Kilrogg",
-    [6196] = "Far Sight",
-    [6197] = "Eagle Eye",
     [1462] = "Beast Lore",
 }
 
@@ -91,6 +94,18 @@ for id, name in pairs(infoIDs) do
     check(R.NONCOMBAT_EXCLUDED_HARMFUL[id] == true,
         name .. " cannot be promoted by generic harmful fallback")
 end
+for id, name in pairs(bottomSightIDs) do
+    check(C.buffs_bottom[id] == true, name .. " bottom helpful source category")
+    check(bottomHelpful.level == 0, name .. " absolute bottom numeric tier")
+    check(bottomHelpful.filter == "HELPFUL", name .. " polarity stays helpful")
+    check(bottomHelpful.spellIDs[id] == true, name .. " native bottom candidate")
+    check(C.buffs_tracking[id] == nil, name .. " demoted out of tracking")
+    check(tracking.spellIDs[id] == nil, name .. " no tracking overlap")
+    check(R.HELPFUL_TIER_BY_SPELL[id] == bottomHelpful,
+        name .. " indexed tier follows bottom helpful")
+    check(R.NONCOMBAT_EXCLUDED_HELPFUL[id] == true,
+        name .. " no generic helpful promotion")
+end
 for id, name in pairs(sensingIDs) do
     check(C.buffs_tracking[id] == true, name .. " tracking category")
     check(tracking.spellIDs[id] == true, name .. " tracking display")
@@ -108,6 +123,11 @@ for _, tier in ipairs(R.TIERS) do
         for id in pairs(infoIDs) do
             check(not tier.spellIDs[id], "info debuffs not duplicated in " .. tier.key)
         end
+        if tier ~= bottomHelpful then
+            for id in pairs(bottomSightIDs) do
+                check(not tier.spellIDs[id], "bottom sight not duplicated in " .. tier.key)
+            end
+        end
         for id in pairs(sensingIDs) do
             check(not tier.spellIDs[id], "tracking not duplicated in " .. tier.key)
         end
@@ -124,6 +144,15 @@ for id in pairs(gatheringIDs) do
     check(filter("Important").excludeSpellIDs[id] == true,
         "IMPORTANT does not promote gathering")
 end
+for id in pairs(bottomSightIDs) do
+    check(filter("BottomHelpful").includeSpellIDs[id] == true,
+        "secure native bottom helpful candidate")
+    for _, tier in ipairs({"Important", "HostileHelpful", "BigDef", "ExternalDef"}) do
+        check(filter(tier).excludeSpellIDs[id] == true,
+            "generic " .. tier .. " cannot promote low-priority viewpoint status")
+    end
+end
+check(R.TIER_AUDIT.overlapCount == 0, "no exact-tier overlaps after viewpoint demotion")
 for id in pairs(sensingIDs) do
     check(filter("Tracking").includeSpellIDs[id] == true, "secure tracking filter")
     check(filter("HostileHelpful").excludeSpellIDs[id] == true,
