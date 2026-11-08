@@ -1,3 +1,45 @@
+## 2026-11-08: confirmed NPC public-aura denial in 0.1.194
+
+**Live paired observations:** A hostile Kobold with two debuff icons and a
+working main portrait has no secondary circle; another hostile NPC with
+a helpful buff *does* display a small secondary icon. The first target's
+read-only `/bp secondary debug target` reports:
+
+```
+mode=hidden id=none tier=none reason=inaccessible-index
+hostile=true player=false playerReadable=true assist=false
+hList=false hCount=0 nativeHarm=true writes=0
+auraEvent=changed-or-unreadable
+lastDrop reason=not-two-presentable prior=19740
+```
+
+The **current** failure is `inaccessible-index` from
+`SecondaryPortrait.collectCurrentAuras`: `GetAuraDataByIndex` either
+throws or returns a value that fails `R.CanAccess` on one of the
+inclusive HELPFUL/HARMFUL scans. The helper's `hList=false` with
+`hCount=0` is consistent with inability to complete its helpful scan,
+but the current diagnostics do **not** identify precisely which filter
+and index denied access in the secondary reader. `nativeHarm=true`
+and `writes=0` rule out the previously suspected broad exact-harmful
+gate and native-write failure *on this pass*. The `lastDrop` row is
+historical: spell 19740 (Blessing of Might) describes the previous
+candidate, not a current proof for the Kobold.
+
+The successful buff-bearing NPC case demonstrates that the secondary
+presentation itself works under at least some readable hostile states;
+it does not establish that a helpful buff *causes* read permission
+(the units/combat/secret state may differ).
+
+**Policy:** Do not interpret visible Blizzard debuff icons as Lua-readable
+identity. Native `AuraContainer` can display a secret winner internally
+while addon code cannot enumerate a complete globally ranked list.
+The priority-preserving, public-evidence-only secondary reader must
+continue to hide the NPC secondary if it cannot establish two distinct
+current candidates. No further gate relaxation or cache-based fabricated
+runner-up is authorized by this screenshot. Revisit only with an
+established secure, native top-two presentation primitive or new
+per-filter live evidence; keep 0.1.194 as current build for now.
+
 ## 2026-11-08: 0.1.194 hostile NPC has native debuffs but no secondary
 
 Kobold Tunneler Target at level 6 shows two native debuff icons and one
