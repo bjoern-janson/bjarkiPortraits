@@ -2,11 +2,62 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.194-npc-public-election-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
+**Experimental branch:** `0.1.195-native-second-probe-test` (2026-11-08), built on 0.1.178. The original readable secondary remains the default; a separate **opt-in, Target-NPC-only native group strip** now tests displaying a second aura entirely inside Blizzard's protected renderer. This is an unproven live-client prototype, not a certified global two-winner implementation.
 
 ## Install
 
-Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the eleven `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the twelve `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.195 — experimental secure-native second-place ribbon
+
+**Reason for the experiment:** A real Kobold with two debuff icons and a
+working primary portrait returned `reason=inaccessible-index` with
+`hostile=true player=false playerReadable=true nativeHarm=true writes=0`.
+The addon is blocked before any Lua top-two ranking: Blizzard's native
+portrait can process the auras, while `C_UnitAuras.GetAuraDataByIndex`
+is unreadable. More public-reader permission relaxations would be
+irrelevant to that failure.
+
+**New mechanism (opt-in):** One separate `CustomAuraContainer` on Target
+contains native `AddAuraGroup` groups ordered by the existing
+`R.TIERS` priority levels (`layoutIndex`), each with
+`maxFrameCount=2` and the *same native filters and sorting*. The
+native engine lays out its buttons in that order. A fixed 37-pixel
+noninteractive clip window hides the first cell and permits the second
+cell to display its own 22-pixel masked icon, native countdown, and
+Totem-style 30-pixel border. No protected button state, aura ID, or
+secret container width is read by addon Lua. This is a **visual
+projection** of a native-ordered strip, not a secret-data extractor.
+
+To test **outside combat**, run `/bp native2 on`, then target a hostile
+Kobold carrying two debuffs. Run `/bp native2 status` to check
+construction; the native ribbon should show the runner-up in the
+outer top-right circle. `/bp native2 off` restores the previous
+public-secondary behavior by rebuilding hosts outside combat.
+
+- **Only Target hostile NPCs** can display the prototype. No player,
+  party, pet, Focus or ToT/ToF behavior changes. Off by default.
+- It adds no priority tiers or spell categories. Known exact IDs are
+  made disjoint across exact groups; both generic fallbacks explicitly
+  exclude known exact IDs, and the harmful generic also excludes
+  priority debuffs to reduce double-presentation.
+- **Outstanding feasibility tests:** Native group flow across 63
+  separate priorities, correct fixed-window clipping, same-lane second
+  aura, potential semantic-filter overlap/deduplication, protected
+  frame visibility during combat, and construction performance.
+  Static Ghost/form winners are not represented in this NPC-only probe.
+- This opt-in proof is **not** yet a production replacement for
+  `SecondaryPortrait.lua`. The native primary remains fully intact,
+  and disabling the probe frees the added view without changing priorities.
+
+Source evidence: Forever
+[CustomAuraContainer](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_AuraContainer/Blizzard_CustomAuraContainer.lua)
+exposes `AddAuraGroup` with `layoutIndex`, `maxFrameCount`, and
+native sorted flow; [AuraContainerGroups](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerGroups.lua)
+assigns the group's first N current aura frames under secure ownership.
+The Lua inbound-shape regression
+`tests/native-second-probe.lua` verifies the proposed wiring, **not**
+the live secure frame layout or actual second-place identity.
 
 ## 0.1.194: harmful NPC election from current public evidence
 
