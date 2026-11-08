@@ -2,11 +2,43 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.193-combat-continuity-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
+**Experimental branch:** `0.1.194-npc-public-election-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the eleven `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.194: harmful NPC election from current public evidence
+
+A live Kobold Tunneler Target screenshot again showed two Blizzard debuff
+icons and a main portrait aura, but no secondary circle. Those native
+pixels do not prove that both aura identities are available to addon Lua.
+
+Two independent source gates were unnecessarily stronger than the
+secondary reader's existing evidence requirements:
+
+1. Hostile NPCs previously needed the **separate HELPFUL-only helper**
+   to finish and elect its own helpful winner *before* the secondary
+   reader attempted its own full helpful-and-harmful snapshot. That
+   helper can be inconclusive even when a complete current union
+   proves a **harmful primary** above the helpful effects. Positively
+   identified non-player Target/Focus NPCs can now run that independent
+   full read directly. Hostile players still require the stricter
+   independently verified first-place presenter.
+2. The final main harmful native slot check required a directly
+   readable `IsEnabled()`. When that native getter is protected,
+   the addon can now use its own `_bjarkiAppliedShown == true`,
+   recorded only after successful native `SetEnabled` **and**
+   `SetShown` calls. A known false or missing previous state still
+   fails closed, and the current candidate's exact public identity,
+   filter, rank and native container must all independently match.
+
+The real-tier hostile NPC regression verifies both routes and their
+negative controls on Lua 5.1 and 5.4. This does **not** reveal secure
+native winner identities or bypass an unreadable current aura list.
+If this client hides the harmful identities, the NPC secondary stays
+hidden. To diagnose the actual remaining gate, target the NPC and run
+`/bp secondary debug target` in its current visible state.
 
 ## 0.1.193: combat continuity and last-drop diagnostics
 
