@@ -1582,7 +1582,12 @@ PT.categories = {
         [2580] = true, -- Find Minerals Rank 1
         [8388] = true, -- Find Minerals Rank 2
         [2481] = true, -- Find Treasure
-        [19686] = true, -- Tame Strigid Screecher (Tamed; 15-minute quest charm)
+    },
+    -- Quest taming auras are harmful on the charmed creature. They share
+    -- the absolute bottom level 0 with Boosted Rest and Tricked or Treated.
+    debuffs_pet_taming = {
+        [19685] = true, -- Tame Nightsaber Stalker (Tamed)
+        [19686] = true, -- Tame Strigid Screecher (Tamed)
     },
     debuffs_tracking = {
 
@@ -1641,8 +1646,8 @@ PT.categories = {
         [1280341] = true, -- Uncommon Fishing: Fishing Rack loot bonus
         [1249521] = true, -- Profession-only Well Fed: Fishing Skill
     },
-    -- Low-priority informational debuff, still excluded from broad harmful
-    -- fallbacks that would otherwise promote it above actual combat effects.
+    -- Bottom-priority informational debuff (level 0), still excluded from
+    -- broad harmful fallbacks that could promote it above combat effects.
     debuffs_noncombat = {
         [24755] = true, -- Tricked or Treated: Halloween interaction cooldown
     },
@@ -1725,8 +1730,9 @@ PT.categories = {
         [1259688] = true, -- Elemental Blessing (Skysight, 30 sec)
         [1270893] = true, -- Elemental Blessing (Skysight, 15 min)
     },
-    -- Visible only in the lowest informational harmful tier, above gathering;
-    -- still excluded from unclassified harmful fallback promotion.
+    -- Absolute lowest aura tier (0), now shared with Tricked or Treated
+    -- and quest Tamed effects. Generic harmful fallbacks still exclude
+    -- these spell IDs to prevent accidental priority promotion.
     debuffs_boosted_rest = {
         [1229451] = true, -- Boosted Rest (Forever camp rest eligibility)
     },

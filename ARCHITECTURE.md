@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-**Current source (2026-11-07): `0.1.172-frog-form-control-test`.** The launch changes since 0.1.163 are documented in [section 34](#34-launch-follow-up-01164-through-01172-2026-11-05-to-2026-11-07). Historical notes below describe earlier experiments and must not override the current `Priority.lua` / `Spells.lua` definitions.
+**Current source (2026-11-08): `0.1.178-bottom-harmful-consolidation-test`.** Section 34 documents the previous launch state through 0.1.172, while **section 35** supersedes it for 0.1.173–0.1.178. The proposed, not-yet-implemented secondary portrait is specified separately in [docs/SECONDARY_PORTRAIT_PLAN.md](docs/SECONDARY_PORTRAIT_PLAN.md). Current `Spells.lua` / `Priority.lua` remain authoritative over historical tier examples.
 
 **Ten-second decimals (2026-10-31):** `0.1.159-ten-second-decimals-test` displays one decimal strictly below ten seconds with `/bp decimals` enabled, whole seconds rounded down from ten through sixty, and the existing hidden countdown above `60.000001`. The compatibility threshold is ten seconds; decimals off remains unchanged. This supersedes the five-second timer policy in section 27. `tests/decimal-threshold.lua` covers 5.0, 9.9/10/10.1, both fallback cases, and the existing hiding boundary.
 
@@ -20,7 +20,7 @@
 
 **v16 suite update (2026-10-22):** this addon receives release-version metadata only. Its behavior is byte-identical to v15 apart from that version string. The three timing repairs are in bjarkiCC Model/Observer. The full v16 suite passes 49 regression scripts and 28 runtime syntax checks on both Lua 5.1 and Lua 5.4; live-client findings below retain their existing status. The behavior described in architecture section 25 remains applicable.
 
-This document tracks **bjarkiPortraits 0.1.172-frog-form-control-test** (2026-11-07). Sections 1–33 retain historical design and verification notes; **section 34 summarizes the latest launch observations and priorities**. Section 29 corrects the unsolicited priority changes and the Will of the Forsaken aura assumption. Current source definitions take precedence over superseded historical examples. This reference does not claim undocumented guarantees about the WoW: Forever client.
+This document tracks **bjarkiPortraits 0.1.178-bottom-harmful-consolidation-test** (2026-11-08). Sections 1–34 retain historical design and verification notes; **section 35** records the currently implemented full pet/party host and lowest-tier changes. Section 29 corrects earlier unsolicited priority changes and the Will of the Forsaken aura assumption. Current source definitions take precedence over historical examples. This document does not claim live certification of all client conditions.
 
 The runtime is split into nine Lua modules, loaded in this order:
 
@@ -640,7 +640,7 @@ The packaging workflow compiles ten runtime modules and ten regression scripts, 
 
 ## 34. Launch follow-up: 0.1.164 through 0.1.172 (2026-11-05 to 2026-11-07)
 
-The November 2026 launch observations were applied incrementally to `Spells.lua`, `Priority.lua`, and version metadata. The current addon runtime is `0.1.172-frog-form-control-test`; both manifests use the same version. Its gameplay mechanics, native unit-frame geometry, portrait foundations, secrecy checks, and remaining module content are unchanged from the last GitHub-synced build except for these explicit aura changes.
+The November 2026 launch observations were applied incrementally to `Spells.lua`, `Priority.lua`, and version metadata. **Historical at the time of 0.1.172 (superseded by section 35):** its addon runtime was `0.1.172-frog-form-control-test`; both manifests used the same version. Its gameplay mechanics, native unit-frame geometry, portrait foundations, secrecy checks, and remaining module content are unchanged from the last GitHub-synced build except for these explicit aura changes.
 
 | Build | Effect(s) and applied spell IDs | Actual exact lane and level |
 | --- | --- | --- |
@@ -663,3 +663,40 @@ The `ControlHelpful` lane is a separate **polarity** filter, not a stronger cont
 **Observed versus verified.** Screenshots provided evidence for the above aura tooltips and a working friendly-target Battle Stance portrait. Regression scripts use modeled WoW APIs; they do not prove every effect will be exposed on every unit, faction or combat secrecy state. ToT/ToF being absent during an early launch check was traced to the **in-game frame visibility setting**, not to an addon defect. Current in-game behavior for the new effects, especially the restricted Boosted Rest transition and friendly/hostile Frog Form visibility, still merits direct testing.
 
 `tests/launch-auras.lua` checks these applied IDs, polarity, exact lane memberships, zero cross-tier duplication, fallback exclusions, the Boosted Rest duration cap and version agreement between runtime and both manifests. `tests/low-priority.lua` now expects Find Treasure and Tame Strigid Screecher in Gathering. The packaging workflow runs both tests with the existing regression suite under Lua 5.1 and 5.4.
+
+
+## 35. Pet, regular party frames, Skyborne safety and absolute bottom tier: 0.1.173–0.1.178 (2026-11-07 to 2026-11-08)
+
+**Current runtime:** `0.1.178-bottom-harmful-consolidation-test`; both TOCs use the same version. This section supersedes the source-state statements in section 34 but preserves its launch provenance.
+
+### 35.1. Ten portrait units, one priority engine
+
+`Core.lua` now tracks `player`, `pet`, `target`, `focus`, `targettarget`, `focustarget`, and `party1`–`party4`. The local PetFrame gained **all normal priority containers** in 0.1.174; its pet-family artwork remains an independent foundation under the aura. The earlier Tamed-specific pet renderer is removed to avoid maintaining a second election system.
+
+In 0.1.175, Blizzard's **regular** party frames gained the same full portrait aura hosts. `PartyFrame` creates party-member frames from a pool; `GetPartyMemberFrame(index)` looks up a current member rather than retaining an obsolete `PartyMemberFrameN` reference. Frame bindings, current unit token, Edit Mode placeholders, unit existence and vehicle swaps are checked before presenting owned art or aura slots. Existing coalesced lifecycle events and native hooks are reused; no new per-frame polling loop is introduced.
+
+Raid-style party frames, raid frames, and party-pet frames do **not** receive portrait hosts. Existing `/bp inspect`, `/bp layout`, and pet-family debug paths now accept the new units where applicable. Native pet and party frame chrome remains Blizzard-owned. Combat protection, actual in-game pooled frame rebuilding and every hostile/read-restriction transition still require live verification.
+
+### 35.2. Artwork and portrait geometry
+
+In 0.1.173, the PetFrame received a small source-image alignment correction to match target-frame icon framing; in 0.1.175, regular party portraits received proportional compact offsets. Native border textures and masks remain stationary.
+
+In 0.1.176, the early registered `raceicon-skyborne-*` family was excluded as a portrait source after a live blue-gradient screenshot. `Core.lua` prefers a validated, face-sized square `raceicon128-skyborne-<sex>` atlas or a suitably verified native face atlas. If unavailable, **no race overlay is drawn** and Blizzard's native portrait remains. This does not assert that atlas metadata proves nonblank artwork. The old Blood Elf placeholder idea is **not** used.
+
+### 35.3. Lowest-priority harmful consolidation
+
+At 0.1.178, one exact **harmful** native tier named `BoostedRest` has numeric priority **0** and contains:
+
+- Boosted Rest (`1229451`), source `debuffs_boosted_rest`;
+- Tricked or Treated (`24755`), source `debuffs_noncombat`;
+- Tame Nightsaber Stalker (`19685`) and Tame Strigid Screecher (`19686`), source `debuffs_pet_taming`.
+
+The separate former `GatheringHarmful` Tamed lane/readable presenter was removed, and the previous priority-4 `CampfireNearbyHarmful` lane now owns only its intended nearby-world harmful effects. The bottom set shares **one native aura slot**, preserving same-tier candidate competition. The guarded readable `BoostedRest` presenter uses the new level **0**. The existing harmful fallback exclusions remain, including the 3,599-second duration gate for `SmallFriendlyHarmful`.
+
+The neighboring priorities remain **Gathering 1**, **Tracking 3**, **Campfire Nearby 4**, and **Violet Flames 5**. `0` means bottom **aura** tier, still above a race/pet-family/native portrait foundation when no aura is available. This is a category consolidation, **not** evidence that native identity is always readable during combat.
+
+### 35.4. Verification boundary and future plan
+
+The ZIP's ten runtime Lua modules and two manifests have been matched against the source to be committed. The package has source-level Lua 5.4 compilation and focused priority checks, but earlier local mocked host integration is not a live WoW certification. The repo's Lua 5.1/5.4 CI is authoritative for the committed regression scripts; native pixels, protected aura values and combat taint still require game testing.
+
+A proposed **secondary portrait / top-two aura + race badge** is **not implemented** in this build. Its user-visible behavior, source ownership, native Shaman Totem-inspired geometry, selection feasibility gate, performance budget, rollout steps and acceptance matrix are documented in [docs/SECONDARY_PORTRAIT_PLAN.md](docs/SECONDARY_PORTRAIT_PLAN.md). Future implementation must move race artwork out of the main portrait **only when the secondary feature is actually built**, without changing any existing aura-priority numbers.

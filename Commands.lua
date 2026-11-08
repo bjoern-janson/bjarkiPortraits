@@ -27,9 +27,10 @@ end
 
 local function inspectAuras(option)
     local unit = ({ player="player", target="target", focus="focus",
+        pet="pet", party1="party1", party2="party2", party3="party3", party4="party4",
         tot="targettarget", targettarget="targettarget",
         fot="focustarget", focustarget="focustarget" })[option == "" and "target" or option]
-    if not unit then R.Print("usage: /bp inspect [player|target|focus|tot|fot]"); return end
+    if not unit then R.Print("usage: /bp inspect [player|pet|party1-4|target|focus|tot|fot]"); return end
     local host = R.hosts[unit]
     R.Print("inspect " .. unit .. " version=" .. R.VERSION .. " host=" .. tostring(host ~= nil)
         .. " exactHelpful=" .. tostring(R.ExactFilterAllowed(unit, true, nil, false))
@@ -154,7 +155,7 @@ SLASH_BJARKIPORTRAITS2 = "/bjarkiportraits"
 SlashCmdList.BJARKIPORTRAITS = function(message)
     local command, option, detail = (message or ""):lower():match("^%s*(%S*)%s*(%S*)%s*(%S*)")
     if command == "" or command == "help" then
-        R.Print("/bp or /bjarkiportraits test | on | off | player | target | focus | tot | fot | swipe | decimals | pets [status|on|off|debug [unit]] | geometry [unit] | layout [unit] | inspect [unit] | stance [player|target|focus|tot|tof] | debug | audit | reset")
+        R.Print("/bp or /bjarkiportraits test | on | off | player | pet | party1-4 | target | focus | tot | fot | swipe | decimals | pets [status|on|off|debug [unit]] | geometry [unit] | layout [unit] | inspect [unit] | stance [player|target|focus|tot|tof] | debug | audit | reset")
     elseif command == "test" then
         R.testMode = not R.testMode
         R.RefreshAll()
@@ -169,7 +170,8 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
         if not R.DestroyAll() then R.RefreshAll() end
         R.UpdatePetPortraits()
         R.Print("off")
-    elseif command == "player" or command == "target" or command == "focus" then
+    elseif command == "player" or command == "pet" or command == "target" or command == "focus"
+        or R.PARTY_UNITS[command] then
         setToggle(command, not R.db[command]); R.Print(command .. " " .. tostring(R.db[command]))
     elseif command == "tot" or command == "targettarget" then
         setToggle("targettarget", not R.db.targettarget); R.Print("targettarget " .. tostring(R.db.targettarget))
@@ -205,21 +207,22 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
                 end
             end
         elseif option == "status" then
-            R.Print("pet portraits " .. tostring(R.db.petPortraits))
+            R.Print("pet family art " .. tostring(R.db.petPortraits))
         elseif option == "on" or option == "off" then
             R.db.petPortraits = option == "on"
             R.UpdatePetPortraits()
-            R.Print("pet portraits " .. tostring(R.db.petPortraits))
+            R.Print("pet family art " .. tostring(R.db.petPortraits))
         else
             R.db.petPortraits = not R.db.petPortraits
             R.UpdatePetPortraits()
-            R.Print("pet portraits " .. tostring(R.db.petPortraits))
+            R.Print("pet family art " .. tostring(R.db.petPortraits))
         end
     elseif command == "geometry" then
-        local names = {player="player", target="target", focus="focus", tot="targettarget",
+        local names = {player="player", pet="pet", party1="party1", party2="party2",
+            party3="party3", party4="party4", target="target", focus="focus", tot="targettarget",
             targettarget="targettarget", tof="focustarget", fot="focustarget", focustarget="focustarget"}
         if option ~= "" and not names[option] then
-            R.Print("usage: /bp geometry [player|target|focus|tot|tof]")
+            R.Print("usage: /bp geometry [player|pet|party1-4|target|focus|tot|tof]")
         else
             R.Print("geometry " .. tostring(R.VERSION) .. " physical pixels; centers; bottom-left origin; no refresh")
             for _, token in ipairs(option ~= "" and {names[option]} or R.TRACKED_UNITS) do
@@ -227,11 +230,12 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
             end
         end
     elseif command == "layout" then
-        local names = {player="player", target="target", focus="focus",
+        local names = {player="player", pet="pet", party1="party1", party2="party2",
+            party3="party3", party4="party4", target="target", focus="focus",
             tot="targettarget", targettarget="targettarget", tof="focustarget",
             fot="focustarget", focustarget="focustarget"}
         if option ~= "" and not names[option] then
-            R.Print("usage: /bp layout [player|target|focus|tot|tof]")
+            R.Print("usage: /bp layout [player|pet|party1-4|target|focus|tot|tof]")
         else
             R.Print("layout version=" .. tostring(R.VERSION) .. " (sample bounds; no refresh)")
             for _, token in ipairs(option ~= "" and {names[option]} or R.TRACKED_UNITS) do

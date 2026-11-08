@@ -37,15 +37,23 @@ end
 -- uses AuraInstanceID; BaselineClass, Healing and StatusEffects can replace their native owner
 -- only with a complete readable application-time election.
 R.TIERS = {
-    -- Lowest informational lanes immediately above the race-portrait baseline.
+    -- Absolute lowest aura priority: passive/noncombat harmful statuses.
+    -- Use ONE native slot for the three source categories so its election
+    -- is not split among competing equal-priority containers. Tamed effects
+    -- retain their positive direct-witness option when exact reads are gated.
+    -- The race/pet portrait foundation still shows when no aura is selected.
+    exact("BoostedRest", "HARMFUL", 0, false,
+        union("debuffs_boosted_rest", "debuffs_noncombat", "debuffs_pet_taming"),
+        true, C.debuffs_pet_taming),
+    -- Gathering remains the next-lowest aura priority, helpful level 1.
     exact("Gathering", "HELPFUL", 1, true, C.buffs_gathering),
     exact("Tracking", "HELPFUL", 3, true, C.buffs_tracking),
     -- Mind Vision is a target debuff; retain tracking's informational priority.
     exact("TrackingHarmful", "HARMFUL", 3, false, C.debuffs_tracking, true),
-    -- Informational harmful effects share the actual nearby-world level.
+    -- Nearby-world harmful effects retain level 4; passive status moved to 0.
     exact("CampfireNearby", "HELPFUL", 4, true, C.buffs_campfire_nearby),
     exact("CampfireNearbyHarmful", "HARMFUL", 4, false,
-        union("debuffs_campfire_nearby", "debuffs_noncombat", "debuffs_boosted_rest"), true),
+        C.debuffs_campfire_nearby, true),
     -- Enchanted campfire status sits exactly one point above Campfire Nearby.
     exact("VioletFlames", "HELPFUL", 5, true, C.buffs_violet_flames),
     -- Opposite-faction helpful fallback is deliberately low; do not infer a
@@ -239,7 +247,7 @@ end
 -- never infer an inaccessible aura's spell ID.
 local excludedHelpful = union("buffs_gathering", "buffs_tracking", "buffs_campfire_nearby",
     "buffs_violet_flames", "buffs_cosmetic", "buffs_noncombat")
-local excludedHarmful = union("debuffs_tracking", "debuffs_campfire_nearby",
+local excludedHarmful = union("debuffs_pet_taming", "debuffs_tracking", "debuffs_campfire_nearby",
     "debuffs_noncombat", "debuffs_boosted_rest")
 for spellID in pairs(excludedHelpful) do helpfulExplicit[spellID] = true end
 for spellID in pairs(excludedHarmful) do

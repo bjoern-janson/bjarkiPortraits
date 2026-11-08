@@ -14,7 +14,7 @@ local function equal(actual, expected, label)
         .. ", wanted " .. tostring(expected) .. ")")
 end
 local gathering = assert(R.TIER_BY_KEY.Gathering)
-local info = assert(R.TIER_BY_KEY.CampfireNearbyHarmful)
+local info = assert(R.TIER_BY_KEY.BoostedRest)
 local tracking = assert(R.TIER_BY_KEY.Tracking)
 local trackingHarmful = assert(R.TIER_BY_KEY.TrackingHarmful)
 local ambient = assert(R.TIER_BY_KEY.CampfireNearby)
@@ -22,17 +22,17 @@ local ambientHarmful = assert(R.TIER_BY_KEY.CampfireNearbyHarmful)
 local fallback = assert(R.TIER_BY_KEY.HostileHelpful)
 
 equal(gathering.level, 1, "Find Herbs/Minerals lowest aura tier")
-equal(info.level, 4, "informational harmful merged into nearby-world effects")
+equal(info.level, 0, "passive informational harmful is absolute lowest aura tier")
 equal(tracking.level, 3, "tracking/sensing immediately above gathering")
 equal(trackingHarmful.level, tracking.level, "harmful tracking shares the informational priority")
 equal(ambient.level, 4, "original ambient buff above tracking")
-equal(ambientHarmful.level, 4, "ambient harmful and informational effects share priority")
+equal(ambientHarmful.level, 4, "nearby harmful stays at ambient level four")
 equal(fallback.level, 5, "generic hostile fallback above the exact low lanes")
 check(gathering.helpful and gathering.exact, "gathering is exact helpful")
 check(not info.helpful and info.exact, "informational effects are exact harmful")
 check(tracking.helpful and tracking.exact, "tracking is exact helpful")
 for _, tier in ipairs(R.TIERS) do
-    if tier ~= gathering and tier ~= tracking and tier ~= trackingHarmful then
+    if tier ~= gathering and tier ~= tracking and tier ~= trackingHarmful and tier ~= info then
         check(tier.level >= 4, "all remaining aura tiers above race-fallback lanes: " .. tier.key)
     end
 end
@@ -43,11 +43,12 @@ local gatheringIDs = {
     [2580] = "Find Minerals rank 1",
     [8388] = "Find Minerals rank 2",
     [2481] = "Find Treasure",
-    [19686] = "Tame Strigid Screecher",
 }
 local infoIDs = {
     [24755] = "Tricked or Treated",
     [1229451] = "Boosted Rest",
+    [19685] = "Tame Nightsaber Stalker",
+    [19686] = "Tame Strigid Screecher",
 }
 local sensingIDs = {
     [5225] = "Track Humanoids (Druid)",
@@ -80,7 +81,7 @@ for id in pairs(gathering.spellIDs) do
     gatheringCount = gatheringCount + 1
     check(gatheringIDs[id] ~= nil, "gathering contains no other tracking spells")
 end
-equal(gatheringCount, 6, "six gathering and quest effects in the lowest tier")
+equal(gatheringCount, 5, "five gathering ranks including Find Treasure at level one")
 for id, name in pairs(infoIDs) do
     check(info.spellIDs[id] == true, name .. " harmful display")
     check(R.NONCOMBAT_EXCLUDED_HARMFUL[id] == true,
@@ -125,7 +126,7 @@ for id in pairs(sensingIDs) do
         "generic hostile helpful does not promote tracking")
 end
 for id in pairs(infoIDs) do
-    check(filter("CampfireNearbyHarmful").includeSpellIDs[id] == true,
+    check(filter("BoostedRest").includeSpellIDs[id] == true,
         "secure informational harmful filter")
     check(filter("SmallFriendlyHarmful").excludeSpellIDs[id] == true,
         "generic harmful fallback does not promote informational status")
@@ -146,9 +147,13 @@ end
 local engine = assert(io.open("AuraEngine.lua", "rb"))
 local engineSource = assert(engine:read("*a")); engine:close()
 check(engineSource:find('{ "CampfireNearbyHarmful", "readableNearbyHarmfulFrame", 4 }', 1, true) ~= nil,
-    "merged nearby-world readable frame inherits tier four")
+    "nearby-world readable frame retains tier four")
 check(engineSource:find('updateReadableHarmfulTier(host, base, "CampfireNearbyHarmful"', 1, true) ~= nil,
-    "one complete-election harmful refresh covers informational and nearby effects")
+    "nearby harmful refresh remains separately owned at level four")
+check(engineSource:find('{ "BoostedRest", "readableBoostedRestFrame", 0 }', 1, true) ~= nil,
+    "one bottom harmful readable presenter has level zero")
+check(engineSource:find('updateReadableHarmfulTier(host, base, "BoostedRest"', 1, true) ~= nil,
+    "bottom harmful readable owner follows priority zero")
 check(engineSource:find('local function updateReadableHarmfulTier(host, baseEnabled, tierKey', 1, true) ~= nil,
     "reuses the pre-existing guarded harmful helper")
 check(engineSource:find('createRaceBaseline(host)', 1, true) ~= nil,

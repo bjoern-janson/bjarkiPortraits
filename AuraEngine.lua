@@ -22,6 +22,9 @@ end
 -- The small residual ink correction still needs checking across other digits.
 local timerInkOffsets = {
     player = { 1, -0.25 },
+    pet = { 0.25, 1 },
+    party1 = { 0.25, 1 }, party2 = { 0.25, 1 },
+    party3 = { 0.25, 1 }, party4 = { 0.25, 1 },
     target = { 3, -0.75 },
     focus = { 3, -0.75 },
     targettarget = { 0.25, 1 },
@@ -60,7 +63,7 @@ local function alignCountdown(cooldown, host)
         return
     end
 
-    if R.SMALL_UNITS[host.unit] and text.GetFont and text.SetFont then
+    if (R.SMALL_UNITS[host.unit] or host.unit == "pet" or R.PARTY_UNITS[host.unit]) and text.GetFont and text.SetFont then
         local fontOK, file, size, flags = pcall(text.GetFont, text)
         if fontOK and R.CanAccess(file) and R.CanAccess(size) and R.CanAccess(flags)
             and type(file) == "string" and type(size) == "number"
@@ -1203,11 +1206,19 @@ local function hostStillCurrent(host)
 end
 
 local function hostHasSupportedBinding(host)
-    if host.unit ~= "player" then return true end
-    -- The native PlayerFrame can temporarily display a vehicle. Missing or
-    -- inaccessible bindings also leave that native portrait in control.
+    if host.unit ~= "player" and host.unit ~= "pet" and not R.PARTY_UNITS[host.unit] then
+        return true
+    end
+    -- Native Player/Pet/Party frames may temporarily bind a vehicle, or the
+    -- party Edit Mode preview may bind "player" to an unoccupied party slot.
+    -- Only show a slot's real unit. No stale aura from an earlier party member.
     local binding = host.unitFrame and host.unitFrame.unit
-    return R.CanAccess(binding) and binding == "player"
+    if not R.CanAccess(binding) or binding ~= host.unit then return false end
+    if R.PARTY_UNITS[host.unit] and host.unitFrame.IsShown then
+        local visible, readable = R.SafeBool(host.unitFrame.IsShown, host.unitFrame)
+        return readable and visible
+    end
+    return true
 end
 
 local function disableContainers(host)
@@ -1253,6 +1264,7 @@ function R.DestroyHost(unit)
     if host.readablePassiveDebuffFrame then hideReadableExact(host.readablePassiveDebuffFrame) end
     if host.readableBaselineHarmfulFrame then hideReadableExact(host.readableBaselineHarmfulFrame) end
     if host.readableNearbyHarmfulFrame then hideReadableExact(host.readableNearbyHarmfulFrame) end
+    if host.readableBoostedRestFrame then hideReadableExact(host.readableBoostedRestFrame) end
     if host.readableTrackingHarmfulFrame then hideReadableExact(host.readableTrackingHarmfulFrame) end
     if host.readableRootsFrame then hideReadableExact(host.readableRootsFrame) end
     if host.readableControlFrame then hideReadableExact(host.readableControlFrame) end
@@ -1309,6 +1321,12 @@ local function buildHost(unit, host)
     if existing and not R.DestroyHost(unit) then return nil end
     if not R.SORT_METHOD or not R.SORT_DIRECTION then return nil end
 
+    -- Do not allocate 4 complete aura-container stacks for Edit Mode's fake
+    -- player clones. They become hosts when real party unit tokens exist.
+    if R.PARTY_UNITS[unit] then
+        local exists, readable = R.UnitExistsState(unit)
+        if not readable or not exists then return nil end
+    end
     local portrait, portraitMask, unitFrame = R.GetPortrait(unit)
     if not portrait or not portrait.GetParent or not unitFrame then return nil end
     local originalParent = portrait:GetParent()
@@ -1363,7 +1381,8 @@ local function buildHost(unit, host)
     anchor:SetFrameStrata(strata)
     anchor:SetFrameLevel(0)
     R.CreatePortraitImageMask(host)
-    createRaceBaseline(host)
+    -- PetFrame uses verified family art as its fallback, never a player race.
+    if unit ~= "pet" then createRaceBaseline(host) end
 
     for index, tier in ipairs(R.TIERS or {}) do
         host._buildStage = "native-slot:" .. tostring(tier.key)
@@ -1404,6 +1423,7 @@ local function buildHost(unit, host)
     -- when the complete indexed harmful aura set is readable. Separate
     -- evidence-gated visual helpers never infer an unobserved cast or silence.
     for _, spec in ipairs({
+        { "BoostedRest", "readableBoostedRestFrame", 0 },
         { "CampfireNearbyHarmful", "readableNearbyHarmfulFrame", 4 },
         { "TrackingHarmful", "readableTrackingHarmfulFrame", 3 },
         { "PassiveDebuff", "readablePassiveDebuffFrame", 59 },
@@ -1419,7 +1439,7 @@ local function buildHost(unit, host)
         host[spec[2]] = createReadableExactFrame(host, tier and tier.level or spec[3])
     end
 
-    -- Same-tier status recency applies on all five portrait hosts. These use
+    -- Same-tier status recency applies on every portrait host. These use
     -- the existing portrait placement helper; no native frame geometry changes.
     local statusEffectsTier = findTierByKey("StatusEffects")
     host.readableStatusEffectsFrame = createReadableExactFrame(
@@ -1521,10 +1541,14 @@ function R.CreateHost(unit)
         return nil
     end
     hostBuildInProgress[unit] = nil
-    -- This callback needs a published host. Keep it outside the construction
-    -- transaction: pet-art refresh is not a prerequisite for aura helpers.
-    if host == pending and unit ~= "player" and R.UpdateObservedPetPortrait then
-        R.UpdateObservedPetPortrait(unit)
+    -- Family art is an independent foundation, not a separate aura
+    -- presenter. Every tracked unit, including PetFrame, uses these hosts.
+    if host == pending then
+        if unit == "pet" and R.UpdateLocalPetPortrait then
+            R.UpdateLocalPetPortrait()
+        elseif unit ~= "player" and not R.PARTY_UNITS[unit] and R.UpdateObservedPetPortrait then
+            R.UpdateObservedPetPortrait(unit)
+        end
     end
     return host
 end
@@ -1565,7 +1589,9 @@ function R.UpdateHost(host, forceContainerRefresh)
     host._readableTierOwners = owners
     local unitExists, existsReadable = R.UnitExistsState(host.unit)
     local present = not UnitExists or (existsReadable and unitExists)
-    local base = R.IsUnitEnabled(host.unit) and not R.testMode and present and hostHasSupportedBinding(host)
+    local base = R.IsUnitEnabled(host.unit) and not R.testMode and present
+        and (not R.PARTY_UNITS[host.unit] or hostStillCurrent(host))
+        and hostHasSupportedBinding(host)
     host._unitExists = present and true or false
     host._unitExistsReadable = existsReadable
     local hostileUnit, hostileRelationReadable = R.HostileUnitState(host.unit)
@@ -1606,6 +1632,8 @@ function R.UpdateHost(host, forceContainerRefresh)
     -- Native stun/silence filters can be relation-restricted. Use only a
     -- complete, directly readable exact-ID election; silence/interrupt casts
     -- without an applied aura never become a positive portrait witness.
+    updateReadableHarmfulTier(host, base, "BoostedRest",
+        "readableBoostedRestFrame", "_boostedRest", exactReads)
     updateReadableHarmfulTier(host, base, "CampfireNearbyHarmful",
         "readableNearbyHarmfulFrame", "_nearbyHarmful", exactReads)
     updateReadableHarmfulTier(host, base, "TrackingHarmful",
@@ -1754,6 +1782,9 @@ function R.Refresh(unit, forceContainerRefresh)
     end
     if host and not hostStillCurrent(host) then
         if InCombatLockdown and InCombatLockdown() then
+            -- Old pooled party frame may now represent another member. Revoke
+            -- its auras immediately; structural restoration waits for combat.
+            if R.PARTY_UNITS[unit] then R.UpdateHost(host) end
             R.buildQueued = true
             return
         end

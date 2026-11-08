@@ -41,7 +41,9 @@ local function queueRefresh(unit, reason, requestSnapshot, snapshotOnly)
             end
             if request.refresh then
                 if R.hosts[token] then R.hosts[token]._nativeRefreshReason = request.reason end
-                if token ~= "player" then R.UpdateObservedPetPortrait(token) end
+                if token ~= "player" and not R.PARTY_UNITS[token] then
+                    R.UpdateObservedPetPortrait(token)
+                end
                 R.ApplyPresentation(token)
             end
         end
@@ -58,7 +60,25 @@ end
 -- Compact portraits are deliberately excluded: their native updates can run
 -- every frame. The callback only schedules the existing one-shot reconciler.
 local nativePortraitHooked, nativeBindingHooked = false, false
+local partyPoolInitHooked, partyPoolUpdateHooked = false, false
+local function queuePartyRefresh(reason)
+    for index = 1, 4 do queueRefresh("party" .. index, reason or "party-roster") end
+end
 local function installNativePortraitHooks()
+    -- PartyFrame creates pooled member frames when it first becomes visible
+    -- and may recycle them on roster/Edit Mode transitions. Hook only the
+    -- completed native pool/layout writes, never replace Blizzard methods.
+    local partyFrame = _G.PartyFrame
+    if partyFrame and type(hooksecurefunc) == "function" then
+        if not partyPoolInitHooked and type(partyFrame.InitializePartyMemberFrames) == "function" then
+            partyPoolInitHooked = pcall(hooksecurefunc, partyFrame,
+                "InitializePartyMemberFrames", function() queuePartyRefresh("party-pool") end)
+        end
+        if not partyPoolUpdateHooked and type(partyFrame.UpdatePartyFrames) == "function" then
+            partyPoolUpdateHooked = pcall(hooksecurefunc, partyFrame,
+                "UpdatePartyFrames", function() queuePartyRefresh("party-layout") end)
+        end
+    end
     if type(hooksecurefunc) ~= "function" then return end
     if not nativePortraitHooked and type(UnitFramePortrait_Update) == "function" then
         nativePortraitHooked = pcall(hooksecurefunc, "UnitFramePortrait_Update", function(frame)
@@ -71,9 +91,19 @@ local function installNativePortraitHooks()
                 R.Refresh("player", true)
             elseif frame == _G.PetFrame then
                 R.UpdateLocalPetPortrait()
+                queueRefresh("pet", "native-binding")
             elseif frame == _G.FocusFrame then
                 queueRefresh("focus", "native-binding")
                 queueRefresh("focustarget", "native-binding")
+            else
+                -- Native party member frames can rebind to vehicles, or to
+                -- player-only placeholders in Edit Mode. Never use their
+                -- previous occupant; re-evaluate the real partyN token.
+                local token = frame and frame.unitToken
+                if R.CanAccess(token) and type(token) == "string"
+                    and R.PARTY_UNITS[token] then
+                    queueRefresh(token, "native-party-binding")
+                end
             end
         end)
     end
@@ -85,11 +115,13 @@ for _, event in ipairs({
     "ADDON_LOADED", "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_ENABLED",
     "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST",
     "PLAYER_TARGET_CHANGED", "PLAYER_FOCUS_CHANGED", "PET_BAR_UPDATE",
+    "GROUP_ROSTER_UPDATE",
 }) do events:RegisterEvent(event) end
 
 -- Optional native events differ across supported clients; an unsupported
 -- event must not prevent the rest of the addon from loading.
-for _, event in ipairs({"UPDATE_SHAPESHIFT_FORM", "UPDATE_SHAPESHIFT_FORMS"}) do
+for _, event in ipairs({"UPDATE_SHAPESHIFT_FORM", "UPDATE_SHAPESHIFT_FORMS",
+    "PARTY_MEMBER_ENABLE", "PARTY_MEMBER_DISABLE", "UNIT_OTHER_PARTY_CHANGED"}) do
     pcall(events.RegisterEvent, events, event)
 end
 
@@ -155,10 +187,15 @@ events:SetScript("OnEvent", function(_, event, arg1)
         end
     elseif event == "PET_BAR_UPDATE" then
         R.UpdateLocalPetPortrait()
+        queueRefresh("pet", "pet-bar")
+    elseif event == "GROUP_ROSTER_UPDATE" or event == "PARTY_MEMBER_ENABLE"
+        or event == "PARTY_MEMBER_DISABLE" or event == "UNIT_OTHER_PARTY_CHANGED"
+    then
+        queuePartyRefresh("party-roster")
     end
 end)
 
--- High-frequency unit state events are scoped to only the five tokens this addon
+-- High-frequency unit state events are scoped to only the six tokens this addon
 -- owns. Dense hubs can emit large amounts of unrelated UNIT_AURA/FLAGS/FACTION
 -- traffic; RegisterUnitEvent keeps that traffic out of addon Lua entirely.
 local unitStateFrames = {}
@@ -183,13 +220,16 @@ local function installUnitStateEvents(unitA, unitB)
         if event == "UNIT_PORTRAIT_UPDATE" or event == "UNIT_NAME_UPDATE" then
             -- These events also signal late current-unit availability. Refresh
             -- the independent pet art now, then re-evaluate aura eligibility.
-            if unit ~= "player" then R.UpdateObservedPetPortrait(unit) end
+            if unit == "pet" then R.UpdateLocalPetPortrait()
+            elseif unit ~= "player" and not R.PARTY_UNITS[unit] then
+                R.UpdateObservedPetPortrait(unit)
+            end
             queueRefresh(unit, "unit-availability", snapshotNeeded[unit])
             return
         end
         if unit == "player" and (event == "UNIT_FACTION" or event == "UNIT_FLAGS") then
             -- Every host's exact filter permission depends on the player's
-            -- relation, so these player events invalidate all five hosts.
+            -- relation, so these player events invalidate all six hosts.
             R.RefreshAll(true)
             R.UpdateObservedPetPortraits()
             -- Player relation changes can unblock retained derived evidence too.
@@ -231,7 +271,9 @@ end
 -- Keep the stable cross-client RegisterUnitEvent shape to at most two unit tokens.
 installUnitStateEvents("player", "target")
 installUnitStateEvents("focus", "targettarget")
-installUnitStateEvents("focustarget")
+installUnitStateEvents("focustarget", "pet")
+installUnitStateEvents("party1", "party2")
+installUnitStateEvents("party3", "party4")
 
 -- PLAYER_TARGET_CHANGED / PLAYER_FOCUS_CHANGED already own the outer tokens.
 -- UNIT_TARGET is needed only when target/focus changes its own target, which
@@ -250,12 +292,15 @@ unitTargetEvents:SetScript("OnEvent", function(_, _, unit)
     end
 end)
 
--- Only the player's pet can affect the local PetFrame foundation.
+-- Pet ownership may change without an aura event. Reconcile the native
+-- family foundation immediately and the secure aura host at the next stable
+-- event boundary. UNIT_AURA itself uses the common scoped unit-state route.
 local unitPetEvents = CreateFrame("Frame")
 unitPetEvents:RegisterUnitEvent("UNIT_PET", "player")
-unitPetEvents:RegisterUnitEvent("UNIT_PORTRAIT_UPDATE", "pet")
 unitPetEvents:SetScript("OnEvent", function()
     R.UpdateLocalPetPortrait()
+    R.Refresh("pet", true)
+    queueRefresh("pet", "pet-binding")
 end)
 
 installNativePortraitHooks()

@@ -1,13 +1,11 @@
 local addonName, BP = ...
 local R = assert(BP.Runtime, "Core.lua must load first")
 
--- This module has no direct AuraContainer access. Its foundation texture sits
--- between the native portrait and secure aura buttons on target/focus and
--- the two derived target frames.
+-- This module owns only foundation art (pet family/totem identity), not aura
+-- selection. Player, local PetFrame, Target, Focus and both derived targets
+-- use the SAME AuraEngine priority hosts. Family art sits below aura slots.
 local observed = setmetatable({}, { __mode = "k" })
 local presentationState = setmetatable({}, { __mode = "k" })
-local localPet
-
 local HUNTER_IDS = {
     [1]=true,[2]=true,[3]=true,[4]=true,[5]=true,[6]=true,[7]=true,[8]=true,[9]=true,
     [11]=true,[12]=true,[20]=true,[21]=true,[24]=true,[25]=true,[26]=true,[27]=true,
@@ -404,17 +402,10 @@ function R.GetPetPortraitDebug(unit, compact)
     local typeID = typeIDAccess == "number" and rawTypeID or nil
     local icon, art = foundationTexture(unit)
     local overlayShown = false
-    local texture = unit == "pet" and localPet or (host and observed[host])
-    if unit == "pet" then
-        if localPet and localPet.IsShown then
-            local ok, shown = pcall(localPet.IsShown, localPet)
-            overlayShown = ok and R.CanAccess(shown) and shown == true
-        end
-    else
-        if texture and texture.IsShown then
-            local ok, shown = pcall(texture.IsShown, texture)
-            overlayShown = ok and R.CanAccess(shown) and shown == true
-        end
+    local texture = host and observed[host]
+    if texture and texture.IsShown then
+        local ok, shown = pcall(texture.IsShown, texture)
+        overlayShown = ok and R.CanAccess(shown) and shown == true
     end
     if compact then
         local function flag(value, readable)
@@ -424,7 +415,7 @@ function R.GetPetPortraitDebug(unit, compact)
         local blocker = "none"
         if not R.db or not R.db.enabled then blocker = "addon-off"
         elseif not R.db.petPortraits then blocker = "setting-off"
-        elseif (unit == "pet" and not localPet) or (unit ~= "pet" and not host) then
+        elseif not host then
             blocker = "host-unavailable"
         elseif not icon then
             if owner == "UNKNOWN_PET" then blocker = "pet-family-unavailable"
@@ -450,8 +441,11 @@ function R.GetPetPortraitDebug(unit, compact)
                 and last or "expected-art-not-shown"
         end
         return unit .. " art=" .. tostring(icon and art or "native")
-            .. " host=" .. tostring(unit == "pet" and localPet ~= nil or host ~= nil)
+            .. " host=" .. tostring(host ~= nil)
             .. " expected=" .. tostring(icon ~= nil) .. " shown=" .. tostring(overlayShown)
+            .. " auraSlots=" .. tostring(host and #host.containers or 0)
+            .. " tamedReadable=" .. tostring(host and host._boostedRestActive
+                and (host._boostedRestSpellID == 19685 or host._boostedRestSpellID == 19686) or false)
             .. " reason=" .. blocker .. " last=" .. last,
             unit .. " access name=" .. nameAccess
                 .. " type=" .. typeNameAccess .. "/" .. typeIDAccess
@@ -480,49 +474,31 @@ function R.GetPetPortraitDebug(unit, compact)
         .. " familyIDAccess=" .. familyIDAccess
         .. " reason=" .. tostring(reason)
         .. " art=" .. tostring(icon and art or "native")
-        .. " host=" .. tostring(unit == "pet" and localPet ~= nil or R.hosts[unit] ~= nil)
+        .. " host=" .. tostring(R.hosts[unit] ~= nil)
         .. " parentStrataAccess=" .. parentStrataAccess
         .. " icon=" .. tostring(icon ~= nil)
         .. " overlay=" .. tostring(overlayShown)
 end
 
-local function getPetPortrait()
-    local frame = _G.PetFrame
-    local portrait = _G.PetPortrait or (frame and frame.Portrait)
-    local mask = frame and (frame.PortraitMask or frame.portraitMask)
-    return portrait, mask, frame
-end
-
-local function ensureLocalPetTexture()
-    if localPet then return localPet end
-    local portrait, mask, frame = getPetPortrait()
-    if not portrait or not frame then return nil end
-    local parent = portrait.GetParent and portrait:GetParent() or frame
-    -- PetFrame's native chrome is on the BORDER draw layer. Keep the custom
-    -- family foundation above the native BACKGROUND portrait but below that
-    -- chrome so the addon does not paint over the ring.
-    local texture = parent:CreateTexture(nil, "BACKGROUND", nil, 1)
-    R.ApplyPortraitImageLayout(texture, { unit = "pet", portrait = portrait, portraitMask = mask })
-    R.ApplyPortraitIconCrop(texture)
-    if mask and texture.AddMaskTexture then pcall(texture.AddMaskTexture, texture, mask) end
-    texture:Hide()
-    localPet = texture
-    return texture
-end
-
+-- PetFrame is now a full sixth AuraEngine host. Its family texture is a
+-- foundation under the exact same secure/readable priority layers as Player.
+-- PetFrame can be rebound to the player/vehicle: no art may survive that.
 function R.UpdateLocalPetPortrait()
-    local _, _, frame = getPetPortrait()
-    local displayedUnit = frame and frame.unit
-    -- The native vehicle layout can reuse PetFrame to display the player.
-    if not R.db or not R.db.enabled or not R.db.petPortraits
-        or not R.CanAccess(displayedUnit) or displayedUnit ~= "pet" then
-        if localPet then localPet:Hide() end
-        return
+    local host = R.hosts and R.hosts.pet
+    if not host or not host._buildComplete or host._restorePending then return end
+    local texture = observed[host]
+    local binding = host.unitFrame and host.unitFrame.unit
+    local currentPortrait, currentMask, currentFrame = R.GetPortrait("pet")
+    local hostCurrent = host.portrait == currentPortrait
+        and host.portraitMask == currentMask and host.unitFrame == currentFrame
+    local eligible = R.db and R.db.enabled and R.db.petPortraits
+        and hostCurrent and R.CanAccess(binding) and binding == "pet"
+    local icon = eligible and foundationTexture("pet") or nil
+    if icon and not texture then
+        texture = createHostTexture(host)
+        observed[host] = texture
     end
-    local texture = ensureLocalPetTexture()
-    if not texture then return end
-    local icon = foundationTexture("pet")
-    applyFoundationTexture(texture, icon)
+    if texture then applyFoundationTexture(texture, icon) end
 end
 
 function R.UpdatePetPortraits()

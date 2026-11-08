@@ -1,29 +1,37 @@
 # bjarkiPortraits
 
-A lightweight portrait-aura addon for **WoW: Forever**. Displays the highest eligible observed aura or state on Blizzard's existing portrait area for **player, target, focus, target-of-target and target-of-focus**. Pet-family and race portraits provide foundations when appropriate; native spell artwork is retained.
+A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Current synced source:** `0.1.172-frog-form-control-test` (2026-11-07). This is a **test build**: regression checks do not substitute for live WoW verification.
+**Current synced source:** `0.1.178-bottom-harmful-consolidation-test` (2026-11-08). This is a test build; successful simulated Lua regressions do not certify live-client combat, aura secrecy, or visual geometry.
 
 ## Install
 
-Copy the ten `.lua` modules and both `.toc` manifests from this repository into `Interface/AddOns/bjarkiPortraits/` (adjust the game folder to your installation). Do not nest an extra `bjarkiPortraits` directory. Enable the addon and use `/reload`. ToT/ToF visibility is controlled separately by the game's unit-frame settings.
+Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the ten `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
 
-The modules load in the order listed by `bjarkiPortraits.toc`; `bjarkiPortraits_Camelot.toc` has the same load order and version.
+## Supported portraits
 
-## Behavior
+The **same one-aura priority engine** is used for **player, pet, target, focus, target-of-target, target-of-focus and regular party1–party4** (ten unit tokens). PetFrame retains its pet-family artwork as the baseline. Party portraits follow Blizzard's pooled frames and ignore Edit Mode placeholders; raid-style party/raid frames are not covered.
 
-- One priority-selected portrait effect per unit where accessible, using Blizzard aura containers and guarded readable evidence. Inaccessible auras are **unknown**, not license to guess.
-- Informational effects stay below combat effects: Gathering **1** (Herbs, Minerals, Treasure, Tamed Strigid Screecher), Tracking **3** (Sapta Sight, Hunting Kobolds, sensing), Campfire Nearby / Boosted Rest **4**, Violet Flames **5**.
-- Selected combat lanes: Seal **210** (including Poised), Offensive **280** (including Rushing Charge and Savagery), harmful Control **310** (including Polymorph) and helpful Control **310** (Frog Form). See `Priority.lua` for the actual full list.
-- `/bp decimals` toggles decimal countdowns strictly below ten seconds. Native Blizzard icons and unit-frame art are preserved.
-- Same-tier Tracking uses native instance-ID order, **not reliably last refreshed**. The broad harmful fallback's 3,599-second cap excludes Boosted Rest promotion and other long/permanent generic harmful effects.
+Native unit-frame chrome and spell icons remain the visual foundation. Player-race artwork is currently a **large-portrait fallback** when eligible; Skyborne face art is displayed only when a suitable atlas is available. Otherwise the addon leaves the native portrait visible.
 
-## Commands and diagnosis
+## Current priority examples
 
-`/bp help` lists toggles and tools. Useful probes are `/bp inspect player`, `/bp inspect target`, `/bp audit`, `/bp stance target`, `/bp pets debug` and `/bp decimals`. The inspect command reports only positively readable aura IDs; it does not force secret data into a category.
+- **Priority 0, absolute bottom:** Boosted Rest (1229451), Tricked or Treated (24755), and both harmful Tamed quest effects (19685/19686), in one `BoostedRest` aura lane.
+- **Gathering 1:** Find Herbs, Find Minerals, Find Treasure. **Tracking 3:** sensing buffs, Sapta Sight, Hunting Kobolds. **Campfire Nearby 4** and **Violet Flames 5**.
+- **Seal 210** includes Poised; **Offensive 280** includes Rushing Charge and Savagery; harmful **Control 310** includes Polymorph, while helpful **ControlHelpful 310** covers Frog Form.
 
-## Source and verification
+See `Priority.lua` and `Spells.lua` for the complete, authoritative levels. Same-tier native order is reverse aura-instance ID; a refreshed buff does not always count as “last applied”. A 3,599-second native `SmallFriendlyHarmful` duration guard prevents Boosted Rest promotion, but also restricts other long/permanent generic harmful effects.
 
-`Spells.lua` owns applied spell-ID categories; `Priority.lua` defines native exact/semantic lanes; `AuraEngine.lua` handles presentation. Source changes from the November launch are summarized in [ARCHITECTURE.md](ARCHITECTURE.md#34-launch-follow-up-01164-through-01172-2026-11-05-to-2026-11-07). Historical reports and unresolved client conditions are in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+Use `/bp help` for commands, `/bp inspect <unit>` for eligible observed auras, `/bp layout <unit>` and `/bp pets debug pet` for presentation diagnostics. `/bp decimals` controls decimal countdowns strictly below ten seconds.
 
-The [package workflow](.github/workflows/package-addon.yml) checks Lua syntax and behavioral regressions on Lua **5.1** and **5.4**, including `tests/low-priority.lua` and `tests/launch-auras.lua`. Test mocks verify the source paths and filter policy; protected-value behavior, rendering, and PvP combat transitions require a live-client check.
+## Next update: secondary portrait (planned, not implemented)
+
+**[Secondary portrait design and acceptance plan](docs/SECONDARY_PORTRAIT_PLAN.md)** records the agreed small Shaman Totem-style circle, second-highest distinct aura, and race-only badge fallback. It also documents the difficult **secure second-winner election** feasibility gate. No second circle or top-two election exists in 0.1.178; **PetFrame is excluded from the secondary circle for now**, but retains its full primary aura system.
+
+## Documentation and tests
+
+- [Architecture](ARCHITECTURE.md) — source ownership and chronological build changes, including v0.1.173–0.1.178 in section 35.
+- [Known issues](KNOWN_ISSUES.md) — current live-verification boundaries and outstanding aura-order issues.
+- [Package workflow](.github/workflows/package-addon.yml) — Lua 5.1/5.4 syntax checks, regression scripts, and an installable CI artifact.
+
+This project uses event-driven/native aura systems and conservative evidence permissions, not an unrestricted Lua spell scan on every rendered frame.

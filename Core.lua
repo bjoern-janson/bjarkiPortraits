@@ -2,9 +2,13 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.172-frog-form-control-test"
+R.VERSION = "0.1.178-bottom-harmful-consolidation-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
-R.TRACKED_UNITS = { "player", "target", "focus", "targettarget", "focustarget" }
+-- Four native Blizzard party portraits share the same aura engine as player/pet.
+-- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
+R.PARTY_UNITS = {party1=true, party2=true, party3=true, party4=true}
+R.TRACKED_UNITS = { "player", "pet", "target", "focus", "targettarget", "focustarget",
+    "party1", "party2", "party3", "party4" }
 R.SMALL_UNITS = { targettarget = true, focustarget = true }
 R.hosts = {}
 R.testMode = false
@@ -18,10 +22,12 @@ R.SWIPE_TEXTURE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local defaults = {
     enabled = true,
     player = true,
+    pet = true,
     target = true,
     focus = true,
     targettarget = true,
     focustarget = true,
+    party1 = true, party2 = true, party3 = true, party4 = true,
     showSwipe = false,
     showDecimals = true,
     petPortraits = true,
@@ -94,12 +100,33 @@ function R.GetSmallFrame(unit)
     end
 end
 
+function R.GetPartyMemberFrame(index)
+    local frame = _G.PartyFrame
+    if not frame or type(index) ~= "number" or index < 1 or index > 4 then return nil end
+    -- Native PartyFrame recycles its members using a frame pool. Query the
+    -- active pool; never retain a global PartyMemberFrameN pointer as identity.
+    if type(frame.GetPartyMemberFrame) == "function" then
+        local ok, member = pcall(frame.GetPartyMemberFrame, frame, index)
+        if ok and R.CanAccess(member) then return member end
+        return nil
+    end
+    return frame["MemberFrame" .. index]
+end
+
 function R.GetPortrait(unit)
     if unit == "player" then
         local frame = _G.PlayerFrame
         local container = frame and frame.PlayerFrameContainer
         return (container and container.PlayerPortrait) or _G.PlayerPortrait or _G.PlayerFramePortrait,
             (container and container.PlayerPortraitMask), frame
+    elseif unit == "pet" then
+        local frame = _G.PetFrame
+        return _G.PetPortrait or (frame and frame.Portrait),
+            frame and (frame.PortraitMask or frame.portraitMask), frame
+    elseif R.PARTY_UNITS[unit] then
+        local index = tonumber(unit:match("^party([1-4])$"))
+        local frame = R.GetPartyMemberFrame(index)
+        return frame and frame.Portrait, frame and frame.PortraitMask, frame
     elseif unit == "target" then
         local frame = _G.TargetFrame
         local container = frame and frame.TargetFrameContainer
@@ -134,31 +161,49 @@ local CLASSIC_RACE_TILE = {
 }
 local CLASSIC_RACE_TEXTURE = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Races"
 
--- Forever ships native Skyborne race icons. Never substitute Blood Elf for
--- Skyborne. The raceicon naming matches the client character-creation atlas
--- convention; where the local player exposes its authoritative atlas, prefer
--- that. If an atlas is not available, leave Blizzard's portrait visible.
-local function validatedRaceAtlas(atlas)
+-- The early Forever low-resolution raceicon-skyborne-* atlases may exist
+-- while only containing a blank/blue gradient (observed in the live client).
+-- Atlas existence alone is not proof of usable *face* artwork. Prefer the
+-- higher-resolution raceicon128 artwork, if it is actually registered as a
+-- square face-sized atlas. For the local player only, the game may supply its
+-- own create-screen icon; accept that as a final option if face-sized. Otherwise
+-- preserve the native 3D portrait. Never substitute Blood Elf artwork.
+local function validatedSkyborneFaceAtlas(atlas, minPixels)
     if type(atlas) ~= "string" or atlas == "" or not R.CanAccess(atlas) then return nil end
     local getInfo = C_Texture and C_Texture.GetAtlasInfo or GetAtlasInfo
     if type(getInfo) ~= "function" then return nil end
     local ok, info = pcall(getInfo, atlas)
-    if ok and R.CanAccess(info) and type(info) == "table" then return atlas end
-    return nil
+    if not ok or not R.CanAccess(info) or type(info) ~= "table" then return nil end
+    local fieldsOK, width, height = pcall(function() return info.width, info.height end)
+    if not fieldsOK or not R.CanAccess(width) or not R.CanAccess(height)
+        or type(width) ~= "number" or type(height) ~= "number"
+        or width ~= width or height ~= height or width < minPixels or height < minPixels
+        or width > 1024 or height > 1024
+        or width > height * 1.1 or height > width * 1.1 then
+        return nil
+    end
+    return atlas
 end
 
 local function skyborneRaceAtlas(unit, sex)
+    local sexName = sex == 2 and "male" or "female"
+    -- The 128px atlas has a different name from the scuffed low-resolution
+    -- raceicon-skyborne-* asset, which is intentionally not considered here.
+    -- TODO: recheck official Skyborne SD face portraits when Blizzard ships them.
+    local atlas = validatedSkyborneFaceAtlas("raceicon128-skyborne-" .. sexName, 64)
+    if atlas then return atlas end
+
     if unit == "player" and C_PlayerInfo and type(C_PlayerInfo.GetPlayerCharacterData) == "function" then
         local ok, data = pcall(C_PlayerInfo.GetPlayerCharacterData)
         if ok and R.CanAccess(data) and type(data) == "table" then
             local got, art = pcall(function() return data.createScreenIconAtlas end)
-            if got then
-                local verified = validatedRaceAtlas(art)
-                if verified then return verified end
+            if got and R.CanAccess(art) and type(art) == "string"
+                and not art:match("^raceicon%-skyborne%-") then
+                return validatedSkyborneFaceAtlas(art, 48)
             end
         end
     end
-    return validatedRaceAtlas("raceicon-skyborne-" .. (sex == 2 and "male" or "female"))
+    return nil
 end
 function R.ResolveRaceBaselineAtlas(unit, confirmedPlayer)
     if confirmedPlayer ~= true then return nil, "not-player" end
@@ -177,7 +222,7 @@ function R.ResolveRaceBaselineAtlas(unit, confirmedPlayer)
     end
     if race == "Skyborne" then
         local atlas=skyborneRaceAtlas(unit, sex)
-        if not atlas then return nil, "skyborne-atlas-unavailable" end
+        if not atlas then return nil, "skyborne-face-atlas-unavailable" end
         return atlas, nil, true
     end
     local row=tile[2]+(sex==3 and 2 or 0)
@@ -200,6 +245,13 @@ end
 -- Quarter-pixel values limit the correction to what the raster supports.
 local portraitImageOffsets = {
     player = { -1, -1.25 },
+    -- PetFrame is a 37px compact version of the Target portrait. Match
+    -- its source-to-circle offset proportionally; the native mask/ring
+    -- remain stationary and every pet family uses the same adjustment.
+    pet = { -0.6, -0.6 },
+    -- Party portraits use the same native 37x37 circular opening as PetFrame.
+    party1 = { -0.6, -0.6 }, party2 = { -0.6, -0.6 },
+    party3 = { -0.6, -0.6 }, party4 = { -0.6, -0.6 },
     target = { 2, -1 },
     focus = { 2, -1 },
     targettarget = { -0.75, 1 },
@@ -247,9 +299,10 @@ function R.ApplyPortraitImageLayout(region, host)
 end
 
 function R.CreatePortraitImageMask(host)
-    -- Native masks are never edited. Only the four existing owned apertures
+    -- Native masks are never edited. Only the owned apertures
     -- are reused by aura/test/helper/pet textures; no extra per-tier masks.
-    local moved = host.unit == "target" or host.unit == "focus" or R.SMALL_UNITS[host.unit]
+    local moved = host.unit == "target" or host.unit == "focus"
+        or host.unit == "pet" or R.SMALL_UNITS[host.unit] or R.PARTY_UNITS[host.unit]
     if not moved or not host.portraitMask or not host.layer
         or type(host.layer.CreateMaskTexture) ~= "function" then
         host.imageMask = host.portraitMask

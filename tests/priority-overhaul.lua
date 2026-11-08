@@ -193,7 +193,8 @@ for _,id in ipairs({2479,1284560,1229739,1289723}) do
     unique(id,"HonorlessTarget")
 end
 unique(25780,"Plainsrunning")
-for _,id in ipairs({24755,1229451}) do unique(id,"CampfireNearbyHarmful") end
+for _,id in ipairs({24755,1229451,19685,19686}) do unique(id,"BoostedRest") end
+check(level("BoostedRest")==0,"absolute bottom tier includes passive harmful states")
 for _,id in ipairs({2383,2580,8387,8388}) do unique(id,"Gathering") end
 for _,id in ipairs({19883,5500,19885,6197}) do unique(id,"Tracking") end
 

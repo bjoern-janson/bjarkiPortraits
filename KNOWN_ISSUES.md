@@ -1,10 +1,16 @@
 # Known issues and bugs
 
-**Current candidate: 0.1.172-frog-form-control-test (2026-11-07).** Launch-observed additions 0.1.164–0.1.172 and their exact levels are recorded in [architecture section 34](ARCHITECTURE.md#34-launch-follow-up-01164-through-01172-2026-11-05-to-2026-11-07). They are source-level additions, not a claim that every unit/relation/combat presentation has been live-certified.
+**Current candidate: 0.1.178-bottom-harmful-consolidation-test (2026-11-08).** See [architecture section 35](ARCHITECTURE.md#35-pet-regular-party-frames-skyborne-safety-and-absolute-bottom-tier-0117301178-2026-11-07-to-2026-11-08) for the post-0.1.172 changes and [the planned secondary portrait](docs/SECONDARY_PORTRAIT_PLAN.md) for the next feature (not yet implemented). Prior sections retain historical caveats; no full live-client certification is claimed.
 
 **Open: Tracking "last applied" behavior.** Same-tier native election uses reversed aura instance IDs, which do not necessarily change on a buff refresh. The portrait can continue to show an older effect after reapplication. Find Treasure was deliberately moved to Gathering (priority 1); tracking/sensing stays at priority 3. No general Tracking application-time correction has yet been implemented.
 
-**Open: Boosted Rest in combat.** Its informational exact level remains 4. A generic harmful fallback at level 175 can otherwise overpromote it when native identity restrictions apply. Since 0.1.165, that fallback has a native max-duration filter of 3,599 seconds. This prevents hour-long Boosted Rest promotion but also excludes other hour-long/permanent harmful fallback effects. A live combat retest of both the prevention and any collateral visibility remains pending.
+**Open: bottom-tier harmful combat visibility.** Boosted Rest (1229451), Tricked or Treated (24755), and Tamed (19685/19686) now share one exact harmful tier at **priority 0**. A generic harmful fallback at level 175 can otherwise overpromote identity-restricted auras. The native max-duration filter of 3,599 seconds preserves Boosted Rest suppression there but also excludes other hour-long/permanent harmful fallback effects. A live combat retest of the combined tier and collateral visibility remains pending.
+
+**Open: PetFrame and party frame live behavior.** v0.1.174 gives the local pet the same full native aura-priority engine as player/target; v0.1.175 adds regular pooled party1–4. Simulated checks covered native binding, party recycle and restoration, but live combat/vehicle swap, pet identity, layout scales and aura access deserve verification. Raid-style party and party-pet portraits remain out of scope.
+
+**Open: Skyborne artwork quality.** v0.1.176 excludes low-resolution Skyborne raceicon artwork that appeared as a blue gradient. The new validated square atlas may still be absent or contain unsuitable art; the intended safe behavior is Blizzard's native portrait, not a fabricated Blood Elf face. Confirm visually in-game.
+
+**Planned, not implemented: secondary portrait.** The next feature would add a small Totem-style circle for the second distinct aura, falling back to race identity, and move race off the main portrait. This is an architectural feasibility project, **not** included in v0.1.178; see [the plan](docs/SECONDARY_PORTRAIT_PLAN.md). The current main race fallback has not yet been changed.
 
 **Open: new launch aura coverage.** Sapta Sight, Hunting Kobolds, Violet Flames, Rushing Charge, Savagery, Tamed Strigid Screecher, both Poised applied variants, and the helpful Frog Form transformation have passed classification tests, not a complete in-game cross-relation audit. Frog Form requires a helpful exact Control lane at 310; it must not be mislabeled a harmful Polymorph aura.
 
