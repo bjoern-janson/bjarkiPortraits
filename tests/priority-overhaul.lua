@@ -196,7 +196,8 @@ unique(25780,"Plainsrunning")
 for _,id in ipairs({24755,1229451,19685,19686}) do unique(id,"BoostedRest") end
 check(level("BoostedRest")==0,"absolute bottom tier includes passive harmful states")
 for _,id in ipairs({2383,2580,8387,8388}) do unique(id,"Gathering") end
-for _,id in ipairs({19883,5500,19885,6197}) do unique(id,"Tracking") end
+for _,id in ipairs({19883,5500,19885}) do unique(id,"Tracking") end
+for _,id in ipairs({1293681,6196,6197,126}) do unique(id,"BottomHelpful") end
 
 for _,obsolete in ipairs({
     "DivineProtection","RacialDefensive","ElementalShield",
