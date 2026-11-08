@@ -1538,7 +1538,14 @@ function R.UpdateHost(host, forceContainerRefresh)
     local assistable, assistReadable = R.SafeBool(
         UnitCanAssist, "player", host.unit, true, true
     )
-    host._hostileUnit = hostileRelationReadable and hostileUnit or nil
+    -- A readable friendly relation is *false*, not unknown. The historical
+    -- `readable and value or nil` idiom converts false into nil and prevented
+    -- every friendly unit from passing the secondary portrait relation gate.
+    if hostileRelationReadable then
+        host._hostileUnit = hostileUnit
+    else
+        host._hostileUnit = nil
+    end
     host._hostileRelationReadable = hostileRelationReadable
     host._hostilePlayer = hostilePlayer
     if playerReadable then host._isPlayer = isPlayer else host._isPlayer = nil end
@@ -1870,6 +1877,8 @@ function R.GetLayoutDebug(unit)
         .. " nativeRefresh=" .. tostring(host._nativeRefreshReason or "none")
         .. " existsReadable=" .. tostring(host._unitExistsReadable)
         .. " exists=" .. tostring(host._unitExists)
+        .. " hostileReadable=" .. tostring(host._hostileRelationReadable)
+        .. " hostile=" .. tostring(host._hostileUnit)
         .. " assistReadable=" .. tostring(host._assistReadable)
         .. " assist=" .. tostring(host._assistable)
         .. " ghost=" .. tostring(host._ghostActive) .. ":" .. tostring(host._ghostSource or "none")

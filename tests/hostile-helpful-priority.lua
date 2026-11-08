@@ -282,6 +282,55 @@ for _, mode in ipairs({ "disabled", "unit-disabled", "test-mode", "absent-unit" 
         for _, c in ipairs(h.containers) do equal(c.enabled, false, "inactive " .. c.tier.key) end
     end)
 end
+-- Actual UpdateHost regression: Lua's `readable and value or nil` drops a
+-- readable FALSE relation and makes secondary selection return relation-unreadable.
+run("friendly host retains readable false rather than unknown", function()
+    friendly = true
+    local h = host()
+    R.UpdateHost(h)
+    equal(h._hostileRelationReadable, true, "friendly relation has authoritative result")
+    equal(h._hostileUnit, false, "friendly relation remains false, never nil")
+    equal(h._assistable, true, "friendly assist witness stays true")
+end)
+run("hostile host retains readable true", function()
+    friendly = false
+    local h = host()
+    R.UpdateHost(h)
+    equal(h._hostileRelationReadable, true, "hostile relation has authoritative result")
+    equal(h._hostileUnit, true, "hostile relation remains true")
+    equal(h._assistable, false, "hostile assist witness stays false")
+end)
+run("unreadable hostility stays unknown, not friendly", function()
+    local original = UnitCanAssist
+    UnitCanAssist = function() return SECRET end
+    local h = host()
+    local ok, err = pcall(R.UpdateHost, h)
+    UnitCanAssist = original -- restore even when the modeled update fails
+    check(ok, "unknown relation update succeeds: " .. tostring(err))
+    if not ok then return end
+    equal(h._hostileRelationReadable, false, "unreadable relation is not certified")
+    equal(h._hostileUnit, nil, "unknown relation remains nil")
+    equal(h._assistable, nil, "unreadable assist is unknown")
+end)
+run("real host update permits the secondary reader on a friendly player", function()
+    friendly = true
+    helpful = { aura(467, 41), aura(1126, 42) }
+    for _, a in ipairs(helpful) do
+        a.isNameplateOnly = false
+        a.timeMod = 1
+    end
+    local h = host()
+    h.unit, h.unitFrame.unit = "player", "player"
+    R.UpdateHost(h)
+    equal(h._hostileUnit, false, "real player refresh records explicit friendly")
+    equal(h._assistable, true, "real player refresh records assistable")
+    -- Load secondary only AFTER UpdateHost: this test has no visual badge
+    -- widgets, so it tests the exact real relation gate and elected identity.
+    assert(loadfile("SecondaryPortrait.lua"))("bjarkiPortraits", BP)
+    local second, reason = R.GetReadableSecondaryAura(h)
+    equal(reason, "verified-readable", "friendly player reaches readable election")
+    equal(second and second.spellID, 1126, "Mark of the Wild is second to Thorns")
+end)
 for _, failure in ipairs(failures) do print("FAIL " .. failure) end
 assert(#failures == 0, "hostile helpful priority: " .. #failures .. " failed checks / "
     .. checks .. " checks in " .. cases .. " cases")

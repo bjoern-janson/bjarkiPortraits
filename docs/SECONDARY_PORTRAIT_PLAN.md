@@ -5,6 +5,16 @@
 **Proposed next development milestone:** `0.1.179-secondary-portrait-prototype` (working name, not a release).  
 **Source of visual direction:** 2026-11-08 in-game player-frame comparison: a tiny Blizzard Shaman Totem-like circular ring at the top corner of the main portrait.
 
+## Follow-up 0.1.182: preserve readable friendly relation (2026-11-08)
+
+**Observed:** The live `/bp layout player` output says `assistReadable=true assist=true`, `secondary=race`, and `secondReason=relation-unreadable`. Source inspection identified a precise contradiction in `AuraEngine.lua`: `host._hostileUnit = hostileRelationReadable and hostileUnit or nil`. In Lua this expression converts the valid, readable **false** result (friendly) into **nil** (unknown). As a result, the very first gate of `GetReadableSecondaryAura` rejects all friendly hosts, so the prior exact-tier fixes could not take effect in game.
+
+**Fix:** Assign `host._hostileUnit` through an explicit conditional: true for readable hostile, false for readable friendly, nil only when relation unavailable. Leave `R.HostileUnitState` and the native priority system intact. Expose `hostileReadable` and `hostile` in `/bp layout` alongside existing assist diagnostics. Add actual `R.UpdateHost` regression coverage for all three relation states and one friendly two-aura election. Keep ToT/ToF/PetFrame badge exclusions.
+
+**Verification boundary:** Offline regression covers modeled APIs and source logic. Live in-game evidence of a second icon is **not yet established** after this correction; if the next `secondReason` differs, investigate that specific downstream gate rather than guessing. Do not bypass unreadable combat aura restrictions.
+
+---
+
 ## Follow-up 0.1.181: exact-tier evidence and ToT/ToF opt-out (2026-11-08)
 
 A second live report found the aura badge still falling back to race. Source inspection identified a **false-negative path**, not a proven singular live cause: 0.1.180 asks the native `IsAuraFilteredOutByInstanceID` oracle to approve every candidate, including an exact known helpful/harmful aura whose membership is already witnessed by a **completed indexed native polarity scan**. In restricted contexts the extra call may be unavailable even when the indexed record, current instance ID and applied spell ID are readable.
