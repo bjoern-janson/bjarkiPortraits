@@ -206,7 +206,7 @@ for _,mode in ipairs({"absent","secret-exists","not-player","secret-player","dea
         elseif mode=="secret-dead" then s.dead.target=SECRET
         elseif mode=="not-warrior" then s.classes.target="DRUID"
         elseif mode=="secret-class" then s.classes.target=SECRET
-        elseif mode=="unsupported-token" then unit="party1" end
+        elseif mode=="unsupported-token" then unit="raid1" end
         eq(s:resolve(unit).spellID,nil); eq(#s.queries,0,"ineligible cannot probe")
     end)
 end
@@ -359,7 +359,7 @@ test("secret and irrelevant event units cannot enter stance work",function()
     for _,f in ipairs(s.frames) do
         if type(f.events.UNIT_FORM_CHANGED)=="table" then
             f.callback(f,"UNIT_FORM_CHANGED",SECRET)
-            f.callback(f,"UNIT_FORM_CHANGED","party1")
+            f.callback(f,"UNIT_FORM_CHANGED","raid1")
         end
     end
     eq(#s.queries,0); eq(s.formCalls,0); eq(#s.timers,0)
