@@ -150,12 +150,43 @@ local function inspectAuras(option)
     end
 end
 
+-- Compact, non-mutating evidence summary. The full /bp layout dump can
+-- be cut off by the game chat window; this prints the actual stored election
+-- reason without reading protected native aura buttons or forcing a refresh.
+local function debugSecondary(option)
+    local unit = ({player="player", target="target", focus="focus",
+        party1="party1", party2="party2", party3="party3", party4="party4"})
+        [option == "" and "target" or option]
+    if not unit then
+        R.Print("usage: /bp secondary debug [player|target|focus|party1-4]")
+        return
+    end
+    local host = R.hosts and R.hosts[unit]
+    if not host then
+        R.Print("second " .. unit .. " host=absent version=" .. R.VERSION)
+        return
+    end
+    R.Print("second " .. unit
+        .. " mode=" .. tostring(host._secondaryMode or "hidden")
+        .. " id=" .. tostring(host._secondaryAuraSpellID or "none")
+        .. " tier=" .. tostring(host._secondaryAuraTier or "none")
+        .. " reason=" .. tostring(host._secondaryElectionReason or "none"))
+    R.Print("evidence hostile=" .. tostring(host._hostileUnit)
+        .. " player=" .. tostring(host._isPlayer)
+        .. " playerReadable=" .. tostring(host._playerReadable)
+        .. " assist=" .. tostring(host._assistable)
+        .. " hList=" .. tostring(host._hostileAuraListComplete)
+        .. " hCount=" .. tostring(host._hostileCount)
+        .. " nativeHarm=" .. tostring(host._exactHarmfulAllowed)
+        .. " writes=" .. tostring(host._containerWriteFailures or 0))
+end
+
 SLASH_BJARKIPORTRAITS1 = "/bp"
 SLASH_BJARKIPORTRAITS2 = "/bjarkiportraits"
 SlashCmdList.BJARKIPORTRAITS = function(message)
     local command, option, detail = (message or ""):lower():match("^%s*(%S*)%s*(%S*)%s*(%S*)")
     if command == "" or command == "help" then
-        R.Print("/bp or /bjarkiportraits test | on | off | player | pet | party1-4 | target | focus | tot | fot | swipe | decimals | secondary [on|off] | pets [status|on|off|debug [unit]] | geometry [unit] | layout [unit] | inspect [unit] | stance [player|target|focus|tot|tof] | debug | audit | reset")
+        R.Print("/bp or /bjarkiportraits test | on | off | player | pet | party1-4 | target | focus | tot | fot | swipe | decimals | secondary [on|off|debug [unit]] | pets [status|on|off|debug [unit]] | geometry [unit] | layout [unit] | inspect [unit] | stance [player|target|focus|tot|tof] | debug | audit | reset")
     elseif command == "test" then
         R.testMode = not R.testMode
         R.RefreshAll()
@@ -178,11 +209,14 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
     elseif command == "fot" or command == "focustarget" then
         setToggle("focustarget", not R.db.focustarget); R.Print("focustarget " .. tostring(R.db.focustarget))
     elseif command == "secondary" then
-        if option == "on" or option == "off" then
+        if option == "debug" then
+            debugSecondary(detail)
+            return
+        elseif option == "on" or option == "off" then
             R.db.secondaryPortrait = option == "on"
             R.RefreshAll()
         elseif option ~= "" then
-            R.Print("usage: /bp secondary [on|off]"); return
+            R.Print("usage: /bp secondary [on|off|debug [unit]]"); return
         end
         R.Print("secondary circle " .. (R.db.secondaryPortrait ~= false and "on" or "off")
             .. " (real runner-up only with complete readable evidence; otherwise race/hidden; /bp test previews)")

@@ -2,7 +2,7 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.188-npc-secondary-harmful-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
+**Experimental branch:** `0.1.189-public-filter-evidence-test` (2026-11-08), built on 0.1.178. This is a **readable-aura test build**, not a guaranteed all-unit/all-combat two-winner implementation. Live client artwork, layering, native filter support and secrecy transitions need verification.
 
 ## Install
 
@@ -16,7 +16,9 @@ Native unit-frame chrome and spell icons remain the visual foundation. **The mai
 
 **PetFrame icon edge cleanup (0.1.186):** The local 37px pet portrait uses a tighter `3/64` source-image crop (previously `1/64`) to keep a square spell-icon rim from peeking through the top of its round aperture. This applies to both pet-family fallback artwork and every aura layer via one shared function. The circular Blizzard bezel, portrait image position, and all other frame crops remain unchanged. Verify the visual result on different pets in game.
 
-**NPC secondary debuffs (0.1.188):** Hostile NPCs on Target or Focus can now use the small circle when a complete, readable public aura snapshot contains two distinct, rankable harmful effects and the projected first-place native harmful slot is positively enabled. This covers categorized harmful effects such as Hamstring > Rend and, where higher semantic filters are readable, the existing generic harmful fallback. The NPC path requires positively proven **non-player** identity, a complete empty helpful list, and successful native slot writes. It is **not** granted to hostile players, and does **not** read a forbidden native winner. A creature with fewer than two eligible auras (or unreadable data) has **no made-up race or creature icon**; its second circle remains hidden.
+**NPC secondary debuffs (0.1.188–0.1.189):** Hostile NPCs on Target or Focus can now use the small circle when a complete, readable public aura snapshot contains two distinct, rankable harmful effects and the projected first-place native harmful slot is positively enabled. This covers categorized harmful effects such as Hamstring > Rend and, where higher semantic filters are readable, the existing generic harmful fallback. The NPC path requires positively proven **non-player** identity, complete helpful and harmful lists, and successful native slot writes. A lower-priority helpful aura no longer vetoes a harmful first-place effect; all present auras must still be ranked and the harmful native main slot positively enabled. It is **not** granted to hostile players, and does **not** read a forbidden native winner. A creature with fewer than two eligible auras (or unreadable data) has **no made-up race or creature icon**; its second circle remains hidden.
+
+**Ordinary native-filter proof (0.1.189):** Some publicly readable auras lack the optional `isNameplateOnly` field. When that field and the per-instance native filter oracle cannot decide whether an aura belongs to a plain HELPFUL/HARMFUL exact lane, the secondary election uses one **bounded same-polarity public indexed scan** to establish matching current `auraInstanceID + spellId`. A positive ordinary filtered membership is sufficient; inaccessible, duplicate and contradictory identity stays unknown. This does **not** bypass combat secrecy or infer unseen auras. Use `/bp secondary debug player` or `/bp secondary debug target` for a concise two-line current election reason without refreshing the portrait.
 
 ## Current priority examples
 

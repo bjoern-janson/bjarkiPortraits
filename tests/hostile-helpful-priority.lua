@@ -393,6 +393,53 @@ run("hostile NPC harmful primary enables a second portrait candidate", function(
     UnitIsPlayer = originalIsPlayer
     if not ok then error(err) end
 end)
+-- A real host can have a complete public HELPFUL stream while each aura
+-- omits the optional isNameplateOnly flag. The plain HELPFUL indexed list
+-- proves ordinary exact membership without the restricted instance oracle.
+run("real player accepts complete plain filtered auras without optional flag", function()
+    friendly = true
+    helpful = { aura(467, 41), aura(1126, 42) }
+    for _, buff in ipairs(helpful) do buff.timeMod = 1 end
+    local h = host()
+    h.unit, h.unitFrame.unit = "player", "player"
+    R.UpdateHost(h)
+    if not R.GetReadableSecondaryAura then
+        assert(loadfile("SecondaryPortrait.lua"))("bjarkiPortraits", BP)
+    end
+    local second, reason = R.GetReadableSecondaryAura(h)
+    equal(reason, "verified-readable", "public ordinary HELPFUL membership proves exact owner")
+    equal(second and second.spellID, 1126, "Mark of the Wild ranks second to Thorns")
+end)
+
+-- A hostile NPC may have a low informational HELPFUL aura alongside
+-- two damaging debuffs. The complete combined public ranking can still
+-- establish a harmful main slot without falsely requiring zero helpful auras.
+run("real hostile NPC with lower helpful aura permits harmful second", function()
+    local originalIsPlayer = UnitIsPlayer
+    UnitIsPlayer = function() return false end
+    local ok, err = pcall(function()
+        friendly, controlled = false, false
+        helpful = { aura(1283391, 9, 60) }
+        harmful = { aura(772, 24), aura(1715, 28) }
+        for _, buff in ipairs(helpful) do buff.timeMod = 1 end
+        for _, debuff in ipairs(harmful) do debuff.timeMod = 1 end
+        local h = host()
+        R.UpdateHost(h)
+        equal(h._hostileUnit, true, "hostile relation was proven")
+        equal(h._isPlayer, false, "NPC non-player identity was proven")
+        equal(h._hostileCount, 1, "helpful list genuinely contains lower aura")
+        equal(native(h, "Slows").enabled, true, "high native harmful slot eligible")
+        if not R.GetReadableSecondaryAura then
+            assert(loadfile("SecondaryPortrait.lua"))("bjarkiPortraits", BP)
+        end
+        local second, reason = R.GetReadableSecondaryAura(h)
+        equal(reason, "npc-readable-harmful-projection",
+            "public mixed aura list can prove a harmful-first NPC")
+        equal(second and second.spellID, 772, "Rend is second beneath Hamstring")
+    end)
+    UnitIsPlayer = originalIsPlayer
+    if not ok then error(err) end
+end)
 for _, failure in ipairs(failures) do print("FAIL " .. failure) end
 assert(#failures == 0, "hostile helpful priority: " .. #failures .. " failed checks / "
     .. checks .. " checks in " .. cases .. " cases")

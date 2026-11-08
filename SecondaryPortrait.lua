@@ -372,6 +372,60 @@ table.sort(rankTiers, function(a, b)
     return a.index < b.index
 end)
 
+-- Some Forever AuraData expose the instance/spell IDs but omit the optional
+-- isNameplateOnly boolean. The inclusive indexed scan alone cannot certify
+-- membership in a plain HELPFUL/HARMFUL exact lane. Rather than relying on a
+-- separate (sometimes inaccessible) native identity-filter oracle, ask the
+-- *public* plain-polarity indexed list. A matching current occurrence is
+-- positive native membership evidence. Cache at most one bounded list per
+-- polarity for this reconciliation, never across unit/aura events.
+local function plainPolarityMembership(unit, candidate, cache)
+    if not C_UnitAuras or type(C_UnitAuras.GetAuraDataByIndex) ~= "function" then
+        return nil
+    end
+    local polarity = candidate.helpful and "HELPFUL" or "HARMFUL"
+    cache.plainMembership = cache.plainMembership or {}
+    local state = cache.plainMembership[polarity]
+    if not state then
+        state = {byInstance={}, complete=false, valid=true}
+        cache.plainMembership[polarity] = state
+        for index = 1, AURA_SCAN_LIMIT do
+            local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, polarity)
+            if not ok or not R.CanAccess(aura) then
+                state.valid = false
+                break
+            end
+            if aura == nil then
+                state.complete = true
+                break
+            end
+            local id, idKnown = read(aura, "auraInstanceID")
+            local spellID, spellKnown = read(aura, "spellId")
+            if not idKnown or not spellKnown or type(id) ~= "number"
+                or id <= 0 or type(spellID) ~= "number" then
+                state.valid = false
+                break
+            end
+            if state.byInstance[id] ~= nil then
+                -- A reused occurrence ID with a contradictory source entry
+                -- cannot be admitted as a positive membership witness.
+                state.byInstance = {}
+                state.valid = false
+                break
+            end
+            state.byInstance[id] = spellID
+        end
+    end
+    -- A matched positive is enough to prove membership; a missing entry is
+    -- negative evidence ONLY if the entire list was readable and terminated.
+    local matched = state.byInstance[candidate.auraInstanceID]
+    if matched ~= nil then
+        return matched == candidate.spellID and true or nil
+    end
+    if state.valid and state.complete then return false end
+    return nil
+end
+
 local function candidateRank(host, candidate, cache)
     local winner, tied = nil, false
     for _, entry in ipairs(rankTiers) do
@@ -435,6 +489,12 @@ local function candidateRank(host, candidate, cache)
                 local yes
                 if tier.exact then
                     yes = exactFilterProven(candidate, tier)
+                    -- In clients where isNameplateOnly is omitted, use a
+                    -- same-polarity public filter to establish the exact ID.
+                    if yes == nil and (tier.filter == "HELPFUL"
+                        or tier.filter == "HARMFUL") then
+                        yes = plainPolarityMembership(host.unit, candidate, cache)
+                    end
                 elseif tier.key == "SmallFriendlyHarmful"
                     and not candidate.helpful
                     and tier.filter == "HARMFUL|INCLUDE_NAME_PLATE_ONLY" then
@@ -502,22 +562,20 @@ function R.GetReadableSecondaryAura(host)
         if host._hostileRelationReadable ~= true then
             return nil, "hostile-relation-unreadable"
         end
-        -- Hostile PLAYER units still require the previously verified main
-        -- helpful aura/form. NPCs can sometimes expose complete harmful
-        -- candidates even with no eligible helpful main; use a separate,
-        -- narrowly checked native-exact harmful projection for that case.
+        -- Hostile PLAYER units still need the independently verified
+        -- helpful/form primary. An identified NPC may have both helpful and
+        -- harmful public auras; only after ranking the *entire* complete
+        -- snapshot can we determine whether the first aura is harmful.
         if host._hostileAuraListComplete ~= true or
             host._hostileElectionReadable ~= true then
             return nil, "hostile-list-unreadable"
         end
-        if not host._hostileActive and not host._formStateActive then
-            npcHarmfulProjection = (host.unit == "target" or host.unit == "focus")
-                and host._playerReadable == true and host._isPlayer == false
-                and host._hostileCount == 0
-                and host._exactHarmfulAllowed == true
-            if not npcHarmfulProjection then
-                return nil, "hostile-primary-unverified"
-            end
+        npcHarmfulProjection = (host.unit == "target" or host.unit == "focus")
+            and host._playerReadable == true and host._isPlayer == false
+            and host._exactHarmfulAllowed == true
+        if not npcHarmfulProjection and not host._hostileActive
+            and not host._formStateActive then
+            return nil, "hostile-primary-unverified"
         end
     elseif host._assistable ~= true then
         return nil, "assist-unreadable"
@@ -538,14 +596,9 @@ function R.GetReadableSecondaryAura(host)
     if (host._containerWriteFailures or 0) ~= 0 then return nil, "native-update-failed" end
     local current, reason = collectCurrentAuras(host.unit)
     if not current then return nil, reason end
-    if npcHarmfulProjection then
-        -- A hostile NPC with any helpful candidate could have a separately
-        -- drawn helpful winner. Require a completely HARMFUL-only public list
-        -- when the main helper supplied no positive aura/form identity.
-        for _, candidate in ipairs(current) do
-            if candidate.helpful then return nil, "npc-mixed-polarity-unverified" end
-        end
-    end
+    -- Rank the complete public union, including any NPC helpful auras.
+    -- A harmful first-place projection is permitted only when it outranks
+    -- every helpful candidate and its corresponding native slot is enabled.
     local ranked, cache = {}, {probes=0}
     for _, candidate in ipairs(current) do
         local tier, why = candidateRank(host, candidate, cache)
@@ -613,7 +666,7 @@ function R.GetReadableSecondaryAura(host)
         and primary.auraInstanceID == second.auraInstanceID then
         return nil, "duplicate-aura"
     end
-    if npcHarmfulProjection then
+    if npcHarmfulProjection and not primary.helpful then
         -- A hostile NPC's primary harmful winner may be drawn by a native
         -- exact slot *or* the existing identity-blind SmallFriendlyHarmful
         -- fallback. Both use filters whose eligibility was checked against

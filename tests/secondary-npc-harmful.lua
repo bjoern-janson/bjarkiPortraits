@@ -137,15 +137,19 @@ eq(reason,'npc-native-slot-unreadable','disabled main slot diagnostic')
 h=host();h._containerWriteFailures=1
 selected,reason=R.GetReadableSecondaryAura(h)
 eq(reason,'native-update-failed','write failure blocks NPC projection')
--- Helpful identity on an NPC can still be primary. Without a positively
--- displayed helpful-main witness, the harmful-only path must not guess.
+-- A harmless, lower-level helpful aura on an NPC does not invalidate the
+-- complete harmful-first projection. Check *all* auras before deciding.
 h=host();h._hostileCount=1
-contents.helpful={aura(1126,12)}
+contents.helpful={aura(1126,12)} -- BaselineClass 90 below Slows 278 / DoTs 190
 selected,reason=R.GetReadableSecondaryAura(h)
-eq(reason,'hostile-primary-unverified','NPC helpful candidate invalidates harm-only mode')
-h._hostileCount=0
+eq(reason,'npc-readable-harmful-projection','lower helpful NPC aura cannot veto stronger harmful main')
+eq(selected and selected.spellID,772,'Rend stays second beneath Hamstring')
+-- If helpful Immunity 330 becomes the real first-place candidate, do NOT
+-- falsely claim that a harmful native slot is the main portrait.
+contents.helpful={aura(642,13)}
 selected,reason=R.GetReadableSecondaryAura(h)
-eq(reason,'npc-mixed-polarity-unverified','mixed public polarity blocks unproved primary')
+eq(reason,'hostile-primary-unverified','higher helpful main requires its own direct witness')
+eq(selected,nil,'unproven helpful main never yields second harmful')
 contents.helpful={}
 -- A restricted aura list is unknown, even on an otherwise proven NPC.
 h=host(); secretRead=true

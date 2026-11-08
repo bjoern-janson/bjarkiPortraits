@@ -1,9 +1,23 @@
 # Secondary portrait: two aura priorities + race identity
 
-**Status:** P1 outer badge layout and P2 bounded readable election through v0.1.188 (including hostile NPC harmful-only); universally secure cross-tier runner-up remains unavailable  
+**Status:** P1 outer badge layout and P2 bounded readable election through v0.1.189 (ordinary filtered proof + mixed NPC support); universally secure cross-tier runner-up remains unavailable  
 **Baseline:** `0.1.178-bottom-harmful-consolidation-test` (2026-11-08).  
 **Proposed next development milestone:** `0.1.179-secondary-portrait-prototype` (working name, not a release).  
 **Source of visual direction:** 2026-11-08 in-game player-frame comparison: a tiny Blizzard Shaman Totem-like circular ring at the top corner of the main portrait.
+
+## Follow-up 0.1.189: public exact membership proof; NPC mixed-aura ranking (2026-11-08)
+
+**Live feedback:** After 0.1.188, a friendly target and the player showed race fallback, and a hostile NPC with two harmful icons still lacked a secondary badge. These screenshots do **not** expose the actual `secondReason` and cannot establish a single shared runtime cause.
+
+**Confirmed independent flaw:** The readable top-two algorithm obtains a complete `HELPFUL|INCLUDE_NAME_PLATE_ONLY` / `HARMFUL|INCLUDE_NAME_PLATE_ONLY` public list. For ordinary HELPFUL/HARMFUL exact lanes it then required an optional `isNameplateOnly=false` field, or `IsAuraFilteredOutByInstanceID`, which may be inaccessible to untrusted addon Lua. Neither is necessary to prove **positive membership** if the same current `auraInstanceID + spellId` is also visible in the **plain native polarity** list. Version 0.1.189 performs at most **one extra 48-entry public scan per polarity per election**, and only when an exact candidate's optional field is unavailable. Repeated IDs, contradictory spell identity, filter errors or nonterminating scans cannot authorize absent entries. A positive match can authorize that one exact candidate; an incomplete scan cannot prove its absence. This does not create a secure global runner-up or bypass secrets.
+
+**NPC gate correction:** An NPC can carry low-level beneficial effects and still have a harmful aura as its highest-priority presentation. Requiring a totally empty HELPFUL list was unnecessary. The updated NPC path requires *both complete polarities*, positive non-player identity and native harmful permission, then ranks the full candidate union. It permits the harmful-first projection only when the highest projected effect is actually harmful and its native slot is enabled; if a helpful effect leads and lacks a verified primary, the badge remains hidden. Hostile players are unchanged.
+
+**Diagnostics:** `/bp secondary debug target` and `/bp secondary debug player` emit two short non-mutating lines: current badge mode, selected ID/tier, `secondReason`, and saved relation/player/helpful-list/native-write flags. Unlike the long `/bp layout` output, they remain readable in the game chat window. No protected native aura button is read by the command.
+
+**Tests and boundary:** Regression tests show 0.1.188 fails the ordinary-filter proof fixture and 0.1.189 passes it. Other fixtures cover nameplate-only denial, duplicate IDs, inaccessible ordinary filters, mixed NPC with a stronger harmful primary, and a genuinely higher helpful primary that stays fail-closed. Existing priority numbers and the native main portrait are untouched. If live `secondReason` still indicates `inaccessible-index`, `hostile-list-unreadable`, `native-filter-unreadable` or a secret-value restriction, the correct next step is to identify which evidence is missing; do not display an unverified or stale second aura.
+
+---
 
 ## Follow-up 0.1.188: harmful-only hostile NPCs (2026-11-08)
 
