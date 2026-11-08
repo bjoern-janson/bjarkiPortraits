@@ -194,7 +194,7 @@ eq(st.guid,"Pet-Third","restored pet has correct identity")
 eq(st.art,920026,"restored pet has correct family")
 
 -- No fake pet portrait for a wild creature, minion/totem or unknown family.
-actor.kind="wild"
+actor.kind="wild"; actor.guid="Creature-Wild"
 R.UpdatePetSecondaryFallback(h,true)
 eq(st.root.shown,false,"wild beast never receives player pet fallback")
 actor.kind="totem"
