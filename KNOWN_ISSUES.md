@@ -1,3 +1,25 @@
+## 2026-11-08: v0.1.192 screenshot follow-up (live verification pending)
+
+- **Boosted Rest on entering combat:** The exact harmful relation gate
+  excluded a current, positively readable Boosted Rest from the secondary
+  election unless Ghost was primary. 0.1.192 removes that special dependency
+  for a complete, public, verified friendly aura union. Native priority 0,
+  first-place selection, and ordinary HARMFUL membership proof are unchanged.
+  A genuinely inaccessible current combat snapshot still fails closed or
+  uses the previously bounded, positive secondary hold; it is not treated as
+  evidence of an aura.
+- **NPC with two visible debuffs but no second circle:** A verified generic
+  native harmful slot may now admit the hostile non-player projection even
+  when broad exact harmful permission is unavailable. This does **not**
+  demonstrate that combat aura identities or private native winner contents
+  are readable on that creature; all final positive slot checks remain.
+- **Status:** Source/model regressions are added, but this actual Forever
+  combat transition and Rockhide Boar have not yet been retested in-game on
+  0.1.192. Use `/bp secondary debug player` and
+  `/bp secondary debug target` at the failure moment to distinguish
+  `native-filter-unreadable`, `hostile-list-unreadable`,
+  `npc-native-slot-unreadable`, and `not-two-presentable`.
+
 # Known issues and bugs
 
 **0.1.191 Ghost-first secondary aura (2026-11-08):** Live `/bp secondary debug player` while dead showed `secondReason=static-ghost-witness` despite Ghost owning the large portrait and Boosted Rest (42 minutes) appearing in the native debuff row. `SecondaryPortrait.GetReadableSecondaryAura` previously returned immediately on `_ghostActive`, preventing every lower effect from being considered. The new Ghost-first path requires the existing static main Ghost presenter to be positively established from a current `UnitIsGhost` witness or an observed Ghost aura, ranks it at the *existing* Immunity+2 presentation level, removes redundant Ghost aura IDs from the lower candidate list, and allows a **publicly readable** exact priority-0 Boosted Rest occurrence to become second. A Ghost-only unit shows the race/hidden fallback; missing identity or incomplete public aura data still fails closed. Ghost/Waiting-to-Resurrect equal-level ties remain unknown. No change to numerical aura tiers or native main portrait. `tests/secondary-ghost-state.lua` and `tests/secondary-ghost-real-host.lua` cover both real spell mappings and the actual `R.UpdateHost` path. Live-client behavior when harmful aura data becomes restricted remains to be verified.
