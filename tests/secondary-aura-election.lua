@@ -75,6 +75,83 @@ eq(host.racePortrait.texture,1102,'second aura icon shown')
 eq(host.secondaryCooldown.duration,10,'native timer configured')
 eq(host.secondaryBadge.shown,true,'badge visible above native')
 eq(host._secondaryElectionReason,'verified-readable','reason reports positive election')
+-- Combat may seal the public aura list without changing an existing aura.
+-- A previously verified, timed secondary remains only until the first actual
+-- UNIT_AURA event, its observed expiration, or a different unit binding.
+local combat, clock, expiryCallbacks = false, 100, {}
+InCombatLockdown=function() return combat end
+GetTime=function() return clock end
+C_Timer={After=function(delay, callback)
+    expiryCallbacks[#expiryCallbacks+1]={delay=delay,callback=callback}
+end}
+R.hosts={player=host}
+local readableIndex=C_UnitAuras.GetAuraDataByIndex
+local function sealIndex() error('model combat aura secrecy') end
+combat=true
+C_UnitAuras.GetAuraDataByIndex=sealIndex
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryMode,'aura','combat entry retains earlier positive without mutation')
+eq(host._secondaryAuraSpellID,102,'held aura retains original identity')
+eq(host._secondaryElectionReason,'combat-positive-retained:inaccessible-index',
+    'diagnostic identifies unconfirmed combat retention')
+eq(#expiryCallbacks,1,'one expiry timer only when retention begins')
+eq(expiryCallbacks[1].delay,10,'expiry timer uses the actual aura clock')
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(#expiryCallbacks,1,'no repeated retention timers on event bursts')
+R.NoteSecondaryAuraEvent('player')
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryMode,'race','unreadable actual aura change revokes retained icon')
+eq(host._secondaryAuraSpellID,nil,'revoked aura identity is cleared')
+-- The old timer must never clear an unrelated/new election.
+C_UnitAuras.GetAuraDataByIndex=readableIndex
+combat=false
+setAuras('player',{aura(101,61,106,6),aura(102,62,106,6)})
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryAuraSpellID,102,'new positive after previous aura event')
+expiryCallbacks[1].callback()
+eq(host._secondaryMode,'aura','stale old one-shot timer cannot revoke new positive')
+combat=true
+C_UnitAuras.GetAuraDataByIndex=sealIndex
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(#expiryCallbacks,2,'new positive has one independent expiry timer')
+R.Refresh=function(unit)
+    eq(unit,'player','expiry timer refresh is scoped to player')
+    R.ReconcileSecondaryPortrait(host,true,true)
+end
+clock=107
+expiryCallbacks[2].callback()
+eq(host._secondaryMode,'race','expired combat-held positive is not shown forever')
+eq(host._secondaryAuraSpellID,nil,'expired positive identity cleared')
+C_UnitAuras.GetAuraDataByIndex=readableIndex
+combat=false
+-- Without a usable current GUID, a recycled nonplayer unit must NEVER keep
+-- a stale portrait across combat. ToT and ToF have no badge at all.
+local other=makeHost(); other.unit='target'
+setAuras('target',{aura(101,71,120,20),aura(102,72,120,20)})
+R.ReconcileSecondaryPortrait(other,true,false)
+eq(other._secondaryMode,'aura','target verified before combat')
+combat=true
+C_UnitAuras.GetAuraDataByIndex=sealIndex
+R.ReconcileSecondaryPortrait(other,true,false)
+eq(other._secondaryMode ~= 'aura',true,'target without confirmed GUID cannot retain aura')
+C_UnitAuras.GetAuraDataByIndex=readableIndex
+combat=false
+local liveGUID = 'Creature-verified-one'
+UnitGUID=function() return liveGUID end
+setAuras('target',{aura(101,73,140,40),aura(102,74,140,40)})
+R.ReconcileSecondaryPortrait(other,true,false)
+eq(other._secondaryPositiveGUID,liveGUID,'positive target tracks readable current GUID')
+combat=true
+C_UnitAuras.GetAuraDataByIndex=sealIndex
+R.hosts.target=other
+R.ReconcileSecondaryPortrait(other,true,false)
+eq(other._secondaryMode,'aura','target retains with matching current GUID')
+liveGUID='Creature-new-occupant'
+R.ReconcileSecondaryPortrait(other,true,false)
+eq(other._secondaryMode ~= 'aura',true,'changed target GUID revokes cached effect')
+C_UnitAuras.GetAuraDataByIndex=readableIndex
+combat=false
+UnitGUID=nil
 -- Exact spell membership is already proven by the full indexed polarity scan.
 -- The separate native filter oracle can fail or be absent for addon callers.
 -- Its failure must not prevent an otherwise fully readable exact-aura pair.

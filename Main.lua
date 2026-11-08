@@ -237,6 +237,7 @@ local function installUnitStateEvents(unitA, unitB)
                 queueRefresh(token, nil, snapshotNeeded[token])
             end
         elseif event == "UNIT_AURA" then
+            if R.NoteSecondaryAuraEvent then R.NoteSecondaryAuraEvent(unit) end
             if R.PublishAuraEvent then R.PublishAuraEvent(unit, updateInfo) end
             R.Refresh(unit)
             -- A completed binding can still gain readable timing or a new

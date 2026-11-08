@@ -5,6 +5,17 @@
 **Proposed next development milestone:** `0.1.179-secondary-portrait-prototype` (working name, not a release).  
 **Source of visual direction:** 2026-11-08 in-game player-frame comparison: a tiny Blizzard Shaman Totem-like circular ring at the top corner of the main portrait.
 
+## Follow-up 0.1.184: outer top corners and last-positive combat transition (2026-11-08)
+
+Live screenshots showed the small badge colliding with the rested-Z and party-leader regions and switching back to the race when combat restricted the aura API. Badge orientation is now outward: player/party top-left, target/focus top-right, with a five-unit inset toward the portrait to prevent screen clipping. ToT/ToF and pet remain excluded.
+
+**Combat policy:** when a previously displayed, verified, timed secondary aura becomes unreadable solely because a combat refresh cannot access the current list, retain that last positive only while the host is still eligible, combat is positively established, no UNIT_AURA event has invalidated the ranking, the original expiration has not elapsed, and (on target/focus/party) the current positively readable GUID matches. A single C_Timer.After callback revokes the evidence at expiry; a generation token prevents an older timer from clearing a new aura. The first actual aura-change event revokes the hold unless a complete current election succeeds. No polling, new tier, private winner read, or duplicated secure aura stack.
+
+The diagnostic `secondReason=combat-positive-retained:<read failure>` identifies this temporary last-positive state. It is not evidence of a newly verified second-place aura during combat, and cannot guarantee permanent/secret effects. If the client conceals visibility, identity, native writes or the aura changes, race/hidden remains correct.
+
+**Acceptance tests:** outer-corner mirroring on player/target/focus/party; held positive on sealed combat entry; first UNIT_AURA invalidation; one-shot expiration; generation-safe old timers; target GUID mismatch; no persistent cache for permanent auras; baseline player/target priority and ToT/ToF opt-outs unchanged. Live screenshots remain required.
+
+---
 ## Follow-up 0.1.183: verified hostile-target and stance-first selection (2026-11-08)
 
 The next live screenshot confirmed a working player secondary aura but exposed a missing target case with **Camp Benefits**. The 0.1.182 reader rejected every `host._hostileUnit=true` target before scanning, even though `AuraEngine.updateReadableHostile` already supports publicly readable hostile HELPFUL auras. Some targets additionally have a positively displayed Warrior/Druid form witness above their ordinary camp status.

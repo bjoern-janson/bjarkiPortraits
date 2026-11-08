@@ -18,8 +18,12 @@ local function supportsSecondary(host)
     return host and SECONDARY_UNITS[host.unit] == true
 end
 
+-- The secondary badge lives on the OUTER top edge. The inner edge is
+-- reserved for native rested Zs, party-leader/raid-role indicators and bars.
+-- Player and regular party health bars extend right; target/focus extend left.
 local MIRROR_LEFT = {
-    target = true, focus = true,
+    player = true, party1 = true, party2 = true, party3 = true,
+    party4 = true,
 }
 local STRATA_ABOVE = {
     BACKGROUND = "LOW", LOW = "MEDIUM", MEDIUM = "HIGH", HIGH = "DIALOG",
@@ -48,6 +52,14 @@ local function clearSecondaryAura(host)
     host._secondaryAuraInstanceID = nil
     host._secondaryAuraSpellID = nil
     host._secondaryAuraTier = nil
+    -- A retained positive belongs only to the exact unit/instance and ends
+    -- on the next aura event or known expiration. A previous one-shot expiry
+    -- callback must not affect the next candidate.
+    host._secondaryPositiveGeneration = (host._secondaryPositiveGeneration or 0) + 1
+    host._secondaryPositiveExpiry = nil
+    host._secondaryPositiveGUID = nil
+    host._secondaryAuraEventDirty = nil
+    host._secondaryExpiryTimerGeneration = nil
     clearSecondaryCooldown(host)
 end
 
@@ -121,8 +133,12 @@ function R.CreateSecondaryPortrait(host, nativeStrata)
         end
         badge:SetFrameLevel(nativeLevel + 12)
         badge:EnableMouse(false)
-        local side = MIRROR_LEFT[host.unit] and "TOPLEFT" or "TOPRIGHT"
-        badge:SetPoint("CENTER", host.portrait, side, 0, compact and 2 or 0)
+        local outwardLeft = MIRROR_LEFT[host.unit] == true
+        local side = outwardLeft and "TOPLEFT" or "TOPRIGHT"
+        -- Tuck the badge's centre in by 5px so a near-edge PlayerFrame
+        -- does not clip the circular border off the monitor.
+        badge:SetPoint("CENTER", host.portrait, side,
+            outwardLeft and 5 or -5, compact and 2 or 0)
 
         local icon = badge._bjarkiIcon
         if not icon then
@@ -584,8 +600,95 @@ local function showSecondaryAura(host, candidate)
     host._secondaryAuraInstanceID = candidate.auraInstanceID
     host._secondaryAuraSpellID = candidate.spellID
     host._secondaryAuraTier = candidate.tier.key
+    host._secondaryPositiveGeneration = (host._secondaryPositiveGeneration or 0) + 1
+    -- Only a timed positive has a clock that can bound temporary retention.
+    -- A permanent/unreadable lifetime is never kept on old evidence alone.
+    host._secondaryPositiveExpiry = duration > 0 and expiration or nil
+    host._secondaryAuraEventDirty = false
+    host._secondaryExpiryTimerGeneration = nil
+    host._secondaryPositiveGUID = nil
+    if host.unit ~= "player" and type(UnitGUID) == "function" then
+        local guidOK, guid = pcall(UnitGUID, host.unit)
+        if guidOK and R.CanAccess(guid) and type(guid) == "string" and guid ~= "" then
+            host._secondaryPositiveGUID = guid
+        end
+    end
     host._raceBaselineAtlas, host._raceBaselineActive = nil, false
     host._raceBaselineReason = "secondary-aura"
+    return true
+end
+
+-- This event is not a negative observation about every buff, but if combat
+-- seals the new aura list, we can no longer prove the cached *ranking* after
+-- ANY UNIT_AURA change. Revoke that temporary trust until a new full election.
+-- Call before the normal UNIT_AURA host refresh, not after it.
+function R.NoteSecondaryAuraEvent(unit)
+    if not SECONDARY_UNITS[unit] then return end
+    local host = R.hosts and R.hosts[unit]
+    if host and host._secondaryMode == "aura" then
+        host._secondaryAuraEventDirty = true
+    end
+end
+
+local HOLD_READ_FAILURE = {
+    ["inaccessible-index"] = true,
+    ["incomplete-identity"] = true,
+    ["relation-unreadable"] = true,
+    ["assist-unreadable"] = true,
+    ["filter-unreadable"] = true,
+    ["native-filter-unreadable"] = true,
+    ["hostile-list-unreadable"] = true,
+    ["hostile-relation-unreadable"] = true,
+}
+local function retainCombatPositive(host, reason)
+    if not HOLD_READ_FAILURE[reason] or host._secondaryMode ~= "aura"
+        or host._secondaryAuraEventDirty or not host._secondaryAuraInstanceID
+        or not host.secondaryBadge or not host.secondaryCooldown
+        or not host._secondaryPositiveExpiry then return false end
+    if type(R.SafeBool) ~= "function" then return false end
+    local inCombat, combatReadable = R.SafeBool(InCombatLockdown)
+    if not combatReadable or not inCombat then return false end
+    local now, nowReadable = nil, false
+    if type(GetTime) == "function" then
+        local ok, value = pcall(GetTime)
+        nowReadable = ok and R.CanAccess(value) and type(value) == "number"
+            and value == value and value ~= math.huge
+        if nowReadable then now = value end
+    end
+    local expires = host._secondaryPositiveExpiry
+    if not nowReadable or type(expires) ~= "number" or expires <= now
+        or expires == math.huge then return false end
+
+    -- The player's identity cannot switch. Target/focus and pooled party
+    -- tokens CAN switch: require the exact same positively readable GUID.
+    if host.unit ~= "player" then
+        if not host._secondaryPositiveGUID or type(UnitGUID) ~= "function" then
+            return false
+        end
+        local ok, guid = pcall(UnitGUID, host.unit)
+        if not ok or not R.CanAccess(guid) or guid ~= host._secondaryPositiveGUID then
+            return false
+        end
+    end
+
+    -- The native aura timer is already counting down. A single one-shot
+    -- callback revokes this evidence at expiry even if no aura event arrives.
+    -- No polling, no old-cast inference and no changes to the main portrait.
+    local generation = host._secondaryPositiveGeneration
+    if host._secondaryExpiryTimerGeneration ~= generation then
+        if not C_Timer or type(C_Timer.After) ~= "function" then return false end
+        local delay = expires - now
+        local ok = pcall(C_Timer.After, delay, function()
+            if host._secondaryPositiveGeneration ~= generation then return end
+            if R.hosts and R.hosts[host.unit] ~= host then return end
+            host._secondaryAuraEventDirty = true
+            if R.Refresh then R.Refresh(host.unit)
+            else hideBadge(host, "combat-positive-expired") end
+        end)
+        if not ok then return false end
+        host._secondaryExpiryTimerGeneration = generation
+    end
+    host._secondaryElectionReason = "combat-positive-retained:" .. reason
     return true
 end
 
@@ -601,6 +704,7 @@ function R.ReconcileSecondaryPortrait(host, enabled, isPlayer)
     end
     if not enabled or not R.db or R.db.secondaryPortrait == false then
         hideBadge(host, "ineligible")
+        host._secondaryElectionReason = "ineligible"
         return
     end
     -- The independent UIParent overlay must not outlive its native frame's
@@ -608,7 +712,9 @@ function R.ReconcileSecondaryPortrait(host, enabled, isPlayer)
     if host.unitFrame and type(host.unitFrame.IsShown) == "function" then
         local shown, known = R.SafeBool(host.unitFrame.IsShown, host.unitFrame)
         if not known or not shown then
-            hideBadge(host, "native-frame-hidden")
+            local reason = known and "native-frame-hidden" or "native-visibility-unreadable"
+            hideBadge(host, reason)
+            host._secondaryElectionReason = reason
             return
         end
     end
@@ -622,6 +728,11 @@ function R.ReconcileSecondaryPortrait(host, enabled, isPlayer)
         host._secondaryElectionReason = reason
         return
     end
+    -- Entering combat can seal otherwise readable values without an aura
+    -- mutation. Preserve ONLY the last positive, timed secondary until its
+    -- first UNIT_AURA event or known expiration. Never freeze a stale rank
+    -- over a new aura event, a unit switch, or a failed native frame write.
+    if not second and retainCombatPositive(host, reason) then return end
     R.UpdateSecondaryPortrait(host, isPlayer)
     host._secondaryElectionReason = second and "presentation-unavailable" or reason
 end
