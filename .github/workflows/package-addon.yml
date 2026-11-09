@@ -24,6 +24,7 @@ jobs:
               "luac${version}" -p "$file"
             done
             "lua${version}" tests/low-priority.lua
+            "lua${version}" tests/world-buffs.lua
             "lua${version}" tests/secondary-portrait.lua
             "lua${version}" tests/native-second-probe.lua
             "lua${version}" tests/secondary-aura-election.lua
