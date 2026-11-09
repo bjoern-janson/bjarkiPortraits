@@ -40,6 +40,10 @@ end
 local BP={Runtime={db={secondaryPortrait=true}, AURA_ANCHOR_TEMPLATE="DisableUntrustedLayoutScriptsTemplate"}}
 local R=BP.Runtime
 R.CanAccess=function() return true end
+R.ApplySecondaryCountdownFont=function(cooldown)
+    cooldown._bjarkiUsesRegularBuffFont=true
+    return true
+end
 local atlasByUnit = {
     player={"Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Races",{0,0.125,0,0.25},nil},
     target={"raceicon128-skyborne-female",nil,true},
@@ -61,6 +65,8 @@ eq(R.CreateSecondaryPortrait(player,"LOW"),true,"player badge built")
 eq(player.secondaryBadge.width,44,"actual secondary circle enlarged to 44px")
 eq(player.secondaryBorder.width,36,"actual secondary border enlarged to 36px")
 eq(player.racePortrait.width,31,"secondary icon enlarged proportionally to 31px")
+eq(player.secondaryCooldown._bjarkiUsesRegularBuffFont,true,
+    "readable second countdown uses the same font as regular buff durations")
 eq(player.secondaryBadge.strata,"MEDIUM","badge above the native frame strata")
 eq(player.secondaryBadge.frameLevel,14,"above unit frame border")
 eq(player.secondaryBadge.parent,UIParent,"badge is an unprotected UIParent sibling above native frame")
@@ -114,6 +120,8 @@ eq(party.secondaryBadge.points[1][3],"TOPLEFT","party badge faces outward, away 
 eq(party.secondaryBadge.width,35,"compact secondary circle enlarged")
 eq(party.secondaryBorder.width,29,"compact ring enlarged to 29px")
 eq(party.racePortrait.width,25,"compact secondary artwork enlarged to 25px")
+eq(party.secondaryCooldown._bjarkiUsesRegularBuffFont,true,
+    "compact party secondary timer uses the same regular buff duration font")
 -- Small ToT/ToF portraits keep their existing main aura presentation but
 -- deliberately receive NO secondary circle, even during test mode.
 local tot=makeHost("targettarget")
