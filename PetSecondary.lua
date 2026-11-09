@@ -24,7 +24,8 @@ end
 
 local function anchoredFrame(host, frame)
     frame:ClearAllPoints()
-    frame:SetPoint("CENTER", host.portrait, "TOPRIGHT", -5, 0)
+    local corner, dx, dy = R.SecondaryCirclePlacement(host.unit)
+    frame:SetPoint("CENTER", host.portrait, corner, dx, dy)
     local badge = host.secondaryBadge
     local strata = "HIGH"
     local level = 40
