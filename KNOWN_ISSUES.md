@@ -1,3 +1,30 @@
+## 2026-11-09 — 0.1.210 oversized secondary portrait countdown text
+
+The user screenshot of the small PlayerFrame secondary shows the
+native cooldown countdown (e.g. "36") obscuring a substantial
+portion of the 31px spell icon. The regular Blizzard buff icons
+use visibly smaller duration text. Prior enlargement of the
+secondary border/icon did not address this typography mismatch.
+
+Only the small secondary **countdown font** is adjusted:
+Blizzard's own BuffFrame duration template inherits
+`GameFontNormalSmall` and uses `DEFAULT_AURA_DURATION_FONT`
+where available. `Core.ApplySecondaryCountdownFont` now applies
+that exact Blizzard font object to the addon-created
+`Cooldown:GetCountdownFontString()` label. It is invoked
+during construction/reuse of ordinary readable secondaries,
+on an actual timed second-aura display (for lazy label startup),
+and when each native ranked-second button receives its cooldown.
+
+Do not modify Primary portrait fonts, screenshot-specific timer
+placement/format, 10-second decimal thresholds, cooldown
+visibility, aura priorities or the 44/36/31px standard geometry.
+No change to pet-family secondary because it has no countdown.
+Guard font reads/writes with positive readability and out-of-combat
+lifecycle. Tests assert exact inherited font, idempotent reuse,
+protected-combat suppression and both presentation paths;
+the result still requires live in-game visual validation.
+
 ## 2026-11-09 — 0.1.209 Magic Wings at Walk on Air utility priority 225
 
 The user provided an in-game Magic Wings (Darkmoon Faire cannon
