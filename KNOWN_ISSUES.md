@@ -1,3 +1,30 @@
+## 2026-11-09 — 0.1.212 Ice Claw 253 and Curse of Weakness 185
+
+Two observed effects distinguish the user's intended semantic tiers:
+Ice Claw (3130) increases the interval between melee attacks by
+100% for 6 sec, changing the flow/cadence of combat. It belongs
+in `debuffs_attack_penalty` / `StatusEffects` 253 alongside
+Thunder Clap. Curse of Weakness reduces physical damage dealt,
+a flat output penalty in the Demoralizing Shout/Roar/Screech
+family, so its six standard Warlock ranks should move from
+`debuffs_other` / 253 to `debuffs_demoralizing` / 185.
+
+The screenshot text specifically says "Physical damage dealt is
+reduced by 5" for a remaining 64 sec: known 2-minute NPC/equipment
+variant 8552 is consistent with that, distinct from modern Forever
+Warlock Rank 1 (702, reduces by 4). Added applied variant 8552
+and verified NPC variants 12741, 21007, 12493 and 18267 to the
+same 185 tier. The screenshot does not expose the numeric spell ID,
+so 8552's live matching remains inferred from independent spell
+database evidence, not read out of a protected client aura.
+
+Tests ensure all eleven Curse of Weakness IDs have exactly one
+Demoralizing owner, none remain in StatusEffects, and Ice Claw
+has one StatusEffects 253 owner, not a movement slow. Existing
+Demo Shout/Roar/Screech and Thunder Clap ranks remain untouched.
+No other tier levels, icon geometry, countdown fonts or hidden
+evidence rules change; no commands or settings.
+
 ## 2026-11-09 — 0.1.211 Decayed Strength belongs to Demoralizing, not StatusEffects
 
 User's screenshot shows a five-minute Disease named Decayed Strength,
