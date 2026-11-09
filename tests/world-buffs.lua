@@ -55,37 +55,47 @@ for id in pairs(C.buffs_world) do
 end
 eq(#world,27,"27 named visible world-buff IDs audited")
 
--- Dedicated low-impact band (introduced after the world-buff audit).
--- +2 Intellect and +4 HP/5s should never displace major world buffs.
-local minor=assert(R.TIER_BY_KEY.MinorHelpful)
-local minorHarmful=assert(R.TIER_BY_KEY.MinorHarmful)
-eq(minor.level,6,"minor beneficial buff is near the bottom")
-eq(minorHarmful.level,minor.level,"minor effects have matching polarity lanes")
-eq(minor.helpful,true,"minor helpful uses proper native polarity")
-eq(minorHarmful.helpful,false,"minor harmful uses proper native polarity")
-eq(minorHarmful.filter,"HARMFUL","native minor harmful is an exact debuff filter")
+-- Minor helpful effects and Well Fed now join the existing Elixirs=81
+-- native exact lane, rather than maintaining separate portrait tiers.
+local elixirs=assert(R.TIER_BY_KEY.Elixirs)
+eq(elixirs.level,81,"merged nourishment/elixir priority")
+eq(elixirs.helpful,true,"merged tier retains helpful polarity")
+eq(elixirs.filter,"HELPFUL","merged native tier uses helpful filter")
+eq(R.TIER_BY_KEY.MinorHelpful,nil,"obsolete MinorHelpful retired")
+eq(R.TIER_BY_KEY.MinorHarmful,nil,"empty MinorHarmful retired")
+eq(R.TIER_BY_KEY.WellFed,nil,"obsolete WellFed retired")
 for _,id in ipairs({1296202,1292142}) do
     eq(C.buffs_minor_world[id],true,"minor world source membership")
-    eq(baseline.spellIDs[id],nil,"minor world cannot inherit class/world priority 90")
-    eq(minor.spellIDs[id],true,"minor world joins MinorHelpful")
-    eq(paladin.spellIDs[id],nil,"minor world never returns to tier 60")
-    eq(R.HELPFUL_TIER_BY_SPELL[id],minor,"minor world indexed at priority 6")
-    eq(R.CandidateFilters(minor).includeSpellIDs[id],true,
-        "minor world has one native exact filter")
+    eq(baseline.spellIDs[id],nil,"minor effects cannot inherit class/world priority 90")
+    eq(elixirs.spellIDs[id],true,"minor world aura in Elixirs")
+    eq(paladin.spellIDs[id],nil,"minor effect not in PaladinAura 60")
+    eq(R.HELPFUL_TIER_BY_SPELL[id],elixirs,"minor indexed at priority 81")
+    eq(R.CandidateFilters(elixirs).includeSpellIDs[id],true,
+        "minor included in shared native exact candidate")
     eq(R.CandidateFilters(R.TIER_BY_KEY.HostileHelpful).excludeSpellIDs[id],
-        true,"minor world not promoted by hostile helpful semantic fallback")
+        true,"minor excluded from hostile helpful generic fallback")
     eq(R.CandidateFilters(R.TIER_BY_KEY.Important).excludeSpellIDs[id],
-        true,"minor world not promoted to important")
+        true,"minor excluded from Important generic fallback")
 end
-eq(next(minorHarmful.spellIDs),nil,"no unverified tiny debuffs invented")
-
+local wellFedCount=0
+for id in pairs(C.buffs_well_fed) do
+    wellFedCount=wellFedCount+1
+    eq(elixirs.spellIDs[id],true,"Well Fed "..id.." shares Elixirs")
+    eq(R.HELPFUL_TIER_BY_SPELL[id],elixirs,"Well Fed "..id.." indexed at 81")
+    eq(R.CandidateFilters(elixirs).includeSpellIDs[id],true,
+        "Well Fed "..id.." present in exact native elixirs filter")
+end
+eq(wellFedCount,23,"all 23 Well Fed variants retained")
+eq(elixirs.spellIDs[673],true,"existing Minor Defense elixir retained")
+eq(elixirs.spellIDs[17538],true,"existing Mongoose elixir retained")
+eq(elixirs.spellIDs[1248406],true,"tiny +1 Stamina Well Fed included")
 -- Keep existing legitimate class and camp buffs; never demote the established
 -- special high-priority Welcoming Campfire or unrelated consumables.
 eq(baseline.spellIDs[1126],true,"Mark of the Wild stays at class-buff tier")
 eq(baseline.spellIDs[1229741],true,"Camp Benefits stays at class-buff tier")
 eq(R.TIER_BY_KEY.HonorlessTarget.spellIDs[1229739],true,
     "Welcoming Campfire special lane preserved")
-eq(R.TIER_BY_KEY.WellFed.level,110,"Well Fed tier preserved")
+eq(R.TIER_BY_KEY.WellFed,nil,"standalone WellFed no longer exists")
 eq(R.TIER_BY_KEY.Elixirs.level,81,"Elixirs tier preserved")
 eq(R.TIER_BY_KEY.Tracking.level,3,"Tracking tier preserved")
 eq(R.TIER_BY_KEY.PaladinAura.spellIDs[24907],true,
