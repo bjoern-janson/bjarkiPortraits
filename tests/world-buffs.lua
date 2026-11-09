@@ -55,16 +55,29 @@ for id in pairs(C.buffs_world) do
 end
 eq(#world,27,"27 named visible world-buff IDs audited")
 
--- These were classified as minor *world* buffs but erroneously in
--- PaladinAura=60. Both now share the same class-buff lane, not a new tier.
+-- Dedicated low-impact band (introduced after the world-buff audit).
+-- +2 Intellect and +4 HP/5s should never displace major world buffs.
+local minor=assert(R.TIER_BY_KEY.MinorHelpful)
+local minorHarmful=assert(R.TIER_BY_KEY.MinorHarmful)
+eq(minor.level,6,"minor beneficial buff is near the bottom")
+eq(minorHarmful.level,minor.level,"minor effects have matching polarity lanes")
+eq(minor.helpful,true,"minor helpful uses proper native polarity")
+eq(minorHarmful.helpful,false,"minor harmful uses proper native polarity")
+eq(minorHarmful.filter,"HARMFUL","native minor harmful is an exact debuff filter")
 for _,id in ipairs({1296202,1292142}) do
     eq(C.buffs_minor_world[id],true,"minor world source membership")
-    eq(baseline.spellIDs[id],true,"minor world buff in class-buff tier")
-    eq(paladin.spellIDs[id],nil,"minor world no longer in tier 60")
-    eq(R.HELPFUL_TIER_BY_SPELL[id],baseline,"minor world indexed at 90")
+    eq(baseline.spellIDs[id],nil,"minor world cannot inherit class/world priority 90")
+    eq(minor.spellIDs[id],true,"minor world joins MinorHelpful")
+    eq(paladin.spellIDs[id],nil,"minor world never returns to tier 60")
+    eq(R.HELPFUL_TIER_BY_SPELL[id],minor,"minor world indexed at priority 6")
+    eq(R.CandidateFilters(minor).includeSpellIDs[id],true,
+        "minor world has one native exact filter")
     eq(R.CandidateFilters(R.TIER_BY_KEY.HostileHelpful).excludeSpellIDs[id],
         true,"minor world not promoted by hostile helpful semantic fallback")
+    eq(R.CandidateFilters(R.TIER_BY_KEY.Important).excludeSpellIDs[id],
+        true,"minor world not promoted to important")
 end
+eq(next(minorHarmful.spellIDs),nil,"no unverified tiny debuffs invented")
 
 -- Keep existing legitimate class and camp buffs; never demote the established
 -- special high-priority Welcoming Campfire or unrelated consumables.
