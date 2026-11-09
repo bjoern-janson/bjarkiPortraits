@@ -30,10 +30,6 @@ local STRATA_ABOVE = {
 local badgePool = {}
 local AURA_SCAN_LIMIT = 48
 local MAX_FILTER_PROBES = 192 -- bounded per host refresh; no polling
-local COMPACT = {
-    party1 = true, party2 = true, party3 = true, party4 = true,
-}
-
 local function clearSecondaryCooldown(host)
     local cooldown = host and host.secondaryCooldown
     if not cooldown then return end
@@ -97,9 +93,8 @@ end
 function R.CreateSecondaryPortrait(host, nativeStrata)
     if not supportsSecondary(host) or not host.layer or not host.portrait
         or not host.unitFrame then return false end
-    local compact = COMPACT[host.unit] == true
-    local width, imageSize, borderSize = compact and 35 or 44,
-        compact and 25 or 31, compact and 29 or 36
+    local width, imageSize, borderSize, rimX, rimY =
+        R.SecondaryCircleGeometry(host.unit)
     local badge = table.remove(badgePool)
     if badge then badge._bjarkiInPool = false end
     local ok = pcall(function()
@@ -158,8 +153,7 @@ function R.CreateSecondaryPortrait(host, nativeStrata)
         end
         rim:SetSize(borderSize, borderSize)
         if rim.ClearAllPoints then rim:ClearAllPoints() end
-        rim:SetPoint("CENTER", badge, "CENTER", compact and 0.5 or 1,
-            compact and -1 or -1.5)
+        rim:SetPoint("CENTER", badge, "CENTER", rimX, rimY)
         host.secondaryBorder = rim
 
         local cooldown = badge._bjarkiCooldown

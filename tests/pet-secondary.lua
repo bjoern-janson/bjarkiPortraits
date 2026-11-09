@@ -157,12 +157,13 @@ eq(st.root.points[3],"TOPLEFT",
 eq(st.root.points[4],10,"Target pet-family x offset matches normal badge")
 eq(st.root.points[5],12,"Target pet-family y lift matches native second")
 eq(st.root.level<48,true,"family art stays below a public second aura")
-eq(st.root.width,44,"pet badge outer viewport enlarged to 44px")
+eq(st.root.width,37,"pet badge outer viewport enlarged to 44px")
 eq(#st.containers,2,"helpful and harmful have separate native gates")
 eq(#st.textures,2,"two group buttons have current pet artwork")
 for _,image in ipairs(st.textures) do
-    eq(image.width,31,"pet-family icon grows with secondary circle")
+    eq(image.width,22,"pet-family icon grows with secondary circle")
     eq(image.mask~=nil,true,"pet-family icon retains circular mask")
+    eq(image.points[1],"CENTER","pet-family art centered on cell")
 end
 for _,c in ipairs(st.containers) do
     eq(c.unit,"target","native group bound to current target")
@@ -173,11 +174,13 @@ for _,c in ipairs(st.containers) do
         "first aura icon cannot override family portrait")
     eq(c.groups[1].button.icon.width,1,
         "native receiver remains visually hidden")
-    eq(c.groups[1].button.width,44,"entire conditional pet badge cell enlarged")
-    eq(c.groups[1].button.textures[3].width,36,
+    eq(c.groups[1].button.width,37,"entire conditional pet badge cell enlarged")
+    eq(c.groups[1].button.textures[3].width,30,
        "conditional pet border really grows to 36px")
     eq(c.groups[1].button.textures[3].atlas,"UI-HUD-UnitFrame-TotemFrame",
        "conditional pet border retains native totem artwork")
+    eq(c.groups[1].button.textures[3].points[4],1,"pet rim native optical x")
+    eq(c.groups[1].button.textures[3].points[5],-1.5,"pet rim native optical y")
 end
 eq(st.containers[1].groups[1].filter,"HELPFUL|INCLUDE_NAME_PLATE_ONLY",
     "helpful native presence includes nameplate-only")

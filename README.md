@@ -2,11 +2,31 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.217-native-second-init-and-inward-player-badges-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.218-native-proportional-secondary-art-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.218 — match secondary circles to buff icons and native Totem proportions
+
+User screenshots show circular artwork that fills too much of the rim.
+Blizzard Forever uses 30x30 regular buff icons and an original Totem
+button with 37px cell / 30px rim / 22px masked art. The previous
+secondary 44/36/31 enlarged both the art and border, making artwork
+appear zoomed and off-center.
+
+Restore full-size secondary geometry to **37/30/22**
+(cell/rim/art), and compact party geometry to **29/24/18**.
+One shared Core.SecondaryCircleGeometry supplies dimensions and native
+Totem atlas optical border offsets (+1,-1.5 standard, +0.5,-1 compact)
+to readable aura/race, native ranked-second and pet-family renderers.
+The icons remain centered, with CircleMask and cooldown anchored to art.
+
+No changes to outer-circle placement, aura ranking, timer fonts,
+security gates, cooldown timings, or pooled state. Offline tests cover
+normal/compact sizing, border center, and pooled reuse. Live pixel
+centering requires in-game confirmation.
 
 ## 0.1.217 — re-enable first native second-aura construction and unveto public uncertainty
 

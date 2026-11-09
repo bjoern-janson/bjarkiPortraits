@@ -13,7 +13,7 @@ local R = assert(BP.Runtime, "Core.lua must load first")
 -- This is a targeted-unit feature (Target and Focus), NOT local PetFrame.
 -- Never infer that a wild beast, totem or unknown creature is a player pet.
 
-local CELL, ICON, RIM = 44, 31, 36
+local CELL, ICON, RIM, RIM_X, RIM_Y = R.SecondaryCircleGeometry("target")
 local UNITS = {target=true, focus=true}
 local familyPool = {}
 
@@ -78,7 +78,7 @@ local function petButton(button, textures, art)
     local rim = button:CreateTexture(nil,"OVERLAY")
     rim:SetAtlas("UI-HUD-UnitFrame-TotemFrame",false)
     rim:SetSize(RIM,RIM)
-    rim:SetPoint("CENTER",button,"CENTER",1,-1.5)
+    rim:SetPoint("CENTER",button,"CENTER",RIM_X,RIM_Y)
 end
 
 local function construct(host, art, guid)

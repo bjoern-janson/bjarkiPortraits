@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.217-native-second-init-and-inward-player-badges-test"
+R.VERSION = "0.1.218-native-proportional-secondary-art-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 -- Four native Blizzard party portraits share the same aura engine as player/pet.
 -- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
@@ -33,6 +33,15 @@ function R.SecondaryCirclePlacement(unit)
         return "TOPLEFT", 10, 12
     end
     return nil
+end
+
+-- Shared dimensions for all small portrait paths. Blizzard's regular buff
+-- icon is 30px, and TotemButtonTemplate uses 37px cell, 30px rim, 22px
+-- circular art. Previous 44/36/31 filled too much of the border.
+-- The native atlas offsets are optical, not aura-dependent.
+function R.SecondaryCircleGeometry(unit)
+    if R.PARTY_UNITS[unit] then return 29, 18, 24, 0.5, -1 end
+    return 37, 22, 30, 1, -1.5
 end
 
 local defaults = {

@@ -1,5 +1,16 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.218 native-proportional art
+
+Return to 37px cell/30px native Totem ring/22px circular art
+for Player, Target, Focus and NPCs, and compact 29/24/18 for party.
+The ring now has approximately the same footprint as Blizzard's
+regular 30px buff icon. Single Core.SecondaryCircleGeometry ensures
+that readable, native-ranked and pet-family variants share sizes,
+including pooled reuse. Retain Blizzard optical ring insets and center
+the icon and its mask. Preserve all priorities, timing and combat
+security; verify appearance in-game.
+
 ## 2026-11-09 — 0.1.217 first native activation, public-unknown correction
 
 New source audit of Gethe/wow-ui-source/forever:

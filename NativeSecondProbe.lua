@@ -20,9 +20,7 @@ local R = assert(BP.Runtime, "Core.lua must load first")
 -- Unverified native layout/semantic overlap remain experimental; this does
 -- not replace the primary native tier stack or the readable election.
 
-local CELL = 44
-local IMAGE = 31
-local RIM = 36
+local CELL, IMAGE, RIM, RIM_X, RIM_Y = R.SecondaryCircleGeometry("target")
 local MAX_GROUPS = 80
 local pool = {}
 
@@ -55,7 +53,7 @@ local function makeButton(button)
     local border = button:CreateTexture(nil, "OVERLAY")
     border:SetAtlas("UI-HUD-UnitFrame-TotemFrame", false)
     border:SetSize(RIM, RIM)
-    border:SetPoint("CENTER", button, "CENTER", 1, -1.5)
+    border:SetPoint("CENTER", button, "CENTER", RIM_X, RIM_Y)
 
     local cooldown = CreateFrame("Cooldown", nil, button,
         "CooldownFrameTemplate," .. R.AURA_ANCHOR_TEMPLATE)
@@ -240,7 +238,7 @@ function R.CreateNativeSecondProbe(host)
     host._nativeSecondProbe = probe
     local ok = pcall(function()
         -- The viewport is an independent, noninteractive UIParent sibling.
-        -- Its fixed 44px aperture never receives secret geometry.
+        -- Its native 37px cell never receives secret geometry.
         local clip = CreateFrame("Frame", nil, UIParent, R.AURA_ANCHOR_TEMPLATE)
         probe.clip = clip
         clip:Hide()
@@ -260,8 +258,8 @@ function R.CreateNativeSecondProbe(host)
 
         local c = CreateFrame("AuraContainer", nil, clip, "CustomAuraContainerTemplate")
         probe.container = c
-        -- Native layout flows rightward: its first child is [-37,0] and
-        -- gets clipped. The second child is [0,37], inside the viewport.
+        -- Native layout flows rightward: first cell [-CELL,0] gets clipped;
+        -- the second [0,CELL] remains inside the viewport.
         -- The engine's own secret layout moves its children when auras change.
         c:SetPoint("TOPLEFT", clip, "TOPLEFT", -CELL, 0)
         c:SetFrameLevel(clip:GetFrameLevel()+1)
