@@ -1,3 +1,36 @@
+## 2026-11-09 — 0.1.213 Target secondary circle overlaps combo points
+
+A live screenshot shows a timed secondary circle at the
+upper-right of TargetFrame, physically overlapping the native
+combo point stack along the right side of its portrait.
+This appeared after the full circle enlargement and is not
+an aura selection or timing defect.
+
+**Fix:** move Target's small secondary badge to its portrait's
+TOPLEFT with **(+10, +12)** center offset. This places the circle
+above the left-side bar edge and off the vertical right-side
+combo point column. Focus still uses TOPRIGHT (−5,0); Player
+TOPLEFT (+5,0); party1–4 TOPLEFT (+5,+2). ToT/ToF/PetFrame
+remain excluded from second circles.
+
+`R.SecondaryCirclePlacement(unit)` in Core is a single
+source of truth used by the regular readable/race badge,
+the native ranked-second clip and the pet-family secondary.
+Both fresh and pooled native frames reanchor using the
+same coordinates. There is no position guessing based on
+protected combat aura data, and no new in-game commands
+or stored layout state.
+
+Tests cover coordinates for all presentations, Target
+reuse, Focus reuse, positive self-target bindings and
+unchanged player/focus/party geometry. The 44px outer cell,
+36px rim, 31px icon, cooldown fonts and all priority
+ranks are unchanged. **Still requires live visual check**:
+the exact top-left placement and +12 vertical clearance
+may need optical correction for unusual UI scales or
+overlapping target name bars. Don't change unrelated
+frame anchors based on this Target-specific screenshot.
+
 ## 2026-11-09 — 0.1.212 Ice Claw 253 and Curse of Weakness 185
 
 Two observed effects distinguish the user's intended semantic tiers:
