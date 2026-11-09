@@ -196,7 +196,7 @@ equal(smallTimer.label.writes,3,"recovered font change is applied once")
 
 local primary = makeCooldown(true)
 R.ApplyCountdownFormat(primary)
-check(primary.formatter~=nil,"primary duration formatter remains active")
+equal(primary.fallback,10,"primary countdown retains the native compatibility formatting path")
 check(primary._bjarkiSecondaryFontObject==nil,
     "ApplyCountdownFormat alone never changes main-portrait typography")
 check(not R.ApplySecondaryCountdownFont({}),
