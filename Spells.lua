@@ -784,6 +784,20 @@ PT.categories = {
         [24578] = true, -- Demoralizing Screech Rank 3 (Hunter pet)
         [24579] = true, -- Demoralizing Screech Rank 4 (Hunter pet)
         [6951] = true, -- Decayed Strength: flat Strength reduction, 5 min (not combat-flow StatusEffects)
+        -- Curse of Weakness reduces PHYSICAL DAMAGE DONE, not attack speed
+        -- or combat control. All six verified applied Warlock ranks plus
+        -- positively sourced NPC/weapon variants share Demo Shout/Roar 185.
+        [702] = true, -- Curse of Weakness Rank 1 (Warlock)
+        [1108] = true, -- Curse of Weakness Rank 2 (Warlock)
+        [6205] = true, -- Curse of Weakness Rank 3 (Warlock)
+        [7646] = true, -- Curse of Weakness Rank 4 (Warlock)
+        [11707] = true, -- Curse of Weakness Rank 5 (Warlock)
+        [11708] = true, -- Curse of Weakness Rank 6 (Warlock)
+        [8552] = true, -- Curse of Weakness: -5 damage (Staff of Horrors/NPC, matches screenshot)
+        [12741] = true, -- Curse of Weakness: NPC area variant (-1 physical damage)
+        [21007] = true, -- Curse of Weakness: NPC area variant (-11 physical damage)
+        [12493] = true, -- Curse of Weakness: NPC single-target variant (-29 physical damage)
+        [18267] = true, -- Curse of Weakness: NPC short variant (-3 physical damage, 30s)
     },
     -- Applied casting, attack and healing penalties share the StatusEffects band.
     -- Rank families verified against current Forever 1.60.1 records.
@@ -802,6 +816,7 @@ PT.categories = {
         [1302342] = true, -- Carved Mind (applied casting-time penalty)
     },
     debuffs_attack_penalty = {
+        [3130] = true, -- Ice Claw: target attack interval +100% for 6 sec (Magic; StatusEffects 253)
         [6343] = true, -- Thunder Clap Rank 1 (Warrior attack-speed penalty)
         [8198] = true, -- Thunder Clap Rank 2
         [8204] = true, -- Thunder Clap Rank 3
@@ -849,13 +864,6 @@ PT.categories = {
         [778] = true, -- Faerie Fire Rank 2
         [9749] = true, -- Faerie Fire Rank 3
         [9907] = true, -- Faerie Fire Rank 4
-
-        [702] = true, -- Curse of Weakness Rank 1
-        [1108] = true, -- Curse of Weakness Rank 2
-        [6205] = true, -- Curse of Weakness Rank 3
-        [7646] = true, -- Curse of Weakness Rank 4
-        [11707] = true, -- Curse of Weakness Rank 5
-        [11708] = true, -- Curse of Weakness Rank 6
 
     
         [1265901] = true, -- Dust Cloud
