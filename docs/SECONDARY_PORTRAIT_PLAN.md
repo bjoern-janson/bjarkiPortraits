@@ -1,5 +1,25 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.217 first native activation, public-unknown correction
+
+New source audit of Gethe/wow-ui-source/forever:
+AuraContainerSharedMixin:IsEnabled requires enabled == true, while
+fresh CustomAuraContainers have no automatic enabled=true from
+construction. 0.1.216 enabled native pools only after reuse, not
+after initial construction, so NPC first-time runner-up and friendly
+player race fallback could never show native art. Explicit
+SetEnabled(true) on first bound native second and pet presence gates.
+
+The 0.1.215 "not-two-presentable" short-circuit is NOT a positive
+absence witness when the public reader cannot confidently rank
+multiple auras. Remove it from native clip eligibility; native
+sorted second button remains the actual presentation gate.
+
+At user's request, mirror Player and all party badges to raised
+TOPRIGHT(-10,+12), retaining Target/Focus TOPLEFT(+10,+12).
+Keep all three secondary presentation constructors synchronized.
+Lua behavior tests cover first activation and missing-meta election.
+
 ## 2026-11-09 — 0.1.216 native pooled-container reset
 
 The untagged-boar Rend report prompted inspection of Blizzard's real

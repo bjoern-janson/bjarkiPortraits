@@ -140,7 +140,13 @@ local function construct(host, art, guid)
         end
         -- Binding after group registration avoids repeated live aura parsing
         -- for each preallocated group; Blizzard owns all future aura updates.
-        for _,c in ipairs(state.containers) do c:SetUnit(host.unit) end
+        for _,c in ipairs(state.containers) do
+            c:SetUnit(host.unit)
+            -- New custom aura containers are born disabled. Without this,
+            -- even a confirmed pet with a real helpful/harmful aura never
+            -- draws its native presence-gated family fallback.
+            c:SetEnabled(true)
+        end
         state.ready=true
     end)
     if not ok then

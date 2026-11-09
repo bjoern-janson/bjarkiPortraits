@@ -109,7 +109,7 @@ local function frame(kind,parent)
     function o:UpdateAllAuras()
         self.refreshes=(self.refreshes or 0)+1
         for _,group in ipairs(self.groups or {}) do
-            local present=self.enabled~=false and self.unit
+            local present=self.enabled==true and self.unit
                 and (group.filter:sub(1,7)=="HELPFUL" and actor.auraHelpful>0
                 or group.filter:sub(1,7)=="HARMFUL" and actor.auraHarmful>0)
             group.button.shown=present and true or false
@@ -145,6 +145,10 @@ R.UpdatePetSecondaryFallback(h,true)
 local st=h._petSecondaryFallback
 eq(st~=nil,true,"verified Target pet automatically constructs family gate")
 eq(st.ready,true,"both native aura groups constructed")
+eq(st.containers[1].enabled,true,
+    "first helpful pet-aura gate explicitly enabled")
+eq(st.containers[2].enabled,true,
+    "first harmful pet-aura gate explicitly enabled")
 eq(st.guid,"Pet-First","current GUID tracked")
 eq(st.art,920026,"pet art stored independently of aura identity")
 eq(st.root.shown,true,"family fallback viewport is active")

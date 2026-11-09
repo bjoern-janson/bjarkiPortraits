@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.216-native-secondary-pool-reset-test"
+R.VERSION = "0.1.217-native-second-init-and-inward-player-badges-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 -- Four native Blizzard party portraits share the same aura engine as player/pet.
 -- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
@@ -19,13 +19,17 @@ R.SORT_METHOD = AuraContainerSortMethod and AuraContainerSortMethod.AuraInstance
 R.SORT_DIRECTION = AuraContainerSortDirection and AuraContainerSortDirection.Reverse
 R.SWIPE_TEXTURE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 
--- One immutable placement policy for ALL secondary portrait renderers:
--- public aura/race, secure ranked-second and native pet-family fallback.
--- Use only public unit tokens; no protected aura state drives positioning.
--- All supported hosts share Target's raised upper-left combo-safe position.
+-- Shared geometry for public race/aura badges, native ranked-second ribbons
+-- and pet-family fallbacks. The full unit frames face opposite ways:
+-- Player and party1-4 show their bars to the RIGHT of the portrait;
+-- Target/Focus bars sit LEFT of the portrait. Mirror the 0.1.213 raised
+-- inset so badges sit on each portrait's bar side without hiding combo points.
+-- Decisions depend on the stable public unit token, never aura data.
 function R.SecondaryCirclePlacement(unit)
-    if unit == "player" or unit == "target" or unit == "focus"
-        or R.PARTY_UNITS[unit] then
+    if unit == "player" or R.PARTY_UNITS[unit] then
+        return "TOPRIGHT", -10, 12
+    end
+    if unit == "target" or unit == "focus" then
         return "TOPLEFT", 10, 12
     end
     return nil

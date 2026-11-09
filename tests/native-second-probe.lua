@@ -137,6 +137,8 @@ eq(p.clip.points[4],10,"native Target has +10 upper-left x offset")
 eq(p.clip.points[5],12,"native Target is raised 12px above frame top corner")
 eq(p.container.points[4],-44,"first native cell still completely clipped after resizing")
 eq(p.container.unit,"target","native unit owns current target")
+eq(p.container.enabled,true,"first native Target build enables all secure aura groups")
+eq(p.container.refreshes>=2,true,"fresh native groups actually reparse after enable")
 eq(p.boundGUID,"Creature-Initial","native viewport remembers exact bound creature")
 eq(p.groups>20,true,"cross-priority native groups created")
 eq(#p.container.groups,p.groups,"group registry complete")
@@ -198,11 +200,15 @@ eq(p.clip.shown,true,"OOC refresh restores native second eligibility")
 eq(p.boundGUID,"Creature-CombatSwap","OOC restoration tracks new creature")
 eq(p.container.refreshes,count+2,"one refresh for each safe target swap")
 
--- Complete, readable public ranking of zero/one eligible aura means
--- native fallback may not manufacture or show a second icon.
+-- A complete readable inventory can still lack the metadata to RANK
+-- its two visible auras. That is NOT proof of zero or one secure aura
+-- candidate; let the native second-cell clip decide whether there is an
+-- actual second icon. It paints nothing if no second button exists.
+host._secondaryMode="hidden"
 host._secondaryElectionReason="not-two-presentable"
 R.UpdateNativeSecondProbe(host,true,true,true,false)
-eq(p.clip.shown,false,"one-aura NPC cannot expose native second cell")
+eq(p.clip.shown,true,
+    "hostile Wendigo can expose secure runner-up after public rank uncertainty")
 host._secondaryElectionReason=nil
 R.UpdateNativeSecondProbe(host,true,true,true,false)
 eq(p.clip.shown,true,"unknown native second still permitted when not disproved")
@@ -215,6 +221,18 @@ eq(p.clip.shown,false,"real NPC second from public election is authoritative")
 host._secondaryMode=nil
 R.UpdateNativeSecondProbe(host,true,true,true,false)
 eq(p.clip.shown,true,"NPC native fallback recovers when public proof lost")
+-- The same false no-second inference also affects friendly player targets
+-- visibly carrying two or more buffs. Its native runner-up must cover race.
+host._secondaryMode="race"
+host._raceBaselineActive=true
+host._secondaryElectionReason="not-two-presentable"
+R.UpdateNativeSecondProbe(host,true,false,true,true)
+eq(p.clip.shown,true,"friendly player with unrankable second can use native clip")
+eq(host.secondaryBadge.shown,true,"verified friendly race remains under native second")
+eq(p.container.enabled,true,"friend's actual native aura groups are enabled")
+host._secondaryElectionReason=nil
+host._secondaryMode="hidden"
+host._raceBaselineActive=false
 -- Opposite-faction players previously showed only race even with two
 -- visible auras, since the secure native ribbon excluded ALL players.
 -- The native second can now cover a verified race baseline without Lua
@@ -309,10 +327,11 @@ R.UpdateNativeSecondProbe(player,true,false,true,true)
 local pp=player._nativeSecondProbe
 eq(pp~=nil,true,"player prewarms native ribbon before receiving a debuff")
 eq(pp.ready,true,"player native groups fully initialized out of combat")
+eq(pp.container.enabled,true,"first Player build enables native secure runner-up")
 eq(pp.container.unit,"player","native ribbon binds its actual player token")
-eq(pp.clip.points[3],"TOPLEFT","player native ribbon mirrors to outer left")
-eq(pp.clip.points[4],10,"player uses unified x inset")
-eq(pp.clip.points[5],12,"player native uses unified y lift")
+eq(pp.clip.points[3],"TOPRIGHT","player native ribbon mirrors inward toward bars")
+eq(pp.clip.points[4],-10,"player native mirrored x inset")
+eq(pp.clip.points[5],12,"player native preserves elevated position")
 eq(pp.clip.shown,false,"verified readable second remains authoritative")
 eq(pp.groups,p.groups,"player shares same existing tier policy")
 
@@ -393,6 +412,7 @@ R.UpdateNativeSecondProbe(focus,true,false,true,true)
 local fp=focus._nativeSecondProbe
 eq(fp~=nil,true,"friendly Focus constructs its own native second")
 eq(fp.clip.shown,true,"Focus race fallback can show native second")
+eq(fp.container.enabled,true,"first Focus build enables real secure second-aura groups")
 eq(fp.container.unit,"focus","ordinary Focus native source is focus")
 eq(fp.clip.points[3],"TOPLEFT","Focus native circle uses shared upper-left corner")
 eq(fp.clip.points[4],10,"Focus native uses shared inset")

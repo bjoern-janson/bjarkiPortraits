@@ -2,11 +2,50 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.216-native-secondary-pool-reset-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.217-native-second-init-and-inward-player-badges-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.217 — re-enable first native second-aura construction and unveto public uncertainty
+
+Two new live screenshots: Elder Wendigo had multiple visible debuffs
+but no secondary circle; friendly Vasily Zaicev had multiple visible
+buffs, a first-priority main portrait, and a race-icon secondary.
+Two source-level defects explain these states:
+
+1. **New native CustomAuraContainers were never enabled.**
+   Blizzard's `AuraContainerSharedMixin:IsEnabled` requires its
+   `enabled` field to equal `true`; `CreateNativeSecondProbe`
+   bound the unit without ever calling `SetEnabled(true)`.
+   The 0.1.216 pool fix re-enabled reused probes but did not fix
+   freshly created ones. The two native pet-family presence gates
+   had the same new-construction oversight. Explicitly enable each
+   newly constructed native container only after its full group
+   registration and valid unit binding.
+
+2. **A public-reader non-election was treated as secure absence.**
+   The `not-two-presentable` result means not two *positively ranked
+   through the public reader*, not necessarily fewer than two native
+   eligible auras. The 0.1.215 veto incorrectly hid the fallback
+   entirely. A fully presented public runner-up still has priority,
+   but when the public reader falls back to race/hidden, native
+   sorted groups may draw their actual second button. On a one-aura
+   unit the clipped second native cell is empty. No Lua queries of
+   secure native aura identities or button counts are introduced.
+
+Pending visual request also applied: mirror the small circles to the
+bar side of Player/party portraits at `TOPRIGHT (-10,+12)`;
+Target/Focus retain `TOPLEFT (+10,+12)` to clear combo points. All
+three secondary renderers share this policy.
+
+Regression mocks now require `enabled == true` for native presence,
+assert first-build initialization on Target, Focus and Player, cover
+NPC and friendly-player `not-two-presentable` fallbacks and mirrored
+Player/party geometry. Existing combo-point-safe Target/Focus layout,
+pool reset, GUID protections, priority table and timer typography
+are unchanged. Live screenshots are still needed to verify render.
 
 ## 0.1.216 — correct native container reset on pooled secondary reuse
 

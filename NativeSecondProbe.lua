@@ -288,6 +288,12 @@ function R.CreateNativeSecondProbe(host)
         end
         local source = nativeSourceUnit(host)
         c:SetUnit(source)
+        -- CRITICAL: AuraContainerSharedMixin starts with enabled=nil and
+        -- IsEnabled() only accepts EXACTLY true. 0.1.216 enabled pooled
+        -- containers on reuse, but forgot to enable FIRST-CONSTRUCTION
+        -- containers. All their secure groups were inert; a friendly
+        -- player's race never got covered and an NPC never got a second.
+        c:SetEnabled(true)
         probe.boundUnit = source
         probe.boundGUID = select(1, readableHostGUID(host.unit))
         probe.ready = true
@@ -404,15 +410,16 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
     local otherFallback = otherEligible and hostile == false
         and not publicSecond
         and host._ghostActive ~= true and host._formStateActive ~= true
-    -- A complete current public election can PROVE there is no second
-    -- presentable aura. A native clip must not override that negative
-    -- evidence (a one-aura target can otherwise look like it has two).
-    -- The public renderer is also authoritative when it DID paint a real
-    -- second aura, including on hostile NPCs.
-    local provenNoSecond = host._secondaryElectionReason == "not-two-presentable"
-    local otherShow = otherEligible and not publicSecond and not provenNoSecond
+    -- "not-two-presentable" means the public reader could not positively
+    -- RANK two auras; it does NOT prove the native secure groups lack a
+    -- second aura. Earlier revisions mistook that uncertainty for absence,
+    -- hiding real NPC debuffs and leaving friendly-player race art up.
+    -- Let Blizzard's ordered, clipped second native BUTTON decide whether
+    -- a second aura exists; an empty native cell draws nothing. A complete
+    -- public second aura still wins and keeps the native clip hidden.
+    local otherShow = otherEligible and not publicSecond
         and (hostile == true or otherFallback)
-    local show = otherShow or (playerFallback and not provenNoSecond)
+    local show = otherShow or playerFallback
 
     if show then
         -- A confirmed NPC has no valid player-race baseline. Player

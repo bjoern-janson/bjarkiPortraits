@@ -2,7 +2,7 @@
 ## Title: bjarkiPortraits
 ## Notes: Portrait aura timers for WoW: Forever
 ## Author: Bjarki / OpenAI
-## Version: 0.1.216-native-secondary-pool-reset-test
+## Version: 0.1.217-native-second-init-and-inward-player-badges-test
 ## SavedVariables: BjarkiPortraitsDB
 
 Spells.lua
