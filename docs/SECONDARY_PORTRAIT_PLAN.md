@@ -1,5 +1,21 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.211 Demoralizing stat-reduction classification
+
+Treat Decayed Strength 6951 (five-minute reduction in Strength)
+as a normal Demoralizing debuff, priority **185**, alongside
+Demo Shout/Roar/Screech. It is NOT a status that needs
+`StatusEffects` 253: that higher tier is intended for effects
+that materially change combat flow, not simple stat penalties.
+
+The change adds only the exact applied spell ID to the existing
+`debuffs_demoralizing` source group. Main native and complete
+readable second-aura elections derive ownership and priority
+from the same unchanged `R.TIERS` table, so neither gets
+special-case code. No change to spell 13528, hidden auras,
+geometry, timer typography, identity gates or user commands.
+
+
 ## 2026-11-09 — 0.1.210 secondary countdown typography
 
 Visual issue: large orange native cooldown digits on the 31px
