@@ -89,6 +89,7 @@ local function frame(kind,parent)
     function o:CreateMaskTexture()return frame("mask",self)end
     function o:SetTexture(v)self.texture=v;return true end
     function o:SetAtlas(v)self.atlas=v end
+    function o:SetTexCoord(...) self.coords={...} end
     function o:SetAllPoints()self.allPoints=true end
     function o:AddMaskTexture(v)self.mask=v end
     function o:SetIcon(v)self.icon=v end
@@ -163,6 +164,9 @@ eq(#st.textures,2,"two group buttons have current pet artwork")
 for _,image in ipairs(st.textures) do
     eq(image.width,30,"pet family icon art matches native 30px buff size")
     eq(image.mask~=nil,true,"pet-family icon retains circular mask")
+    eq(image.coords[1],2/64,"pet-family secondary trims left source edge")
+    eq(image.coords[3],2/64,"pet-family secondary trims top source edge")
+    eq(image.coords[4],1-2/64,"pet-family secondary trims bottom source edge")
     eq(image.points[1],"CENTER","pet-family art centered on cell")
 end
 for _,c in ipairs(st.containers) do

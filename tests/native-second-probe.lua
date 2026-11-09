@@ -93,6 +93,7 @@ local function frame(kind,parent)
     end
     function o:CreateMaskTexture() return frame("mask",self) end
     function o:SetAtlas(v)self.atlas=v end
+    function o:SetTexCoord(...) self.coords={...} end
     function o:SetAllPoints()self.allPoints=true end
     function o:AddMaskTexture(mask)self.mask=mask end
     function o:SetIcon(icon)self.icon=icon end
@@ -119,6 +120,10 @@ local function frame(kind,parent)
         eq(b.cooldown._bjarkiUsesRegularBuffFont,true,
             "native second countdown applies regular buff-duration font")
         eq(b.icon.mask~=nil,true,"circular icon mask installed")
+        eq(b.icon.coords[1],2/64,"native second art trims left edge")
+        eq(b.icon.coords[2],1-2/64,"native second art trims right edge")
+        eq(b.icon.coords[3],2/64,"native second art trims top edge")
+        eq(b.icon.coords[4],1-2/64,"native second art trims bottom edge")
 eq(b.icon.points[1],"CENTER","native art centered on its cell")
 eq(b.textures[2].points[4],1.35,"native rim x matches Blizzard optical inset")
 eq(b.textures[2].points[5],-2,"native rim y matches Blizzard optical inset")

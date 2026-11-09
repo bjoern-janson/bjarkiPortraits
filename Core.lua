@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.222-native-runner-up-duplicate-suppression-test"
+R.VERSION = "0.1.223-aura-icon-edge-crop-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 -- Four native Blizzard party portraits share the same aura engine as player/pet.
 -- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
@@ -261,21 +261,27 @@ function R.ResolveRaceBaselineAtlas(unit, confirmedPlayer)
     return CLASSIC_RACE_TEXTURE, {tile[1]/8,(tile[1]+1)/8,row/4,(row+1)/4}
 end
 
--- Shared source-art crop for native aura, readable aura and pet-family icons.
--- The local PetFrame has a compact 37px circle: its former 1/64 crop left the
--- square icon's top rim visible inside the round bezel. Trim the first three
--- source pixels on all sides for *pet only*. Do not move the native mask/ring,
--- change target/party framing, or zoom the main player's larger portrait.
+-- Some classic spell icons contain thin square edges baked into their
+-- 64x64 artwork. A circle mask clips shape, not source-image border pixels.
+-- Symmetric 2px inset trims those edges with no change to our masks,
+-- native frame coordinates or original Blizzard icon artwork.
+R.AURA_ART_EDGE_INSET = 2 / 64
 function R.ApplyPortraitIconCrop(icon, host)
-    if icon.SetTexCoord then
-        local inset = 1 / 64
-        if host and host.unit == "player" then
-            inset = 1 / 128 -- Accepted player optical calibration.
-        elseif host and host.unit == "pet" then
-            inset = 3 / 64 -- Local PetFrame square-icon rim cleanup.
-        end
-        pcall(icon.SetTexCoord, icon, inset, 1 - inset, inset, 1 - inset)
-    end
+    if not icon or type(icon.SetTexCoord) ~= "function" then return false end
+    -- The previously calibrated small local PetFrame keeps its 3px crop.
+    local inset = host and host.unit == "pet"
+        and 3 / 64 or R.AURA_ART_EDGE_INSET
+    return pcall(icon.SetTexCoord, icon, inset, 1-inset, inset, 1-inset)
+end
+
+-- Use the same mild source trim for real secondary spell/form artwork
+-- and confirmed pet-family images, including the secure native receiver.
+-- NEVER call this for race sprite sheets or registered race atlases:
+-- they already have exact tile/atlas texture coordinates.
+function R.ApplySecondaryIconCrop(icon)
+    if not icon or type(icon.SetTexCoord) ~= "function" then return false end
+    local inset = R.AURA_ART_EDGE_INSET
+    return pcall(icon.SetTexCoord, icon, inset, 1-inset, inset, 1-inset)
 end
 
 -- Physical-pixel source-image offsets: .119 Wisdom calibration, then the

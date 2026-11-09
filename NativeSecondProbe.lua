@@ -44,6 +44,9 @@ local function makeButton(button)
     local icon = button:CreateTexture(nil, "ARTWORK")
     icon:SetSize(IMAGE, IMAGE)
     icon:SetPoint("CENTER", button, "CENTER")
+    -- The secure renderer changes the spell texture, not its source UVs.
+    -- Trim classic square artwork borders without changing native ordering.
+    R.ApplySecondaryIconCrop(icon)
     local mask = button:CreateMaskTexture(nil, "ARTWORK")
     mask:SetAtlas("CircleMask", false)
     mask:SetAllPoints(icon)

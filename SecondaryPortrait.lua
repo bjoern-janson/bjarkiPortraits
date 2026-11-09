@@ -241,7 +241,7 @@ function R.PreviewSecondaryPortrait(host)
     local icon = host.racePortrait
     local ok, result = pcall(icon.SetTexture, icon, "Interface\\Icons\\Spell_Holy_SealOfWisdom")
     if ok and result ~= false then
-        ok = pcall(icon.SetTexCoord, icon, 0, 1, 0, 1)
+        ok = R.ApplySecondaryIconCrop and R.ApplySecondaryIconCrop(icon)
     end
     if not ok or not pcall(host.secondaryBadge.Show, host.secondaryBadge) then
         hideBadge(host, "preview-unavailable")
@@ -867,7 +867,8 @@ local function showSecondaryAura(host, candidate)
     end
     local success, wrote = pcall(icon.SetTexture, icon, texture)
     if not success or wrote == false then return false end
-    if not pcall(icon.SetTexCoord, icon, 0, 1, 0, 1) then return false end
+    if not R.ApplySecondaryIconCrop
+        or not R.ApplySecondaryIconCrop(icon) then return false end
     if cooldown then
         clearSecondaryCooldown(host)
         if duration > 0 then
