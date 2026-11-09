@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.201-target-native-fallback-test"
+R.VERSION = "0.1.202-secondary-icon-26px-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 -- Four native Blizzard party portraits share the same aura engine as player/pet.
 -- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
