@@ -21,6 +21,8 @@ local trackingHarmful = assert(R.TIER_BY_KEY.TrackingHarmful)
 local ambient = assert(R.TIER_BY_KEY.CampfireNearby)
 local ambientHarmful = assert(R.TIER_BY_KEY.CampfireNearbyHarmful)
 local fallback = assert(R.TIER_BY_KEY.HostileHelpful)
+local minorHelpful = assert(R.TIER_BY_KEY.MinorHelpful)
+local minorHarmful = assert(R.TIER_BY_KEY.MinorHarmful)
 
 equal(gathering.level, 1, "Gathering remains priority one above bottom")
 equal(info.level, 0, "passive informational harmful is absolute lowest aura tier")
@@ -32,6 +34,16 @@ equal(trackingHarmful.level, tracking.level, "harmful tracking shares the inform
 equal(ambient.level, 4, "original ambient buff above tracking")
 equal(ambientHarmful.level, 4, "nearby harmful stays at ambient level four")
 equal(fallback.level, 5, "generic hostile fallback above the exact low lanes")
+equal(minorHelpful.level, 6, "minor helpful effects just above level-five informational buffs")
+equal(minorHarmful.level, minorHelpful.level, "minor harmful shares numeric priority six")
+check(minorHelpful.exact and minorHelpful.helpful, "minor helpful has exact helpful polarity")
+check(minorHarmful.exact and not minorHarmful.helpful, "minor harmful has exact harmful polarity")
+check(fallback.level < minorHelpful.level and minorHelpful.level < R.TIER_BY_KEY.PassiveSpeed.level,
+    "minor effects between existing five and nine without shifting either")
+check(minorHelpful.level < R.TIER_BY_KEY.BaselineClass.level,
+    "minor effects are nowhere near major class/world buffs")
+check(next(minorHarmful.spellIDs) == nil,
+    "minor debuffs remain unpopulated until a real low-impact debuff is confirmed")
 check(gathering.helpful and gathering.exact, "gathering is exact helpful")
 check(not info.helpful and info.exact, "informational effects are exact harmful")
 check(tracking.helpful and tracking.exact, "tracking is exact helpful")
@@ -94,6 +106,26 @@ for id, name in pairs(infoIDs) do
     check(R.NONCOMBAT_EXCLUDED_HARMFUL[id] == true,
         name .. " cannot be promoted by generic harmful fallback")
 end
+for id, name in pairs({[1296202]="Rat Familiar (+2 Int)",
+    [1292142]="Benevolence (4 HP/5s)"}) do
+    check(C.buffs_minor_world[id] == true, name .. " classified as very minor")
+    check(minorHelpful.spellIDs[id] == true, name .. " native minor tier")
+    check(R.HELPFUL_TIER_BY_SPELL[id] == minorHelpful, name .. " indexed as minor")
+    check(R.TIER_BY_KEY.BaselineClass.spellIDs[id] == nil,
+        name .. " must never take the class/world-buff portrait")
+    check(R.CandidateFilters(minorHelpful).includeSpellIDs[id] == true,
+        name .. " native spell filter includes verified minor effect")
+    check(R.CandidateFilters(R.TIER_BY_KEY.HostileHelpful).excludeSpellIDs[id] == true,
+        name .. " excluded from generic hostile helpful fallback")
+    check(R.CandidateFilters(R.TIER_BY_KEY.Important).excludeSpellIDs[id] == true,
+        name .. " excluded from high semantic Important fallback")
+end
+check(R.TIER_BY_KEY.PassiveDebuff.spellIDs[26013] == true,
+    "Deserter remains original level-59 passive debuff")
+check(R.TIER_BY_KEY.PassiveDebuff.spellIDs[1292749] == true,
+    "Martyrdom remains original level-59 passive debuff")
+check(R.TIER_BY_KEY.BoostedRest.spellIDs[24755] == true,
+    "Tricked or Treated stays at absolute bottom, not silently promoted")
 for id, name in pairs(bottomSightIDs) do
     check(C.buffs_bottom[id] == true, name .. " bottom helpful source category")
     check(bottomHelpful.level == 0, name .. " absolute bottom numeric tier")
