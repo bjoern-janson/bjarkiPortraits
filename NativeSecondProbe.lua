@@ -277,10 +277,14 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
         and hostile == false and host._assistable == true
         and playerReadable == true and isPlayer == true
 
-    -- Opposite-faction players and hostile NPCs share the same Target proof.
-    -- Unknown class identity/relation is never promoted to a native ribbon.
+    -- The public top-two reader can fail on FRIENDLY and NEUTRAL targets
+    -- too: a single restricted harmful aura invalidates its otherwise
+    -- readable helpful+harmful union. The protected native group ribbon is
+    -- unit-agnostic, so use the same guarded Target mechanism regardless
+    -- of a positively readable friendly/hostile relation. Do not collapse
+    -- UNKNOWN into friendly, or infer an NPC from a missing player result.
     local targetEligible = host.unit == "target" and base
-        and hostile == true and playerReadable == true
+        and type(hostile) == "boolean" and playerReadable == true
         and type(isPlayer) == "boolean"
 
     if (playerEligible or targetEligible) and not host._nativeSecondProbe then
@@ -302,14 +306,28 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
         and host._secondaryMode == "race"
         and host._raceBaselineActive == true
         and host._ghostActive ~= true and host._formStateActive ~= true
-    local show = targetEligible or playerFallback
+
+    -- For friendly/neutral targets, leave a completed public aura election
+    -- alone: its recency and static state tie-breaks remain authoritative.
+    -- When that election falls back to race/hidden (e.g. a debuff seals the
+    -- indexed harmful list), the native second cell can be displayed above
+    -- the baseline without asking Lua to inspect protected aura identities.
+    -- The native strip does not model a separate static Ghost/form primary.
+    local publicSecond = host._secondaryMode == "aura"
+        or host._secondaryMode == "form"
+    local targetFallback = targetEligible and hostile == false
+        and not publicSecond
+        and host._ghostActive ~= true and host._formStateActive ~= true
+    local targetShow = targetEligible and (hostile == true or targetFallback)
+    local show = targetShow or playerFallback
 
     if show then
-        -- Target NPCs have no legitimate race baseline; hide their legacy
-        -- badge. Player and hostile-player badges remain underneath the
-        -- native second cell, so zero/one eligible auras still show race.
-        -- No native button/secret frame geometry is inspected by Lua.
-        if targetEligible and isPlayer == false and host.secondaryBadge then
+        -- A confirmed NPC has no PLAYER race baseline, so its former
+        -- race-looking badge must never outlive a target handoff. A
+        -- confirmed player retains the race badge beneath the native
+        -- second cell, which is empty when fewer than two auras qualify.
+        -- Pet-family art uses its own independently gated lower layer.
+        if targetShow and isPlayer == false and host.secondaryBadge then
             pcall(host.secondaryBadge.Hide, host.secondaryBadge)
         end
         if not pcall(probe.clip.Show, probe.clip) then
@@ -317,10 +335,12 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
         else
             host._nativeSecondProbeReason = playerFallback
                 and "player-native-race-fallback"
+                or targetFallback and "friendly-target-native-fallback"
                 or "target-native-ribbon"
         end
     else
         hide(host, playerEligible and "readable-second-or-static-owner"
+            or targetEligible and "target-readably-ranked-or-static"
             or "unit-ineligible")
     end
 end
