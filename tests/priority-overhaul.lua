@@ -83,7 +83,6 @@ local preservedPriorityLevels = {
     Elixirs = 81,
     BaselineClass = 90,
     BaselineClassHarmful = 90,
-    WellFed = 110,
     Thorns = 120,
     SelfState = 150,
     HostileHelpful = 5,
