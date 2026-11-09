@@ -2,11 +2,46 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.205-world-buffs-class-tier-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.206-minor-effects-tier-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.206 — dedicated very minor buff/debuff tier
+
+The broad 0.1.205 world-buff consolidation over-promoted two negligible
+passive effects: **Rat Familiar** (1296202, +2 Intellect) and
+**Benevolence** (1292142, 4 health per 5 seconds for nearby party).
+Neither should compete with significant world buffs or long-lived
+class buffs at level 90.
+
+A new matched pair of *exact, native-filtered* level-**6** tiers
+serves low-impact auras, between the existing level-5 informational
+group and level-9 PassiveSpeed:
+
+- `MinorHelpful` at 6 contains Rat Familiar and Benevolence via
+  `buffs_minor_world`, plus an empty `buffs_minor` category reserved
+  for individually verified future examples.
+- `MinorHarmful` at 6 uses an empty `debuffs_minor` source category
+  for similarly negligible **verified debuffs**. It cannot currently
+  select any effect. Do not move meaningful Deserter, Martyrdom or
+  other harmful statuses simply to populate the slot.
+
+Helpful and harmful polarity need distinct native slots but share the
+same numerical priority. Both rat and Benevolence are removed from
+`BaselineClass` 90, and remain excluded from the generic high-priority
+`Important` and `HostileHelpful` fallbacks. **All explicitly
+classified major world buffs, including the eight Sayge fortunes,
+remain priority 90**. Existing class/camp buffs, bottom informational
+effects, passive effects, regular debuffs, priorities, second-circle
+size, portrait placement and cooldown behavior are unchanged.
+
+Source-backed regressions check the level-6 pair, exact IDs,
+classification uniqueness, generic-filter exclusion, retained
+priority 90 for actual world buffs, and unchanged treatment of
+Martyrdom/Deserter/Tricked or Treated. No settings or in-game
+commands required.
 
 ## 0.1.205 — all identified world buffs share the class-buff priority
 
