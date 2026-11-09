@@ -162,7 +162,21 @@ function R.ReleaseNativeSecondProbe(host)
 end
 
 local function supportedUnit(unit)
-    return unit == "player" or unit == "target"
+    return unit == "player" or unit == "target" or unit == "focus"
+end
+
+-- A visibly separate Target/Focus portrait may refer to the local Player.
+-- Use the native "player" aura unit in that case, which has the same secure
+-- self-helpful access as the existing PlayerFrame strip. Require a *positive*
+-- UnitIsUnit witness; names, GUID guesses and inaccessible results do not
+-- authorize an alias. Never read native aura-button data to determine it.
+local function nativeSourceUnit(host)
+    if host.unit == "player" then return "player" end
+    if type(UnitIsUnit) == "function" and type(R.SafeBool) == "function" then
+        local same, readable = R.SafeBool(UnitIsUnit, host.unit, "player")
+        if readable and same then return "player" end
+    end
+    return host.unit
 end
 
 local function secondCorner(host)
@@ -189,7 +203,9 @@ function R.CreateNativeSecondProbe(host)
             local corner, offset = secondCorner(host)
             probe.clip:SetPoint("CENTER", host.portrait, corner, offset, 0)
             probe.clip:SetFrameStrata(usableStrata(host))
-            probe.container:SetUnit(host.unit)
+            local source = nativeSourceUnit(host)
+            probe.container:SetUnit(source)
+            probe.boundUnit = source
         end)
         if not ok then
             host._nativeSecondProbeReason = "reuse-failed"
@@ -250,7 +266,9 @@ function R.CreateNativeSecondProbe(host)
             })
             probe.groups = probe.groups + 1
         end
-        c:SetUnit(host.unit)
+        local source = nativeSourceUnit(host)
+        c:SetUnit(source)
+        probe.boundUnit = source
         probe.ready = true
     end)
     if not ok then
@@ -268,29 +286,23 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
         and R.db.secondaryPortrait ~= false
         and enabled == true and not R.testMode
 
-    -- The player host must be READY before an incoming combat debuff seals
-    -- public aura indexing. Construct it on the first ordinary OOC host
-    -- update, but show it only if the readable second has fallen back to
-    -- race. Keep independently presented Ghost and form/stance ranking as
-    -- the older authoritative implementation.
+    -- PlayerFrame prepares the native second out of combat. Its readable
+    -- winner remains authoritative; this strip is a combat/race fallback.
     local playerEligible = host.unit == "player" and base
         and hostile == false and host._assistable == true
         and playerReadable == true and isPlayer == true
 
-    -- The public top-two reader can fail on FRIENDLY and NEUTRAL targets
-    -- too: a single restricted harmful aura invalidates its otherwise
-    -- readable helpful+harmful union. The protected native group ribbon is
-    -- unit-agnostic, so use the same guarded Target mechanism regardless
-    -- of a positively readable friendly/hostile relation. Do not collapse
-    -- UNKNOWN into friendly, or infer an NPC from a missing player result.
-    local targetEligible = host.unit == "target" and base
-        and type(hostile) == "boolean" and playerReadable == true
-        and type(isPlayer) == "boolean"
+    -- Target and Focus share the exact same guarded mechanism. The public
+    -- election may read an effect on PlayerFrame but not its Target/Focus
+    -- alias, or fail on an unrelated protected HARMFUL aura.
+    local otherEligible = (host.unit == "target" or host.unit == "focus")
+        and base and type(hostile) == "boolean"
+        and playerReadable == true and type(isPlayer) == "boolean"
 
-    if (playerEligible or targetEligible) and not host._nativeSecondProbe then
-        -- Native groups preallocate a batch per tier. Never construct new
-        -- protected layout frames while combat-locked. A normal OOC
-        -- refresh will retry automatically; no slash command is needed.
+    if (playerEligible or otherEligible) and not host._nativeSecondProbe then
+        -- Native groups preallocate frames per priority tier. Construct
+        -- automatically on the first eligible OOC update; never during
+        -- combat, and never require a slash command.
         local combat, readable = R.SafeBool(InCombatLockdown)
         if not readable or combat then
             host._nativeSecondProbeReason = "setup-deferred-until-out-of-combat"
@@ -302,32 +314,50 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
     local probe = host._nativeSecondProbe
     if not probe or not probe.ready or not probe.clip then return end
 
+    if playerEligible or otherEligible then
+        -- If the underlying unit changes (including self Target/Focus
+        -- binding), a previously bound "player" container could otherwise
+        -- paint the OLD player's aura over a new target. Rebind only
+        -- outside combat, and hide immediately if the protected setter
+        -- cannot safely complete. Blizzard handles aura changes *within*
+        -- the currently bound unit without addon polling.
+        local source = nativeSourceUnit(host)
+        if probe.boundUnit ~= source then
+            local combat, readable = R.SafeBool(InCombatLockdown)
+            if not readable or combat then
+                hide(host, "source-rebind-deferred-combat")
+                return
+            end
+            if not pcall(probe.container.SetUnit, probe.container, source) then
+                hide(host, "source-rebind-failed")
+                return
+            end
+            probe.boundUnit = source
+        end
+    end
+
     local playerFallback = playerEligible
         and host._secondaryMode == "race"
         and host._raceBaselineActive == true
         and host._ghostActive ~= true and host._formStateActive ~= true
 
-    -- For friendly/neutral targets, leave a completed public aura election
-    -- alone: its recency and static state tie-breaks remain authoritative.
-    -- When that election falls back to race/hidden (e.g. a debuff seals the
-    -- indexed harmful list), the native second cell can be displayed above
-    -- the baseline without asking Lua to inspect protected aura identities.
-    -- The native strip does not model a separate static Ghost/form primary.
+    -- On nonhostile Target/Focus, a complete, public second-aura or form
+    -- selection wins. Only race/hidden fallback can expose the native
+    -- second cell; Ghost and form-state primaries must not be guessed
+    -- past by a generic aura ribbon.
     local publicSecond = host._secondaryMode == "aura"
         or host._secondaryMode == "form"
-    local targetFallback = targetEligible and hostile == false
+    local otherFallback = otherEligible and hostile == false
         and not publicSecond
         and host._ghostActive ~= true and host._formStateActive ~= true
-    local targetShow = targetEligible and (hostile == true or targetFallback)
-    local show = targetShow or playerFallback
+    local otherShow = otherEligible and (hostile == true or otherFallback)
+    local show = otherShow or playerFallback
 
     if show then
-        -- A confirmed NPC has no PLAYER race baseline, so its former
-        -- race-looking badge must never outlive a target handoff. A
-        -- confirmed player retains the race badge beneath the native
-        -- second cell, which is empty when fewer than two auras qualify.
-        -- Pet-family art uses its own independently gated lower layer.
-        if targetShow and isPlayer == false and host.secondaryBadge then
+        -- A confirmed NPC has no valid player-race baseline. Player
+        -- targets retain race under the empty native second cell;
+        -- positively identified pets have their own family underlay.
+        if otherShow and isPlayer == false and host.secondaryBadge then
             pcall(host.secondaryBadge.Hide, host.secondaryBadge)
         end
         if not pcall(probe.clip.Show, probe.clip) then
@@ -335,12 +365,12 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
         else
             host._nativeSecondProbeReason = playerFallback
                 and "player-native-race-fallback"
-                or targetFallback and "friendly-target-native-fallback"
-                or "target-native-ribbon"
+                or otherFallback and "friendly-secondary-native-fallback"
+                or "other-unit-native-ribbon"
         end
     else
         hide(host, playerEligible and "readable-second-or-static-owner"
-            or targetEligible and "target-readably-ranked-or-static"
+            or otherEligible and "readably-ranked-or-static"
             or "unit-ineligible")
     end
 end
