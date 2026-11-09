@@ -34,6 +34,26 @@ equal(ambient.level, 4, "original ambient buff above tracking")
 equal(ambientHarmful.level, 4, "nearby harmful stays at ambient level four")
 equal(fallback.level, 5, "generic hostile fallback above the exact low lanes")
 equal(consumables.level, 81, "minor and Well Fed auras share Consumables priority")
+check(C.buffs_bottom[429959] == true,
+    "Cozy Sleeping Bag Well-Rested has exact bottom-helpful membership")
+check(bottomHelpful.spellIDs[429959] == true,
+    "Well-Rested visible buff is priority zero, not Legacy perk")
+check(R.HELPFUL_TIER_BY_SPELL[429959] == bottomHelpful,
+    "Well-Rested uses the one exact bottom-helpful tier")
+check(R.CandidateFilters(bottomHelpful).includeSpellIDs[429959] == true,
+    "native Well-Rested exact filter sees only actual applied buff ID")
+check(R.NONCOMBAT_EXCLUDED_HELPFUL[429959] == true,
+    "Well-Rested cannot be promoted by generic IMPORTANT fallback")
+check(R.CandidateFilters(R.TIER_BY_KEY.Important).excludeSpellIDs[429959] == true,
+    "IMPORTANT cannot promote Well-Rested")
+check(R.CandidateFilters(R.TIER_BY_KEY.HostileHelpful).excludeSpellIDs[429959] == true,
+    "hostile generic cannot promote Well-Rested")
+check(R.TIER_BY_KEY.BaselineClass.spellIDs[429959] == nil,
+    "Well-Rested is not a class buff")
+check(R.HELPFUL_TIER_BY_SPELL[1225478] == nil,
+    "passive Legacy Well Rested must not masquerade as Cozy Sleeping Bag buff")
+check(R.HELPFUL_TIER_BY_SPELL[429960] == nil,
+    "hidden tracking aura is not the displayed Well-Rested effect")
 check(consumables.exact and consumables.helpful, "combined consumables band uses helpful exact filter")
 check(R.TIER_BY_KEY.MinorHelpful == nil, "former minor helpful tier is retired")
 check(R.TIER_BY_KEY.MinorHarmful == nil, "former empty harmful tier is retired")

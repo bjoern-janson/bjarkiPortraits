@@ -161,6 +161,8 @@ function R.ReleaseNativeSecondProbe(host)
     elseif probe.container then
         pcall(probe.container.SetUnit, probe.container, nil)
     end
+    probe.boundUnit = nil
+    probe.boundGUID = nil
     host._nativeSecondProbe = nil
 end
 
@@ -180,6 +182,18 @@ local function nativeSourceUnit(host)
         if readable and same then return "player" end
     end
     return host.unit
+end
+
+-- The unit TOKEN can remain "target" across multiple different creatures.
+-- A separate positively readable GUID detects that change without reading
+-- or inferring any private aura count, duration or spell ID.
+local function readableHostGUID(unit)
+    if type(UnitGUID) ~= "function" or type(R.SafeString) ~= "function" then
+        return nil, false
+    end
+    local guid, readable = R.SafeString(UnitGUID, unit)
+    if readable and guid ~= "" then return guid, true end
+    return nil, false
 end
 
 function R.CreateNativeSecondProbe(host)
@@ -204,6 +218,7 @@ function R.CreateNativeSecondProbe(host)
             local source = nativeSourceUnit(host)
             probe.container:SetUnit(source)
             probe.boundUnit = source
+            probe.boundGUID = select(1, readableHostGUID(host.unit))
         end)
         if not ok then
             host._nativeSecondProbeReason = "reuse-failed"
@@ -267,6 +282,7 @@ function R.CreateNativeSecondProbe(host)
         local source = nativeSourceUnit(host)
         c:SetUnit(source)
         probe.boundUnit = source
+        probe.boundGUID = select(1, readableHostGUID(host.unit))
         probe.ready = true
     end)
     if not ok then
@@ -277,7 +293,8 @@ function R.CreateNativeSecondProbe(host)
     return true
 end
 
-function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPlayer)
+function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPlayer,
+    forceContainerRefresh)
     if not host or not supportedUnit(host.unit) then return end
 
     local base = R.db and R.db.enabled == true
@@ -297,6 +314,7 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
         and base and type(hostile) == "boolean"
         and playerReadable == true and type(isPlayer) == "boolean"
 
+    local newlyConstructed = false
     if (playerEligible or otherEligible) and not host._nativeSecondProbe then
         -- Native groups preallocate frames per priority tier. Construct
         -- automatically on the first eligible OOC update; never during
@@ -307,30 +325,60 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
             return
         end
         if not R.CreateNativeSecondProbe(host) then return end
+        newlyConstructed = true
     end
 
     local probe = host._nativeSecondProbe
     if not probe or not probe.ready or not probe.clip then return end
 
     if playerEligible or otherEligible then
-        -- If the underlying unit changes (including self Target/Focus
-        -- binding), a previously bound "player" container could otherwise
-        -- paint the OLD player's aura over a new target. Rebind only
-        -- outside combat, and hide immediately if the protected setter
-        -- cannot safely complete. Blizzard handles aura changes *within*
-        -- the currently bound unit without addon polling.
+        -- On PLAYER_TARGET_CHANGED/PLAYER_FOCUS_CHANGED the bound unit TOKEN
+        -- normally stays "target"/"focus", even though the actual GUID
+        -- changes. The primary native containers already receive forced
+        -- UpdateAllAuras on those transitions; the SECONDARY ribbon must do
+        -- so too or it can display the previous mob's timed aura.
         local source = nativeSourceUnit(host)
-        if probe.boundUnit ~= source then
-            local combat, readable = R.SafeBool(InCombatLockdown)
-            if not readable or combat then
-                hide(host, "source-rebind-deferred-combat")
+        local guid, guidReadable = readableHostGUID(host.unit)
+        local changedSource = probe.boundUnit ~= source
+        local changedIdentity = guidReadable and probe.boundGUID ~= nil
+            and probe.boundGUID ~= guid
+        local newlyReadableIdentity = guidReadable and probe.boundGUID == nil
+        local forced = forceContainerRefresh == true and not newlyConstructed
+            and (host.unit == "target" or host.unit == "focus")
+
+        -- A forced retarget with a previously known but currently unreadable
+        -- identity cannot authorize reusing the prior native second cell.
+        if forced and probe.boundGUID ~= nil and not guidReadable then
+            hide(host, "unit-identity-unreadable")
+            return
+        end
+        if changedSource or changedIdentity or newlyReadableIdentity or forced then
+            -- Force-refreshing the built-in group may change its protected
+            -- layout. Do not attempt it in combat: hide the independent
+            -- viewport and retry from the next normal OOC refresh.
+            local combat, known = R.SafeBool(InCombatLockdown)
+            if not known or combat then
+                hide(host, "unit-rebind-deferred-combat")
                 return
             end
-            if not pcall(probe.container.SetUnit, probe.container, source) then
-                hide(host, "source-rebind-failed")
+            local refreshed = pcall(function()
+                if changedSource then
+                    probe.container:SetUnit(source)
+                elseif type(probe.container.UpdateAllAuras) == "function" then
+                    probe.container:UpdateAllAuras()
+                else
+                    -- Safe fallback for client variants without the refresh
+                    -- method: reset the *same* token to force new aura binding.
+                    probe.container:SetUnit(nil)
+                    probe.container:SetUnit(source)
+                end
+            end)
+            if not refreshed then
+                hide(host, "unit-refresh-failed")
                 return
             end
             probe.boundUnit = source
+            probe.boundGUID = guidReadable and guid or nil
         end
     end
 
@@ -348,8 +396,15 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
     local otherFallback = otherEligible and hostile == false
         and not publicSecond
         and host._ghostActive ~= true and host._formStateActive ~= true
-    local otherShow = otherEligible and (hostile == true or otherFallback)
-    local show = otherShow or playerFallback
+    -- A complete current public election can PROVE there is no second
+    -- presentable aura. A native clip must not override that negative
+    -- evidence (a one-aura target can otherwise look like it has two).
+    -- The public renderer is also authoritative when it DID paint a real
+    -- second aura, including on hostile NPCs.
+    local provenNoSecond = host._secondaryElectionReason == "not-two-presentable"
+    local otherShow = otherEligible and not publicSecond and not provenNoSecond
+        and (hostile == true or otherFallback)
+    local show = otherShow or (playerFallback and not provenNoSecond)
 
     if show then
         -- A confirmed NPC has no valid player-race baseline. Player

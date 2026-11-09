@@ -18,9 +18,8 @@ local function supportsSecondary(host)
     return host and SECONDARY_UNITS[host.unit] == true
 end
 
--- All badge renderers share Core.SecondaryCirclePlacement; Target alone
--- moves to the raised upper-left to avoid its right-hand combo points.
--- Focus and Player/party retain their previously accepted positions.
+-- All second-circle renderers share Core.SecondaryCirclePlacement: the
+-- unified raised TOPLEFT anchor applies to Player, Target, Focus and party.
 local STRATA_ABOVE = {
     BACKGROUND = "LOW", LOW = "MEDIUM", MEDIUM = "HIGH", HIGH = "DIALOG",
     DIALOG = "FULLSCREEN_DIALOG", FULLSCREEN = "FULLSCREEN_DIALOG",

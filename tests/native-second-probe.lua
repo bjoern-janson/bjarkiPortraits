@@ -26,6 +26,8 @@ R.AURA_ANCHOR_TEMPLATE="DisableUntrustedLayoutScriptsTemplate"
 R.SORT_METHOD=8
 R.SORT_DIRECTION=1
 local selfAliases={target=false,focus=false}
+local guidByUnit={target="Creature-Initial",focus="Player-Focus",player="Player-Self"}
+UnitGUID=function(unit) return guidByUnit[unit] end
 UnitIsUnit=function(unit,compared)
     return compared=="player" and selfAliases[unit]==true
 end
@@ -50,6 +52,10 @@ local function frame(kind,parent)
     function o:Show()self.shown=true end
     function o:Hide()self.shown=false end
     function o:SetUnit(v)self.unit=v end
+    function o:UpdateAllAuras()
+        self.refreshes=(self.refreshes or 0)+1
+        self.lastRefreshedUnit=self.unit
+    end
     function o:CreateTexture()
         self.textures=self.textures or {}
         local tex=frame("texture",self)
@@ -117,6 +123,7 @@ eq(p.clip.points[4],10,"native Target has +10 upper-left x offset")
 eq(p.clip.points[5],12,"native Target is raised 12px above frame top corner")
 eq(p.container.points[4],-44,"first native cell still completely clipped after resizing")
 eq(p.container.unit,"target","native unit owns current target")
+eq(p.boundGUID,"Creature-Initial","native viewport remembers exact bound creature")
 eq(p.groups>20,true,"cross-priority native groups created")
 eq(#p.container.groups,p.groups,"group registry complete")
 local oldLevel=math.huge
@@ -143,6 +150,57 @@ eq(keys.SmallFriendlyHarmful.options.candidateFilters.isPriorityAura,
 R.UpdateNativeSecondProbe(host,true,true,true,false)
 eq(p.clip.shown,true,"verified NPC probe is shown")
 eq(host.secondaryBadge.shown,false,"legacy NPC badge hidden under native ribbon")
+
+-- Newly targeted UNTAGGED mob: the token remains "target", but the
+-- native second must not keep the previous mob's aura and ticking timer.
+local count=p.container.refreshes or 0
+guidByUnit.target="Creature-Untagged"
+R.UpdateNativeSecondProbe(host,true,true,true,false,true)
+eq(p.container.refreshes,count+1,"forced retarget refreshes native second too")
+eq(p.container.lastRefreshedUnit,"target","refreshes current token")
+eq(p.boundGUID,"Creature-Untagged","current creature GUID replaces stale one")
+eq(p.clip.shown,true,"native clip is eligible after fresh out-of-combat update")
+
+-- A hidden/restricted GUID during a forced target change cannot be
+-- compared to the previous owner, so refuse to display the old icon.
+guidByUnit.target="SECRET"
+R.UpdateNativeSecondProbe(host,true,true,true,false,true)
+eq(p.clip.shown,false,"unknown replacement GUID hides stale aura")
+eq(p._unused,nil,"no synthetic positive evidence created")
+eq(host._nativeSecondProbeReason,"unit-identity-unreadable",
+    "secret target identity reports fail-closed reason")
+eq(p.boundGUID,"Creature-Untagged","unreadable GUID cannot overwrite witness")
+
+-- Retargeting during combat cannot safely refresh protected group layout;
+-- the old badge stays hidden until an ordinary OOC refresh.
+guidByUnit.target="Creature-CombatSwap"
+combat=true
+R.UpdateNativeSecondProbe(host,true,true,true,false,true)
+eq(p.clip.shown,false,"combat retarget hides previous creature's aura")
+eq(p.boundGUID,"Creature-Untagged","combat change does not relabel old group")
+combat=false
+R.UpdateNativeSecondProbe(host,true,true,true,false,true)
+eq(p.clip.shown,true,"OOC refresh restores native second eligibility")
+eq(p.boundGUID,"Creature-CombatSwap","OOC restoration tracks new creature")
+eq(p.container.refreshes,count+2,"one refresh for each safe target swap")
+
+-- Complete, readable public ranking of zero/one eligible aura means
+-- native fallback may not manufacture or show a second icon.
+host._secondaryElectionReason="not-two-presentable"
+R.UpdateNativeSecondProbe(host,true,true,true,false)
+eq(p.clip.shown,false,"one-aura NPC cannot expose native second cell")
+host._secondaryElectionReason=nil
+R.UpdateNativeSecondProbe(host,true,true,true,false)
+eq(p.clip.shown,true,"unknown native second still permitted when not disproved")
+
+-- Public verified two-aura NPC selection must not be covered by a second
+-- competing native renderer with potentially different classification.
+host._secondaryMode="aura"
+R.UpdateNativeSecondProbe(host,true,true,true,false)
+eq(p.clip.shown,false,"real NPC second from public election is authoritative")
+host._secondaryMode=nil
+R.UpdateNativeSecondProbe(host,true,true,true,false)
+eq(p.clip.shown,true,"NPC native fallback recovers when public proof lost")
 -- Opposite-faction players previously showed only race even with two
 -- visible auras, since the secure native ribbon excluded ALL players.
 -- The native second can now cover a verified race baseline without Lua

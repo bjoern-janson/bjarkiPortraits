@@ -2,11 +2,47 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.214-unified-mounts-white-timers-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.215-well-rested-target-handoff-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.215 — Well-Rested and native target-identity handoff
+
+The *Cozy Sleeping Bag* **Well-Rested** aura (spell **429959**) is an
+ordinary 2-hour helpful buff with 1–3 stacks (up to +3% XP). It joins
+`buffs_bottom` and existing **BottomHelpful 0** exactly. The unrelated
+passive Legacy talent **Well Rested 1225478** and hidden tracking
+aura **429960** are intentionally excluded. No new priority tier.
+
+The 0.1.214 untagged Elder Crag Boar screenshot showed a timed icon
+in the secondary circle while its ordinary 3D main portrait remained.
+The native second-ribbon code reused a `target` unit token across
+retargets but did not receive `forceContainerRefresh`, unlike the main
+AuraContainers. A timer from a previous target could therefore linger
+without any independent positive witness on the newly targeted mob.
+The yellow `8` is the mob level, not a countdown defect.
+
+**Fix:** pass the existing forced-refresh signal into the native second
+ribbon and track a safely readable current GUID for Target/Focus.
+When the token still refers to a *different* actor, call the native
+`UpdateAllAuras` out of combat, or fall back to a safe `SetUnit(nil)`
+then `SetUnit(source)` rebind when necessary. A combat retarget or
+secret GUID at a forced swap hides the old secondary viewport instead
+of presenting stale art. Pooled reuse and player self-alias still
+follow their positively checked source unit.
+
+A complete public election returning `not-two-presentable` now
+suppresses native second art, and a verified public second is
+authoritative on hostile NPCs as well. Incomplete/unreadable evidence
+can still use the existing native fallback after a safe refresh.
+No private aura counts are inspected, and real readable two-aura
+NPC portraits retain their existing public election and ranking.
+
+Lua 5.1/5.4 regression tests cover the target-GUID transition,
+forced refresh, combat deferral, secret-identity hiding, public absence,
+and exact bottom-tier spell ownership. Live confirmation needed.
 
 ## 0.1.214 — unify placement, mount classification, white timers
 

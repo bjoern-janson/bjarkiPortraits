@@ -1674,6 +1674,7 @@ PT.categories = {
     -- so this shares its numeric priority but uses the matching polarity.
     -- The *applied buff* is 1321323, not the item-use trigger 1321320.
     buffs_bottom = {
+        [429959] = true, -- Well-Rested: Cozy Sleeping Bag XP bonus, 1-3 stacks (2h)
         [1321323] = true, -- Shiny Silver Coin (+30 Fishing, 30 minutes)
         -- Passive viewpoint-only effects cannot compete with gameplay buffs.
         -- These are positive CASTER auras (not damage, tracking, or target CC).

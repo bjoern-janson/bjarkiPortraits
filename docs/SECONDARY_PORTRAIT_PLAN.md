@@ -1,5 +1,22 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.215 Well-Rested and stale-target native safety
+
+Well-Rested from the Sleeping Bag is applied helpful 429959, priority
+BottomHelpful zero, not the passive Legacy Well Rested 1225478 or
+hidden spell 429960. The exact spell ID is backed by Forever spell
+records and the 3% screenshot tooltip; no guessed stack-specific ID.
+
+NativeSecondProbe previously did not receive the outer target's
+forceContainerRefresh on PLAYER_TARGET_CHANGED. A pooled or unchanged
+"target" token could keep the preceding creature's native second icon.
+Add safe GUID tracking and out-of-combat UpdateAllAuras on target
+change/force; hide instead of reusing stale art in combat or when
+a previously known identity becomes secret. A complete readable
+no-second witness or actual public second elects above native fallback.
+Keep two-effect NPC handling when evidence permits, and do not inspect
+native private aura details or attach any polling timer.
+
 ## 2026-11-09 — 0.1.214 cross-host layout and mounted auras
 
 User requests the 0.1.213 Target raised TOPLEFT (+10,+12) placement on

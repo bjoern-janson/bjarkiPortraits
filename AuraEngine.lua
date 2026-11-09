@@ -1743,7 +1743,8 @@ function R.UpdateHost(host, forceContainerRefresh)
         R.UpdateSecondaryPortrait(host, base and playerReadable and isPlayer)
     end
     if R.UpdateNativeSecondProbe then
-        R.UpdateNativeSecondProbe(host, base, hostileUnit, playerReadable, isPlayer)
+        R.UpdateNativeSecondProbe(host, base, hostileUnit, playerReadable, isPlayer,
+            forceContainerRefresh)
     end
     -- The pet-family fallback uses native HELPFUL/HARMFUL presence groups,
     -- not private aura enumeration. It stays behind genuine second-aura art.
