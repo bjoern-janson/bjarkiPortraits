@@ -1,5 +1,24 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.203 enlarge the complete badge (not just icon zoom)
+
+The first attempted readability improvement (0.1.202) changed only
+inner artwork size, leaving the effective circular border and badge
+unchanged. User's screenshot correctly showed no significant change
+in overall circle size.
+
+Scale the complete geometry coherently in all three rendering paths:
+standard cell/aperture **37 → 44px**, border **30 → 36px**, artwork
+**26 → 31px**; compact party cell **29 → 35px**, border **24 → 29px**,
+artwork **21 → 25px**. The native group element width and first-cell
+clip offset must be the same 44px as the visible second-cell viewport,
+so the visible winner does not shift to the wrong rank. Retain the
+same accepted circle-center anchor and the Totem-style atlas/circular
+mask. Preserve timers, fonts, priorities, main portrait, pet-family
+identity and zero-command automation. Visual test needed to establish
+clearance from rested Zs and unit-frame labels at different UI scales.
+
+
 ## 2026-11-09 — 0.1.202 standard secondary art 22 → 26px
 
 Visual-only update across the native ranked aura ribbon, pet-family
