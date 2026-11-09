@@ -2,11 +2,56 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.209-magic-wings-utility-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.210-secondary-buff-font-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.210 — secondary countdown font matches regular buffs
+
+A live player-frame screenshot shows a timed secondary portrait with
+large native countdown numerals obscuring its 31px inner artwork,
+while the regular buff row underneath uses a smaller, more readable
+duration font. The fix changes **font styling only**, not the actual
+countdown or the portrait geometry.
+
+Forever's Blizzard `AuraButtonArtTemplate.Duration` inherits
+`GameFontNormalSmall`. Native aura duration captions can also use
+`DEFAULT_AURA_DURATION_FONT` at runtime. The new
+`R.ApplySecondaryCountdownFont` chooses the active Blizzard aura
+duration font when it exists, falling back to `GameFontNormalSmall`,
+and applies that font to the addon-owned
+`Cooldown:GetCountdownFontString()` label. It never guesses the
+font size from the portrait dimensions or reads protected aura time.
+
+This applies to **both timed secondary renderers**:
+
+- Readable second aura on Player, Target, Focus and party portraits
+  (including compact party badges). A positive aura refresh also
+  retries font styling if its native countdown label was not
+  created until the first timed effect.
+- The secured native second-aura ribbon for Player, Target and
+  Focus. Its font is installed on each preallocated native button
+  after its duration-cooldown receiver is assigned.
+
+The static pet-family secondary has **no countdown**, so its
+artwork and native presence-gate remain untouched. Likewise,
+**primary portrait countdown fonts** retain the older per-unit
+optical centering/compact reductions. Existing numeric formatting
+(whole seconds and optional decimals only below ten), 60s cutoff,
+countdown colors/text logic, ring/icon dimensions (44/36/31px),
+compact dimensions (35/29/25px), native font pooling, aura
+election and priority tiers are unchanged.
+
+The font switch occurs only on the addon-owned, positively readable
+FontString and outside combat lockdown. If the font API is
+unavailable, the fallback leaves the prior font intact rather
+than tainting a native frame. Lua 5.1/5.4 regressions cover both
+secondary implementations, direct Blizzard font-object matching,
+pool reuse/idempotence, unsafe combat reads and the unchanged
+primary formatter. **Live typography still needs visual confirmation.**
+No new settings or in-game commands.
 
 ## 0.1.209 — Magic Wings joins Walk on Air's Utility priority
 
