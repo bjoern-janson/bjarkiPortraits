@@ -259,7 +259,8 @@ end
 -- never infer an inaccessible aura's spell ID.
 local excludedHelpful = union("buffs_bottom", "buffs_gathering", "buffs_tracking", "buffs_campfire_nearby",
     "buffs_violet_flames", "buffs_cosmetic", "buffs_noncombat",
-    "buffs_world", "buffs_minor_world", "buffs_minor")
+    "buffs_world", "buffs_minor_world", "buffs_minor",
+    "buffs_well_fed", "buffs_elixirs")
 local excludedHarmful = union("debuffs_pet_taming", "debuffs_tracking", "debuffs_campfire_nearby",
     "debuffs_noncombat", "debuffs_boosted_rest")
 for spellID in pairs(excludedHelpful) do helpfulExplicit[spellID] = true end
