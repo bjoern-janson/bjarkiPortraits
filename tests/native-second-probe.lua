@@ -3,6 +3,7 @@
 -- The critical client experiment is whether grouped secret buttons flow
 -- correctly through the fixed second-cell clipping viewport.
 local BP={Runtime={}}
+assert(loadfile("Core.lua"))("bjarkiPortraits", BP)
 assert(loadfile("Spells.lua"))("bjarkiPortraits", BP)
 assert(loadfile("Priority.lua"))("bjarkiPortraits", BP)
 local R=BP.Runtime
@@ -111,6 +112,9 @@ local p=host._nativeSecondProbe
 eq(p.ready,true,"native container initialized")
 eq(p.clip.clips,true,"fixed clipping viewport")
 eq(p.clip.width,44,"entire native secondary viewport actually enlarged")
+eq(p.clip.points[3],"TOPLEFT","native Target runner-up avoids right-hand combo points")
+eq(p.clip.points[4],10,"native Target has +10 upper-left x offset")
+eq(p.clip.points[5],12,"native Target is raised 12px above frame top corner")
 eq(p.container.points[4],-44,"first native cell still completely clipped after resizing")
 eq(p.container.unit,"target","native unit owns current target")
 eq(p.groups>20,true,"cross-priority native groups created")
@@ -211,6 +215,9 @@ R.UpdateNativeSecondProbe(other,true,true,true,true)
 eq(other._nativeSecondProbe,p,"next hostile player automatically reuses pooled probe")
 eq(other._nativeSecondProbe.ready,true,"reused native strip is ready")
 eq(p.clip.points[2],other.portrait,"reused probe anchors to current portrait")
+eq(p.clip.points[3],"TOPLEFT","reused target probe retains combo-safe side")
+eq(p.clip.points[4],10,"reused target probe retains x offset")
+eq(p.clip.points[5],12,"reused target probe retains raised y offset")
 R.ReleaseNativeSecondProbe(other)
 
 -- PlayerFrame: eagerly prewarm in the first out-of-combat update, while
@@ -309,6 +316,7 @@ eq(fp.clip.shown,true,"Focus race fallback can show native second")
 eq(fp.container.unit,"focus","ordinary Focus native source is focus")
 eq(fp.clip.points[3],"TOPRIGHT","Focus native circle on outer right")
 eq(fp.clip.points[4],-5,"Focus retains accepted five-pixel inset")
+eq(fp.clip.points[5],0,"Focus stays at accepted portrait height")
 eq(fp.groups,p.groups,"Focus uses the existing complete tier policy")
 focus._secondaryMode="aura"
 R.UpdateNativeSecondProbe(focus,true,false,true,true)
@@ -349,8 +357,12 @@ selfAliases.target=true
 R.UpdateNativeSecondProbe(selfTarget,true,false,true,true)
 eq(selfTarget._nativeSecondProbe.boundUnit,"player",
     "self Target native renderer uses the verified player source")
-eq(selfTarget._nativeSecondProbe.clip.points[3],"TOPRIGHT",
-    "self Target native art remains at target outer corner")
+eq(selfTarget._nativeSecondProbe.clip.points[3],"TOPLEFT",
+    "self Target native second also avoids combo-point column")
+eq(selfTarget._nativeSecondProbe.clip.points[4],10,
+    "self Target uses +10 left-corner x offset")
+eq(selfTarget._nativeSecondProbe.clip.points[5],12,
+    "self Target also keeps +12px upper lift")
 R.ReleaseNativeSecondProbe(selfTarget)
 selfAliases.target=false
 print("native runner-up ribbon: "..checks.." inbound/safety checks passed")
