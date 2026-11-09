@@ -18,13 +18,9 @@ local function supportsSecondary(host)
     return host and SECONDARY_UNITS[host.unit] == true
 end
 
--- The secondary badge lives on the OUTER top edge. The inner edge is
--- reserved for native rested Zs, party-leader/raid-role indicators and bars.
--- Player and regular party health bars extend right; target/focus extend left.
-local MIRROR_LEFT = {
-    player = true, party1 = true, party2 = true, party3 = true,
-    party4 = true,
-}
+-- All badge renderers share Core.SecondaryCirclePlacement; Target alone
+-- moves to the raised upper-left to avoid its right-hand combo points.
+-- Focus and Player/party retain their previously accepted positions.
 local STRATA_ABOVE = {
     BACKGROUND = "LOW", LOW = "MEDIUM", MEDIUM = "HIGH", HIGH = "DIALOG",
     DIALOG = "FULLSCREEN_DIALOG", FULLSCREEN = "FULLSCREEN_DIALOG",
@@ -134,12 +130,11 @@ function R.CreateSecondaryPortrait(host, nativeStrata)
         end
         badge:SetFrameLevel(nativeLevel + 12)
         badge:EnableMouse(false)
-        local outwardLeft = MIRROR_LEFT[host.unit] == true
-        local side = outwardLeft and "TOPLEFT" or "TOPRIGHT"
-        -- Tuck the badge's centre in by 5px so a near-edge PlayerFrame
-        -- does not clip the circular border off the monitor.
-        badge:SetPoint("CENTER", host.portrait, side,
-            outwardLeft and 5 or -5, compact and 2 or 0)
+        local side, dx, dy = R.SecondaryCirclePlacement(host.unit)
+        -- Use the same anchor as the native fallback and pet-family art.
+        -- Target is raised above the bar edge, avoiding the vertical
+        -- combo-point column right of its main portrait.
+        badge:SetPoint("CENTER", host.portrait, side, dx, dy)
 
         local icon = badge._bjarkiIcon
         if not icon then
