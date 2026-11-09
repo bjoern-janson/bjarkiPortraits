@@ -38,6 +38,7 @@ check(consumables.exact and consumables.helpful, "combined consumables band uses
 check(R.TIER_BY_KEY.MinorHelpful == nil, "former minor helpful tier is retired")
 check(R.TIER_BY_KEY.MinorHarmful == nil, "former empty harmful tier is retired")
 check(R.TIER_BY_KEY.WellFed == nil, "former Well Fed tier is retired")
+check(R.TIER_BY_KEY.Elixirs == nil, "old Elixirs tier key is retired")
 check(consumables.level < R.TIER_BY_KEY.BaselineClass.level,
     "combined elixir band remains below class and major world buffs")
 check(gathering.helpful and gathering.exact, "gathering is exact helpful")
