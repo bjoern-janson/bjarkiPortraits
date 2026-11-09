@@ -1,6 +1,6 @@
-# Architecture — bjarkiPortraits 0.1.221
+# Architecture — bjarkiPortraits 0.1.222
 
-**Current technical reference** for branch `feat/secondary-portrait-p1`, source version `0.1.221-static-electricity-thorns-test` as of 2026-11-09. The original 0.1.178-and-earlier architecture chronology is preserved in [docs/ARCHITECTURE_HISTORY.md](docs/ARCHITECTURE_HISTORY.md); its old "current" statements and older tier levels must not be used as the current implementation.
+**Current technical reference** for branch `feat/secondary-portrait-p1`, source version `0.1.222-native-runner-up-duplicate-suppression-test` as of 2026-11-09. The original 0.1.178-and-earlier architecture chronology is preserved in [docs/ARCHITECTURE_HISTORY.md](docs/ARCHITECTURE_HISTORY.md); its old "current" statements and older tier levels must not be used as the current implementation.
 
 ## Module loading
 
@@ -54,6 +54,8 @@ The **main** presenter remains authoritative; secondary candidates must not weak
 2. Source-backed static witnesses (for example Ghost or a readable stance/form) are ranked without inventing aura instances or cooldowns. A verified current timed positive may be retained through restricted reads only within the existing invalidation/expiry/identity rules.
 3. When a public second cannot be proved, a **native** `CustomAuraContainer` for Player/Target/Focus sorts groups by `R.TIERS`. Its first cell is physically clipped and the second cell can render in the small circle. The addon neither reads private native button data nor claims a global secure API that returns the runner-up. A public `not-two-presentable` is **not proof of native absence**, so it is not a native-fallback veto.
 4. If no actual runner-up is drawn, player-character units may show a verified race badge. For positively identified NPCs, no race is fabricated. `PetSecondary.lua` can draw observed Hunter/Warlock pet-family artwork on Target/Focus underneath real secondary art, only where native HELPFUL/HARMFUL presence groups draw it.
+
+**Native duplicate prevention (0.1.222):** Blizzard evaluates independent AuraGroups without globally de-duplicating one aura across their candidates. The native runner-up partitions overlapping high/low semantic groups using supported negative aura-filter flags. The broad HostileHelpful group starts disabled and can only be enabled for positively hostile Target/Focus through an out-of-combat native setter; combat relation changes hide the clip. The completed public reader also treats repeated spell IDs and a matching form/aura identity as one effect. This does not expose secret identities or guarantee arbitrary private native rank equivalence.
 
 The native runner-up path is **not implemented for party1–4**: they use readable election plus verified race fallback. The local PetFrame, ToT and ToF do not have second circles.
 

@@ -1,8 +1,29 @@
 # Secondary portrait: two aura priorities + race identity
 
-> **Current implementation checkpoint (2026-11-09):** `0.1.221-static-electricity-thorns-test` on `feat/secondary-portrait-p1`. The secondary portrait is **implemented experimentally**, not merely proposed. See [current architecture](../ARCHITECTURE.md), [live verification status](../KNOWN_ISSUES.md) and [priority reference](PRIORITIES.md). This document preserves the chronological design decisions, **including superseded proposals**; the latest `Core.SecondaryCirclePlacement` and `Core.SecondaryCircleGeometry` are authoritative.
+> **Current implementation checkpoint (2026-11-09):** `0.1.222-native-runner-up-duplicate-suppression-test` on `feat/secondary-portrait-p1`. The secondary portrait is **implemented experimentally**, not merely proposed. See [current architecture](../ARCHITECTURE.md), [live verification status](../KNOWN_ISSUES.md) and [priority reference](PRIORITIES.md). This document preserves the chronological design decisions, **including superseded proposals**; the latest `Core.SecondaryCirclePlacement` and `Core.SecondaryCircleGeometry` are authoritative.
 >
 > **Current layout:** Player/party `TOPRIGHT(-10,+12)`, Target/Focus `TOPLEFT(+10,+12)`; normal cell/rim/art **50/41/30**, compact party **40/33/24**. Three secondary renderers share this geometry. Verified public runner-up takes precedence; a guarded native second-slot fallback is available for Player/Target/Focus, with race/pet identity art below when appropriate. The primary aura engine remains independent. CI checks under Lua 5.1/5.4 do not imply every live combat case is certified.
+
+## 2026-11-09 — 0.1.222 combat-entry duplicate secondary
+
+User's screenshot shows identical purple paw artwork on the Player
+primary and secondary immediately after entering combat in 0.1.221.
+The image does not reveal spell IDs or aura-instance identity.
+
+Source inspection found a concrete native duplication path:
+independent AuraGroups could match one aura in both the broad
+HostileHelpful and a higher Important/BigDef/ExternalDef group.
+HostileHelpful previously ran even on the local Player. The native
+ribbon now disables this group on Player/friendly units, enables
+it only for positively hostile Target/Focus, and defers unsafe
+relation changes during combat. Other semantic overlaps are
+partitioned with Blizzard-supported negative filter flags.
+
+The positively completed public election now collapses repeated
+spell IDs and an identical static form/aura candidate. There is
+no change to actual numeric priorities, player/target geometry,
+fonts, or secret-aura reads. Regression tests cover source-level
+behavior, but the original in-game duplicate still needs retest.
 
 ## 2026-11-09 — 0.1.221 Static Electricity joins Thorns tier
 

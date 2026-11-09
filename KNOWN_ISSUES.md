@@ -1,8 +1,11 @@
 # Known issues & verification status
 
-**Scope:** development branch `feat/secondary-portrait-p1`, source `0.1.221-static-electricity-thorns-test`, 2026-11-09. This page is the **current** tracker. Earlier issues and intermediate fixes (including superseded 0.1.213 geometry) are retained in [docs/KNOWN_ISSUES_HISTORY.md](docs/KNOWN_ISSUES_HISTORY.md), not treated as open just because an old heading remains there.
+**Scope:** development branch `feat/secondary-portrait-p1`, source `0.1.222-native-runner-up-duplicate-suppression-test`, 2026-11-09. This page is the **current** tracker. Earlier issues and intermediate fixes (including superseded 0.1.213 geometry) are retained in [docs/KNOWN_ISSUES_HISTORY.md](docs/KNOWN_ISSUES_HISTORY.md), not treated as open just because an old heading remains there.
 
 ## Open or requires further in-game verification
+
+**0.1.222 combat-entry double aura (source-level repair, live retest pending):** In 0.1.221 a PlayerFrame screenshot showed identical purple-paw artwork on both portraits after combat entry. Its aura spell/instance ID is not established by the picture. Review found the independent native HostileHelpful group was registered even on Player, allowing overlap with a higher Important/BigDef/ExternalDef semantic lane. Native group activation and filtering are now disjoint where permitted, while public ranking rejects duplicate spell identities. Passing Lua tests verify this safeguard, not the exact screenshot's underlying spell IDs.
+
 
 | Area | Current boundary / test still useful |
 | --- | --- |

@@ -2,7 +2,7 @@
 
 Native-styled priority aura portraits for **WoW: Forever**. A high-priority observed aura or state can replace the normal Blizzard portrait; a smaller circle may show the next distinct eligible effect. The addon respects the client's protected-aura boundaries and does not guess hidden spell IDs.
 
-**Development baseline:** `0.1.221-static-electricity-thorns-test` (2026-11-09), branch [`feat/secondary-portrait-p1`](https://github.com/bjoern-janson/bjarkiPortraits/tree/feat/secondary-portrait-p1). **`main` remains at 0.1.178**; the current secondary-portrait implementation is on the development branch, not `main`.
+**Development baseline:** `0.1.222-native-runner-up-duplicate-suppression-test` (2026-11-09), branch [`feat/secondary-portrait-p1`](https://github.com/bjoern-janson/bjarkiPortraits/tree/feat/secondary-portrait-p1). **`main` remains at 0.1.178**; the current secondary-portrait implementation is on the development branch, not `main`.
 
 ## Install
 
@@ -12,12 +12,14 @@ Native-styled priority aura portraits for **WoW: Forever**. A high-priority obse
 
 There is **no setup command** for second portraits: they are enabled by default. Existing settings are saved in `BjarkiPortraitsDB`.
 
-## Current behavior (0.1.221)
+## Current behavior (0.1.222)
 
 - **Primary portraits:** Player, pet, Target, Focus, ToT, ToF and regular `party1`–`party4` (10 unit tokens) share the priority model. Without a selected aura/state, the normal Blizzard 3D portrait or class icon remains.
 - **Secondary portraits:** Player, Target, Focus and regular party members can show a second distinct, eligible aura or state. The guarded public reader takes precedence when its complete election is proven. Player/Target/Focus also have a native ranked-second fallback when public ranking cannot be completed.
 - **Fallback artwork:** Verified race icons are secondary-only for player characters. Confirmed Hunter/Warlock pets targeted on Target/Focus can use pet-family artwork underneath real second-aura art. Unverified races and NPCs are never assigned a guessed race tile.
 - **No second circle:** Local PetFrame, ToT and ToF. Their **primary** portraits still work. Raid/compact raid frames and party-pet frames are not hosts.
+
+**Combat duplicate suppression (0.1.222):** The native runner-up partitions overlapping semantic aura groups and keeps the broad HostileHelpful group disabled on Player/friendly frames. Complete public rankings also collapse repeated instances of the same spell. The screenshot's spell identity is not independently established; live confirmation remains necessary.
 
 The secondary system is **experimental** under restricted combat reads: a visible aura does not guarantee that the addon can independently identify or prove its rank. Read [Known issues](KNOWN_ISSUES.md) before treating a race fallback as a priority bug.
 

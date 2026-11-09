@@ -1,6 +1,6 @@
 # Testing and debug workflow
 
-**Development branch:** `feat/secondary-portrait-p1`. **Baseline:** `0.1.221-static-electricity-thorns-test`, 2026-11-09. The workflow is [`.github/workflows/package-addon.yml`](../.github/workflows/package-addon.yml).
+**Development branch:** `feat/secondary-portrait-p1`. **Baseline:** `0.1.222-native-runner-up-duplicate-suppression-test`, 2026-11-09. The workflow is [`.github/workflows/package-addon.yml`](../.github/workflows/package-addon.yml).
 
 ## Automated pipeline
 
@@ -33,6 +33,7 @@ Tests use modeled native/client interfaces and cannot prove exact protected-fram
 | Scenario | Expected presentation / invariant |
 | --- | --- |
 | One timed aura on self | Highest eligible main portrait; secondary race fallback if no true second effect is shown |
+| Player enters combat with a significant/unclassified buff | Do not show the same spell in both portraits; native HostileHelpful group stays disabled on Player even when the readable election falls back to race |
 | Two ordered helpful auras on self and a friendly Target/Focus | Main priority first; verified readable or native ranked runner-up in small circle, rather than race when actual second button exists |
 | Hostile NPC with two harmful auras (e.g. Wendigo) | True first main aura, actual second in small circle when readable/native conditions allow; no fabricated race |
 | One fresh untagged creature after a previously Rend-debuffed target | No stale Rend from the previous creature; same-token `target` transition must refresh or safely hide |
