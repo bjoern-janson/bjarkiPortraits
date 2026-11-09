@@ -173,6 +173,32 @@ check(not tier("Control").spellIDs[15487],
 check(not tier("Control").spellIDs[1833],
     "Cheap Shot excluded from generic CC exact lane")
 
+-- Magic Wings is the 18-second Darkmoon Faire cannon slow-fall aura,
+-- not a movement-speed slow on the character. It shares exactly the
+-- existing Walk on Air utility priority rather than TravelUtility or
+-- generic crowd-control/slowing tiers.
+for _,id in ipairs({1259416,1308663,24742}) do
+    check(contains("buffs_utility",id),"Magic Wings / Walk on Air utility source "..id)
+    unique(id,"Utility")
+    eq(R.HELPFUL_TIER_BY_SPELL[id],tier("Utility"),
+        "Magic Wings / Walk on Air indexed at existing Utility priority")
+    check(R.CandidateFilters(tier("Utility")).includeSpellIDs[id] == true,
+        "native secure Utility filter matches applied aura "..id)
+end
+eq(level("Utility"),225,"Magic Wings shares unchanged Walk on Air priority 225")
+check(not owns("TravelUtility",24742),
+    "Magic Wings must not accidentally enter unrelated travel tier 50")
+check(not owns("Slows",24742),
+    "fall-speed reduction is not an enemy slowing debuff")
+check(not owns("Consumables",24742),
+    "Darkmoon cannon wings are a utility effect, not a consumed buff")
+check(R.CandidateFilters(tier("Important")).excludeSpellIDs[24742] == true,
+    "no generic important-aura promotion of Magic Wings")
+-- 42867 is a later-client 10-second version, not the 18-second Forever
+-- effect positively supported by this screenshot and the Forever database.
+check(not contains("buffs_utility",42867),
+    "do not silently enroll unverified modern Magic Wings variant")
+
 -- Nature's Grasp SELF BUFF is not its separately applied roots.
 for _,id in ipairs({16689,16810,16811,16812,16813,17329}) do
     unique(id,"Utility")
