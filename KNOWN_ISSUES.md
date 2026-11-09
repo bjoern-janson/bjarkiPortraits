@@ -1,8 +1,11 @@
 # Known issues & verification status
 
-**Scope:** development branch `feat/secondary-portrait-p1`, source `0.1.223-aura-icon-edge-crop-test`, 2026-11-09. This page is the **current** tracker. Earlier issues and intermediate fixes (including superseded 0.1.213 geometry) are retained in [docs/KNOWN_ISSUES_HISTORY.md](docs/KNOWN_ISSUES_HISTORY.md), not treated as open just because an old heading remains there.
+**Scope:** development branch `feat/secondary-portrait-p1`, source `0.1.224-hostile-helpful-combat-fallback-test`, 2026-11-09. This page is the **current** tracker. Earlier issues and intermediate fixes (including superseded 0.1.213 geometry) are retained in [docs/KNOWN_ISSUES_HISTORY.md](docs/KNOWN_ISSUES_HISTORY.md), not treated as open just because an old heading remains there.
 
 ## Open or requires further in-game verification
+
+**0.1.224 fear-expiry secondary disappearance (source-level partial repair, live retest pending):** A screenshot of a nearly defeated Coyote shows multiple ordinary debuff icons and a timed primary portrait but no small secondary, possibly after Fear expired. Individual applied aura IDs and the secondary diagnostic were not captured, so the exact reason cannot be established. The 0.1.222 native fallback introduced a confirmed code path that hid the whole hostile clip when the optional low-priority `HostileHelpful` group needed enabling in combat. The 0.1.224 fix leaves that group disabled while permitting established native harmful/exact groups to render, without doing a protected native write. A target GUID change or the unsafe reverse hostile→friendly transition still hides the clip. Retest Fear→remaining debuffs with `/bp secondary debug target` before switching targets.
+
 
 **0.1.222 combat-entry double aura (source-level repair, live retest pending):** In 0.1.221 a PlayerFrame screenshot showed identical purple-paw artwork on both portraits after combat entry. Its aura spell/instance ID is not established by the picture. Review found the independent native HostileHelpful group was registered even on Player, allowing overlap with a higher Important/BigDef/ExternalDef semantic lane. Native group activation and filtering are now disjoint where permitted, while public ranking rejects duplicate spell identities. Passing Lua tests verify this safeguard, not the exact screenshot's underlying spell IDs.
 

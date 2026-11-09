@@ -1,8 +1,34 @@
 # Secondary portrait: two aura priorities + race identity
 
-> **Current implementation checkpoint (2026-11-09):** `0.1.223-aura-icon-edge-crop-test` on `feat/secondary-portrait-p1`. The secondary portrait is **implemented experimentally**, not merely proposed. See [current architecture](../ARCHITECTURE.md), [live verification status](../KNOWN_ISSUES.md) and [priority reference](PRIORITIES.md). This document preserves the chronological design decisions, **including superseded proposals**; the latest `Core.SecondaryCirclePlacement` and `Core.SecondaryCircleGeometry` are authoritative.
+> **Current implementation checkpoint (2026-11-09):** `0.1.224-hostile-helpful-combat-fallback-test` on `feat/secondary-portrait-p1`. The secondary portrait is **implemented experimentally**, not merely proposed. See [current architecture](../ARCHITECTURE.md), [live verification status](../KNOWN_ISSUES.md) and [priority reference](PRIORITIES.md). This document preserves the chronological design decisions, **including superseded proposals**; the latest `Core.SecondaryCirclePlacement` and `Core.SecondaryCircleGeometry` are authoritative.
 >
 > **Current layout:** Player/party `TOPRIGHT(-10,+12)`, Target/Focus `TOPLEFT(+10,+12)`; normal cell/rim/art **50/41/30**, compact party **40/33/24**. Three secondary renderers share this geometry. Verified public runner-up takes precedence; a guarded native second-slot fallback is available for Player/Target/Focus, with race/pet identity art below when appropriate. The primary aura engine remains independent. CI checks under Lua 5.1/5.4 do not imply every live combat case is certified.
+
+## 2026-11-09 — 0.1.224 hostile Fear-expiry fallback
+
+Live Coyote screenshot showed a timer on the main portrait and
+several debuff icons but no second circle after Fear seemingly
+expired. The image does not prove aura IDs or the internal reason.
+
+Found a precise source-level weakness: 0.1.222 made the whole native
+second clip fail closed on combat entry when enabling low-priority
+HostileHelpful was needed (e.g. a previously friendly Target became
+hostile). But this optional helpful group is not necessary for the
+already-enabled native harmful/exact groups to display their true
+second aura. When the group is known DISABLED and the target is
+positively hostile, preserve the existing native group rendering
+through combat, defer enabling HostileHelpful, and note that in
+the diagnostic. On safe combat exit, enable the optional group.
+
+The unsafe opposite direction, an active hostile helpful group on
+a now friendly unit, remains fail-closed; likewise unit GUID swaps,
+unreadable unit relation and protected group writes remain guarded.
+Do not retain removed Fear as a timed positive or invent a new
+secondary effect when only one real eligible aura remains.
+
+Lua tests cover combat transition, no protected native writes,
+the deferred diagnostic and OOC recovery. Live Coyote/Fear
+reproduction still needs confirmation.
 
 ## 2026-11-09 — 0.1.223 source-edge icon border crop
 

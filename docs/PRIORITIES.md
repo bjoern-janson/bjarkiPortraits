@@ -1,6 +1,6 @@
-# Priority lanes — 0.1.223
+# Priority lanes — 0.1.224
 
-**Generated from the exact 62 `R.TIERS` declarations** in [`Priority.lua`](../Priority.lua) on `feat/secondary-portrait-p1`, version `0.1.223-aura-icon-edge-crop-test` (2026-11-09). This is a readable **numeric snapshot**; the Lua files, not this Markdown, control the addon. It is sorted by numeric level descending, not by source-file declaration order.
+**Generated from the exact 62 `R.TIERS` declarations** in [`Priority.lua`](../Priority.lua) on `feat/secondary-portrait-p1`, version `0.1.224-hostile-helpful-combat-fallback-test` (2026-11-09). This is a readable **numeric snapshot**; the Lua files, not this Markdown, control the addon. It is sorted by numeric level descending, not by source-file declaration order.
 
 - **Exact IDs:** membership is derived from `Spells.lua` applied-aura groupings or unions. The existence of an ID in a group does not prove that aura is currently applied to a unit.
 - **Semantic:** candidate filtering uses Blizzard-native aura metadata and can be restricted in combat. The table does not claim arbitrary secure aura identity visibility.

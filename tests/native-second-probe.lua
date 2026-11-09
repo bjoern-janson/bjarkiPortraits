@@ -215,6 +215,37 @@ eq(keys.HostileHelpful.enabled,false,"friendly target turns broad group off")
 R.UpdateNativeSecondProbe(host,true,true,true,false)
 eq(keys.HostileHelpful.enabled,true,"hostile target turns group on again")
 
+-- Fear expiry / aura removal while the native public reader is restricted:
+-- the optional hostile helpful group may still be OFF from an earlier
+-- friendly relation. Enabling it is protected in combat, but unrelated
+-- harmful and exact native groups remain usable and must not disappear.
+combat=false
+R.UpdateNativeSecondProbe(host,true,false,true,false)
+eq(keys.HostileHelpful.enabled,false,"friendly Target starts with broad group disabled")
+host._secondaryMode="hidden"
+host._secondaryElectionReason="inaccessible-index"
+combat=true
+local priorGroupWrites=p.container.groupEnableWrites
+local priorAuraUpdates=p.container.refreshes
+R.UpdateNativeSecondProbe(host,true,true,true,false)
+eq(p.clip.shown,true,
+    "hostile Coyote retains native runner-up after Fear removal in combat")
+eq(keys.HostileHelpful.enabled,false,
+    "optional hostile helpful group stays disabled during combat")
+eq(p.container.groupEnableWrites,priorGroupWrites,
+    "Fear-expiry transition performs no protected group writes")
+eq(p.container.refreshes,priorAuraUpdates,
+    "Fear-expiry fallback does not force a prohibited full aura rebuild")
+eq(host._nativeSecondProbeReason,
+    "other-unit-native-ribbon:hostile-helpful-deferred",
+    "debug explains safe partial hostile helpful coverage")
+combat=false
+R.UpdateNativeSecondProbe(host,true,true,true,false)
+eq(keys.HostileHelpful.enabled,true,
+    "combat exit enables optional hostile helpful group")
+eq(host._nativeSecondProbeReason,"other-unit-native-ribbon",
+    "normal native fallback resumes after safe completion")
+
 -- Newly targeted UNTAGGED mob: the token remains "target", but the
 -- native second must not keep the previous mob's aura and ticking timer.
 local count=p.container.refreshes or 0

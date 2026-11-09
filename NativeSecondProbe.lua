@@ -373,22 +373,42 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
     if not probe or not probe.ready or not probe.clip then return end
 
     -- Relation may change while "target" still names the same unit.
-    -- Broad helpful only belongs to a positively hostile Target/Focus.
-    -- Never mutate protected native group state in combat: hide instead.
+    -- A disabled low-priority HostileHelpful group is OPTIONAL for a
+    -- hostile unit: when Fear/CC ends and the public election becomes
+    -- unreadable in combat, native harmful/exact groups can still draw a
+    -- genuine second. Don't hide the ENTIRE clip just because the helpful
+    -- group cannot be enabled until combat ends.
+    --
+    -- Conversely, an ENABLED hostile group must be disabled before a
+    -- friendly/self unit can use this ribbon: keeping it could count one
+    -- helpful aura twice. That direction remains fail-closed in combat.
+    -- Never call protected SetAuraGroupEnabled during lockdown.
+    local deferredHostileHelpful = false
     if playerEligible or otherEligible then
         local wanted = otherEligible and hostile == true or false
         if probe.hostileHelpfulKey and probe.hostileHelpfulEnabled ~= wanted then
             local combat, known = R.SafeBool(InCombatLockdown)
-            if not known or combat then
-                hide(host,"hostile-group-change-deferred-combat")
+            if not known then
+                hide(host,"hostile-group-combat-unknown")
                 return
             end
-            if not pcall(probe.container.SetAuraGroupEnabled,probe.container,
-                probe.hostileHelpfulKey,wanted) then
-                hide(host,"hostile-group-change-failed")
-                return
+            if combat then
+                if wanted and probe.hostileHelpfulEnabled == false then
+                    -- Explicitly known disabled; keep it disabled. The
+                    -- container's OTHER native aura groups remain current.
+                    deferredHostileHelpful = true
+                else
+                    hide(host,"hostile-group-change-deferred-combat")
+                    return
+                end
+            else
+                if not pcall(probe.container.SetAuraGroupEnabled,probe.container,
+                    probe.hostileHelpfulKey,wanted) then
+                    hide(host,"hostile-group-change-failed")
+                    return
+                end
+                probe.hostileHelpfulEnabled = wanted
             end
-            probe.hostileHelpfulEnabled = wanted
         end
     end
 
@@ -483,6 +503,10 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
                 and "player-native-race-fallback"
                 or otherFallback and "friendly-secondary-native-fallback"
                 or "other-unit-native-ribbon"
+            if deferredHostileHelpful then
+                host._nativeSecondProbeReason =
+                    host._nativeSecondProbeReason .. ":hostile-helpful-deferred"
+            end
         end
     else
         hide(host, playerEligible and "readable-second-or-static-owner"

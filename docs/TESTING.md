@@ -1,6 +1,6 @@
 # Testing and debug workflow
 
-**Development branch:** `feat/secondary-portrait-p1`. **Baseline:** `0.1.223-aura-icon-edge-crop-test`, 2026-11-09. The workflow is [`.github/workflows/package-addon.yml`](../.github/workflows/package-addon.yml).
+**Development branch:** `feat/secondary-portrait-p1`. **Baseline:** `0.1.224-hostile-helpful-combat-fallback-test`, 2026-11-09. The workflow is [`.github/workflows/package-addon.yml`](../.github/workflows/package-addon.yml).
 
 ## Automated pipeline
 
@@ -35,6 +35,7 @@ Tests use modeled native/client interfaces and cannot prove exact protected-fram
 | One timed aura on self | Highest eligible main portrait; secondary race fallback if no true second effect is shown |
 | Player enters combat with a significant/unclassified buff | Do not show the same spell in both portraits; native HostileHelpful group stays disabled on Player even when the readable election falls back to race |
 | Two ordered helpful auras on self and a friendly Target/Focus | Main priority first; verified readable or native ranked runner-up in small circle, rather than race when actual second button exists |
+| Hostile NPC after Fear expires, with two remaining eligible debuffs | Secondary may show native runner-up from active exact/harmful groups even if optional HostileHelpful enablement was deferred in combat; do not guess missing identity from a screenshot |
 | Hostile NPC with two harmful auras (e.g. Wendigo) | True first main aura, actual second in small circle when readable/native conditions allow; no fabricated race |
 | One fresh untagged creature after a previously Rend-debuffed target | No stale Rend from the previous creature; same-token `target` transition must refresh or safely hide |
 | Rapid target/focus swaps or combat retarget | No previous GUID's aura leaks onto the next unit; hidden until safe OOC refresh when a binding cannot be safely updated |
