@@ -1,5 +1,9 @@
 # Secondary portrait: two aura priorities + race identity
 
+> **Current implementation checkpoint (2026-11-09):** `0.1.220-daunting-growl-demoralizing-test` on `feat/secondary-portrait-p1`. The secondary portrait is **implemented experimentally**, not merely proposed. See [current architecture](../ARCHITECTURE.md), [live verification status](../KNOWN_ISSUES.md) and [priority reference](PRIORITIES.md). This document preserves the chronological design decisions, **including superseded proposals**; the latest `Core.SecondaryCirclePlacement` and `Core.SecondaryCircleGeometry` are authoritative.
+>
+> **Current layout:** Player/party `TOPRIGHT(-10,+12)`, Target/Focus `TOPLEFT(+10,+12)`; normal cell/rim/art **50/41/30**, compact party **40/33/24**. Three secondary renderers share this geometry. Verified public runner-up takes precedence; a guarded native second-slot fallback is available for Player/Target/Focus, with race/pet identity art below when appropriate. The primary aura engine remains independent. CI checks under Lua 5.1/5.4 do not imply every live combat case is certified.
+
 ## 2026-11-09 — 0.1.220 Daunting Growl flat stat penalty
 
 Daunting Growl 3146 (Wendigo NPC applied debuff, 30 seconds,
