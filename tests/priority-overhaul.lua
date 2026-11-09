@@ -173,6 +173,29 @@ check(not tier("Control").spellIDs[15487],
 check(not tier("Control").spellIDs[1833],
     "Cheap Shot excluded from generic CC exact lane")
 
+-- Raw Strength loss is a straightforward ability/stat-reduction
+-- debuff, not a disruptive combat-flow status. Keep Decayed Strength
+-- with Demoralizing Shout, Roar and Screech at the existing 185 lane.
+check(contains("debuffs_demoralizing",6951),
+    "Decayed Strength spell 6951 explicitly categorized as demoralizing")
+unique(6951,"Demoralizing")
+eq(level("Demoralizing"),185,"Decayed Strength inherits unchanged Demo Shout priority")
+eq(R.HARMFUL_TIER_BY_SPELL[6951],tier("Demoralizing"),
+    "Decayed Strength indexed under harmful demoralizing lane")
+check(R.CandidateFilters(tier("Demoralizing")).includeSpellIDs[6951] == true,
+    "native demoralizing aura group accepts Decayed Strength ID")
+check(not owns("StatusEffects",6951),
+    "simple stat reduction is not a flow-disrupting StatusEffects aura")
+check(not owns("PassiveDebuff",6951),
+    "5-minute stat penalty is not a passive lockout")
+check(not owns("SmallFriendlyHarmful",6951),
+    "Decayed Strength must not rely on the generic harmful tier")
+for _,id in ipairs({1160,6190,11554,11555,11556,99,24423}) do
+    unique(id,"Demoralizing")
+end
+eq(level("StatusEffects"),253,
+    "combat-flow StatusEffects priority is unchanged")
+
 -- Magic Wings is the 18-second Darkmoon Faire cannon slow-fall aura,
 -- not a movement-speed slow on the character. It shares exactly the
 -- existing Walk on Air utility priority rather than TravelUtility or
