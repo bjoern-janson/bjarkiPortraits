@@ -1,3 +1,19 @@
+## 2026-11-09 — 0.1.203 full secondary-circle enlargement (visual test pending)
+
+The 0.1.202 icon artwork was enlarged 22→26px but the circle
+itself stayed 37px cell / 30px rim; a real screenshot showed the
+badge still visibly the same size. Corrected by scaling the
+**whole standard secondary component** to 44px cell / 36px rim /
+31px masked art across the normal, native and pet-family paths.
+Compact party badges now measure 35px cell / 29px rim / 25px art.
+
+Native first-cell clipping offsets and group layout width
+automatically follow the enlarged cell. Center anchor, race/rested-Z
+side selection, cooldown fonts/decimals, primary portrait, aura
+priorities and no-command behavior are unchanged. Lua CI tests
+cover the full rim rather than only the inner icon. Final WoW-client
+clearance and legibility remain to be visually confirmed.
+
 ## 2026-11-09 — 0.1.202 secondary artwork enlarged
 
 The native runner-up worked in live play, but 22px spell artwork could
