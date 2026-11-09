@@ -60,8 +60,8 @@ local function frame(kind,parent)
         -- button suffices to check the inbound geometry/wiring shape.
         local b=frame("button",self)
         options.initializeFrame(b)
-        eq(b.width,37,"native button cell width")
-        eq(b.icon.width,26,"native masked artwork enlarges, unchanged native cell")
+        eq(b.width,44,"native second-button cell actually enlarged")
+        eq(b.icon.width,31,"native second icon grows with its circle")
         eq(b.cooldown~=nil,true,"native cooldown assigned")
         eq(b.icon.mask~=nil,true,"circular icon mask installed")
     end
@@ -92,8 +92,8 @@ eq(host._nativeSecondProbe~=nil,true,"eligible NPC builds automatically without 
 local p=host._nativeSecondProbe
 eq(p.ready,true,"native container initialized")
 eq(p.clip.clips,true,"fixed clipping viewport")
-eq(p.clip.width,37,"one-cell aperture")
-eq(p.container.points[4],-37,"the primary cell is outside viewport")
+eq(p.clip.width,44,"entire native secondary viewport actually enlarged")
+eq(p.container.points[4],-44,"first native cell still completely clipped after resizing")
 eq(p.container.unit,"target","native unit owns current target")
 eq(p.groups>20,true,"cross-priority native groups created")
 eq(#p.container.groups,p.groups,"group registry complete")
