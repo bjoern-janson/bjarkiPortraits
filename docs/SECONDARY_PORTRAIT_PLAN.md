@@ -1,5 +1,25 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.209 Magic Wings utility classification
+
+The observed Darkmoon Faire cannon's Magic Wings buff shares
+the fall-safety utility concept with Walk on Air, so it
+joins the existing exact `Utility` 225 spell-ID tier.
+The screenshot's buff tooltip matches Classic/Forever Magic
+Wings 24742 (18-second effect). Preserve Walk on Air
+1259416 and 1308663 unchanged. Do not confuse the
+fall-speed effect with slowing an enemy or the separate
+`TravelUtility` 50 category.
+
+Only `Spells.lua`'s `buffs_utility` map changes at runtime.
+The existing primary and secondary portrait elections use
+the same priority table; there is no special-case display
+override or new native tier. Test positive public election,
+single exact ownership, and continued security gating.
+Live client display remains to be confirmed without
+introducing diagnostic commands.
+
+
 ## 2026-11-09 — 0.1.208 rename to Consumables 81
 
 Following the 0.1.207 consolidation, the tier named `Elixirs`
