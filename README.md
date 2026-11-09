@@ -2,11 +2,40 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.202-secondary-icon-26px-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.203-full-secondary-circle-scale-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.203 — enlarge the actual secondary circles
+
+Live user feedback confirmed that 0.1.202 only enlarged the **artwork**
+inside an unchanged outer rim, so the second circle still appeared tiny.
+This pass scales the *entire* badge, not merely its interior:
+
+| Component | 0.1.202 | 0.1.203 |
+|---|---:|---:|
+| Standard secondary cell / aperture | 37px | **44px** |
+| Standard Totem-style circular rim | 30px | **36px** |
+| Standard masked icon | 26px | **31px** |
+| Compact party badge | 29px | **35px** |
+| Compact party rim | 24px | **29px** |
+| Compact party masked icon | 21px | **25px** |
+
+The same scaled geometry applies to regular race/readable-aura
+secondaries, the protected native ranked-second strip and the
+aura-presence-gated Hunter/Warlock pet-family fallback. Native
+container cell offsets and their clipped first aura also scale from
+37px to 44px so the second effect remains correctly positioned.
+
+The secondary badge **center stays at its accepted anchor point**;
+main portraits, masking technique, circle layout, countdown font and
+timing, priority tiers, aura selection, pet identity policy and
+automatic no-command workflow are unchanged. The ring now actually
+occupies more screen space: verify rested-Z/party leader clearance
+and WoW UI-scale legibility in game. Offline tests lock the new cell,
+rim, icon and native clipping geometry but cannot certify live pixels.
 
 ## 0.1.202 — enlarge secondary circle artwork
 
