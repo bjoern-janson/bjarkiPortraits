@@ -1,3 +1,25 @@
+## 2026-11-09 — 0.1.206 very minor effects no longer class/world buffs
+
+Corrected the overbroad 0.1.205 world-buff consolidation. Rat Familiar
+(1296202, +2 Intellect) and Benevolence (1292142, +4 HP per 5 sec for
+party) were already labeled `buffs_minor_world`, yet were given the
+full `BaselineClass` level 90. Both now belong to an explicit
+`MinorHelpful` level **6** (exact HELPFUL) tier.
+
+A paired `MinorHarmful` level 6 uses `debuffs_minor`. No currently
+verified, negligible negative effect has been assigned: the harmful
+exact-ID set remains empty. Unlike a generic harmful catchall, this
+cannot invent/claim unfamiliar debuffs. Priority 6 sits above the
+existing level-5 informational buffs, below level-9 passive speed,
+and far below major class/world buffs. Exact candidate filters and
+generic exclusion sets prevent upward promotion.
+
+Major named world buffs remain level 90. Deserter and Martyrdom
+remain PassiveDebuff 59, and Tricked or Treated stays bottom 0.
+No other prior tier/order, main/secondary geometry, or timer logic
+changed. Lua 5.1/5.4 regressions include source ownership, native
+filters, and retention of established classification boundaries.
+
 ## 2026-11-09 — 0.1.205 world-buff priority audit (live validation pending)
 
 User rule: **all world buffs belong to the same portrait priority as
