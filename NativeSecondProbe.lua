@@ -182,11 +182,6 @@ local function nativeSourceUnit(host)
     return host.unit
 end
 
-local function secondCorner(host)
-    if host.unit == "player" then return "TOPLEFT", 5 end
-    return "TOPRIGHT", -5
-end
-
 function R.CreateNativeSecondProbe(host)
     if not host or not supportedUnit(host.unit) or not host.portrait
         or not R.db or R.db.enabled ~= true or R.db.secondaryPortrait == false
@@ -203,8 +198,8 @@ function R.CreateNativeSecondProbe(host)
         local ok = pcall(function()
             probe.clip:Hide()
             probe.clip:ClearAllPoints()
-            local corner, offset = secondCorner(host)
-            probe.clip:SetPoint("CENTER", host.portrait, corner, offset, 0)
+            local corner, dx, dy = R.SecondaryCirclePlacement(host.unit)
+            probe.clip:SetPoint("CENTER", host.portrait, corner, dx, dy)
             probe.clip:SetFrameStrata(usableStrata(host))
             local source = nativeSourceUnit(host)
             probe.container:SetUnit(source)
@@ -228,8 +223,8 @@ function R.CreateNativeSecondProbe(host)
         probe.clip = clip
         clip:Hide()
         clip:SetSize(CELL, CELL)
-        local corner, offset = secondCorner(host)
-        clip:SetPoint("CENTER", host.portrait, corner, offset, 0)
+        local corner, dx, dy = R.SecondaryCirclePlacement(host.unit)
+        clip:SetPoint("CENTER", host.portrait, corner, dx, dy)
         clip:SetFrameStrata(usableStrata(host))
         local badge = host.secondaryBadge
         if badge and type(badge.GetFrameLevel) == "function" then
