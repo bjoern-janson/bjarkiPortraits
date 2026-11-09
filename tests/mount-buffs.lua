@@ -19,8 +19,9 @@ for _,id in ipairs({13819,1279399,5784,23161,23214,458,580,6777,
     eq(class.spellIDs[id],true,"class-tier membership "..id)
     eq(R.HELPFUL_TIER_BY_SPELL[id],class,"public tier "..id)
     eq(R.CandidateFilters(class).includeSpellIDs[id],true,"secure rank "..id)
-    eq(R.CandidateFilters(R.TIER_BY_KEY.HostileHelpful).excludeSpellIDs[id],
-        true,"generic fallback cannot promote mount "..id)
+    -- NativeSecondProbe.groupPlans excludes every exact-owned aura from
+    -- its generic groups. Priority.CandidateFilters alone does not supply
+    -- that cross-tier exclusion, so do not assert it here.
 end
 local count=0
 for id in pairs(mounts) do
