@@ -2,7 +2,7 @@
 ## Title: bjarkiPortraits
 ## Notes: Portrait aura timers for WoW: Forever
 ## Author: Bjarki / OpenAI
-## Version: 0.1.206-minor-effects-tier-test
+## Version: 0.1.207-unified-elixirs-test
 ## SavedVariables: BjarkiPortraitsDB
 
 Spells.lua
