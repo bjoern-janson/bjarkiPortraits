@@ -84,8 +84,20 @@ for id in pairs(C.buffs_well_fed) do
     eq(R.HELPFUL_TIER_BY_SPELL[id],elixirs,"Well Fed "..id.." indexed at 81")
     eq(R.CandidateFilters(elixirs).includeSpellIDs[id],true,
         "Well Fed "..id.." present in exact native elixirs filter")
+    eq(R.CandidateFilters(R.TIER_BY_KEY.HostileHelpful).excludeSpellIDs[id],
+        true,"Well Fed "..id.." excluded from generic hostile helpful")
 end
 eq(wellFedCount,23,"all 23 Well Fed variants retained")
+local elixirCount=0
+for id in pairs(C.buffs_elixirs) do
+    elixirCount=elixirCount+1
+    eq(elixirs.spellIDs[id],true,"Original elixir "..id.." retained")
+    eq(R.HELPFUL_TIER_BY_SPELL[id],elixirs,
+        "Original elixir "..id.." remains at priority 81")
+    eq(R.CandidateFilters(R.TIER_BY_KEY.HostileHelpful).excludeSpellIDs[id],
+        true,"Original elixir "..id.." cannot duplicate in hostile fallback")
+end
+eq(elixirCount>30,true,"original elixir inventory remains populated")
 eq(elixirs.spellIDs[673],true,"existing Minor Defense elixir retained")
 eq(elixirs.spellIDs[17538],true,"existing Mongoose elixir retained")
 eq(elixirs.spellIDs[1248406],true,"tiny +1 Stamina Well Fed included")
