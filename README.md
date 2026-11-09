@@ -2,11 +2,45 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.206-minor-effects-tier-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.207-unified-elixirs-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.207 — merge Well Fed and minor buffs into Elixirs 81
+
+**Decision:** The existing `Elixirs` exact helpful priority **81**
+now owns elixir auras, all **23 Well Fed** variants, and minor helpful
+buffs such as Rat Familiar (+2 Intellect) and Benevolence
+(+4 health per 5 seconds). These are a **single native aura group**,
+not three competing same-level native winners.
+
+The old `WellFed` (110), `MinorHelpful` (6), and empty
+`MinorHarmful` (6) portrait tiers have been retired. Their source
+categories remain when useful for classifying observed effects:
+`buffs_elixirs`, `buffs_well_fed`, `buffs_minor_world`, and
+`buffs_minor` are unioned into `Elixirs`. The unused
+`debuffs_minor` category was removed rather than retaining a
+misleading empty native harmful slot. **No known negative effects
+were moved**, and any future minor debuff needs its own evidence
+and explicit user-approved placement.
+
+All existing elixirs remain at **81**; Well Fed moves **110 → 81**
+(including Raptor Punch and +1 Stamina), while Rat Familiar and
+Benevolence move **6 → 81**. Major class and world buffs,
+including all named Sayge's fortunes, stay at **90**.
+The established priority above 110 (Thorns and higher combat
+effects) remains untouched, as do Tracking, Gathering, and the
+absolute-bottom informational tiers.
+
+The full Well Fed and existing elixir source catalogs are preserved.
+Exact IDs in the consolidated native filter and exclusion rules are
+tested to avoid duplicated hostile-helpful fallback appearances.
+No portrait geometry, timers, native second-slot behavior, or
+in-game commands change. Lua 5.1/5.4 regressions verify category
+membership, priority ownership, absence of retired tiers, and
+no duplicate exact winners.
 
 ## 0.1.206 — dedicated very minor buff/debuff tier
 
