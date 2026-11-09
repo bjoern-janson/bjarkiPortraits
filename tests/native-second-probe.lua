@@ -79,8 +79,8 @@ local host={unit="target",portrait=frame("portrait"),
     secondaryBadge=frame("badge")}
 host.secondaryBadge.level=50
 eq(host._nativeSecondProbe,nil,"no eager construction on load")
-R.UpdateNativeSecondProbe(host,true,false,true,false)
-eq(host._nativeSecondProbe,nil,"friendly target allocates no native groups")
+R.UpdateNativeSecondProbe(host,true,nil,true,false)
+eq(host._nativeSecondProbe,nil,"unknown target relation creates no native groups")
 combat=true
 R.UpdateNativeSecondProbe(host,true,true,true,false)
 eq(host._nativeSecondProbe,nil,"first hostile target in combat defers structural setup")
@@ -134,10 +134,52 @@ R.UpdateNativeSecondProbe(host,true,true,false,true)
 eq(p.clip.shown,false,"hostile player with unreadable identity excluded")
 R.UpdateNativeSecondProbe(host,true,true,true,nil)
 eq(p.clip.shown,false,"unknown player-versus-NPC distinction excluded")
+R.UpdateNativeSecondProbe(host,true,nil,true,true)
+eq(p.clip.shown,false,"unknown relation fails closed")
+
+-- Friendly and neutral targets previously reverted to race/hidden whenever
+-- a single inaccessible harmful aura invalidated their public top-two scan.
+-- Native groups can render the second without reading that debuff into Lua.
+host._secondaryMode="race"
+host._raceBaselineActive=true
+host.secondaryBadge:Show()
+host._secondaryElectionReason="inaccessible-index"
 R.UpdateNativeSecondProbe(host,true,false,true,true)
-eq(p.clip.shown,false,"friendly player excluded")
+eq(p.clip.shown,true,"friendly player fallback uses native second cell")
+eq(host.secondaryBadge.shown,true,"verified friendly player race stays under native")
+eq(host._nativeSecondProbeReason,"friendly-target-native-fallback",
+   "friendly fallback is distinguishable without a slash command")
+eq(p.container.unit,"target","friendly target still uses native target token")
+host._secondaryMode="aura"
+R.UpdateNativeSecondProbe(host,true,false,true,true)
+eq(p.clip.shown,false,"publicly verified friendly second is authoritative")
+host._secondaryMode="form"
+R.UpdateNativeSecondProbe(host,true,false,true,true)
+eq(p.clip.shown,false,"public static-form second is authoritative")
+host._secondaryMode="race"
+host._formStateActive=true
+R.UpdateNativeSecondProbe(host,true,false,true,true)
+eq(p.clip.shown,false,"independent friendly static form cannot be outranked")
+host._formStateActive=false
+host._ghostActive=true
+R.UpdateNativeSecondProbe(host,true,false,true,true)
+eq(p.clip.shown,false,"independent friendly Ghost remains authoritative")
+host._ghostActive=false
+
+-- Two or more visible buffs plus a restricted debuff on a neutral NPC:
+-- public reader can hide the badge; native must be able to paint its
+-- second cell without requiring race or publicly readable harmful IDs.
+host._secondaryMode="hidden"
+host.secondaryBadge:Show()
 R.UpdateNativeSecondProbe(host,true,false,true,false)
-eq(p.clip.shown,false,"friendly NPC excluded")
+eq(p.clip.shown,true,"neutral NPC can render native second after public failure")
+eq(host.secondaryBadge.shown,false,"confirmed nonplayer cannot retain stale race")
+host._secondaryMode="aura"
+host.secondaryBadge:Show()
+R.UpdateNativeSecondProbe(host,true,false,true,false)
+eq(p.clip.shown,false,"valid friendly NPC public second stays visible")
+eq(host.secondaryBadge.shown,true,"public aura portrait was not hidden")
+
 R.UpdateNativeSecondProbe(host,false,true,true,true)
 eq(p.clip.shown,false,"inactive hostile player excluded")
 
