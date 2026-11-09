@@ -2,11 +2,37 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.208-consumables-tier-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.209-magic-wings-utility-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.209 — Magic Wings joins Walk on Air's Utility priority
+
+User screenshot shows the **Magic Wings** slow-fall buff from the
+Darkmoon Faire cannon. The corresponding Classic/Forever 18-second
+applied aura is spell **24742** (not the separate, later-client
+10-second Magic Wings 42867).
+
+Added 24742 to the existing `buffs_utility` source set, alongside
+Walk on Air **1259416** and **1308663**. All three are exact
+helpful-aura candidates in the pre-existing `Utility` **priority 225**
+native tier. This is **not** the lower `TravelUtility` 50 tier:
+Walk on Air has always belonged to `Utility`.
+
+The additional Magic Wings entry is the entire runtime change.
+Neither slow-fall mechanics nor potion/Consumables 81, Aura UI,
+rank ordering, secondary portrait sizing, timers, or any other
+tier is altered. We do not infer aura IDs from inaccessible tooltip
+data; the exact spell ID is source-backed, and 42867 remains
+unclassified until there's evidence of the later variant in Forever.
+
+Lua 5.1/5.4 regressions verify unique exact ownership, level 225,
+both prior Walk on Air variants, native candidate filters, and
+non-membership in unrelated slowing/travel/consumables tiers.
+Live screenshot confirmation is still needed for the actual
+portrait selection. No extra in-game commands.
 
 ## 0.1.208 — rename unified Elixirs tier to Consumables
 
