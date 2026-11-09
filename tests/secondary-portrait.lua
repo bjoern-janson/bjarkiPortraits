@@ -38,6 +38,7 @@ CreateFrame = function(kind, _, parent, template)
     return r
 end
 local BP={Runtime={db={secondaryPortrait=true}, AURA_ANCHOR_TEMPLATE="DisableUntrustedLayoutScriptsTemplate"}}
+assert(loadfile("Core.lua"))("bjarkiPortraits",BP)
 local R=BP.Runtime
 R.CanAccess=function() return true end
 R.ApplySecondaryCountdownFont=function(cooldown)
@@ -72,6 +73,7 @@ eq(player.secondaryBadge.frameLevel,14,"above unit frame border")
 eq(player.secondaryBadge.parent,UIParent,"badge is an unprotected UIParent sibling above native frame")
 eq(player.secondaryBadge.points[1][3],"TOPLEFT","player badge faces outward, away from rested Z")
 eq(player.secondaryBadge.points[1][4],5,"outer player badge inset avoids screen clipping")
+eq(player.secondaryBadge.points[1][5],0,"Player anchor height unchanged")
 eq(player.secondaryBadge.mouseEnabled,false,"no click interception")
 eq(player.racePortrait.mask,player.secondaryMask,"circular icon mask")
 eq(player.secondaryMask.atlas,"CircleMask","native circle mask")
@@ -101,8 +103,12 @@ eq(player.secondaryBadge.shown,false,"user setting suppresses badge")
 R.db.secondaryPortrait=true
 local target=makeHost("target")
 R.CreateSecondaryPortrait(target,"LOW")
-eq(target.secondaryBadge.points[1][3],"TOPRIGHT","target badge faces outward, away from target bars")
-eq(target.secondaryBadge.points[1][4],-5,"outer target badge inset avoids screen clipping")
+eq(target.secondaryBadge.points[1][3],"TOPLEFT",
+    "target secondary is now upper-left, away from combo-point column")
+eq(target.secondaryBadge.points[1][4],10,
+    "target upper-left x inset clears combo point cluster")
+eq(target.secondaryBadge.points[1][5],12,
+    "target upper-left is lifted clear of adjacent name-bar corner")
 R.UpdateSecondaryPortrait(target,true)
 eq(target.racePortrait.atlas,"raceicon128-skyborne-female","valid atlas retained")
 eq(target.racePortrait.coords,nil,"do not overwrite atlas native UVs")
@@ -110,13 +116,17 @@ R.UpdateSecondaryPortrait(target,false)
 eq(target.racePortrait.texture,nil,"race cleared after recycle")
 local focus=makeHost("focus")
 R.CreateSecondaryPortrait(focus,"LOW")
-eq(focus.secondaryBadge.points[1][3],"TOPRIGHT","focus badge faces outward, away from name and bars")
+eq(focus.secondaryBadge.points[1][3],"TOPRIGHT","Focus keeps its outer top-right corner")
+eq(focus.secondaryBadge.points[1][4],-5,"Focus accepted horizontal inset unchanged")
+eq(focus.secondaryBadge.points[1][5],0,"Focus vertical position unchanged")
 R.UpdateSecondaryPortrait(focus,true)
 eq(focus.secondaryBadge.shown,false,"unknown Skyborne face stays hidden")
 eq(focus._raceBaselineReason,"skyborne-face-atlas-unavailable","missing art reason retained")
 local party=makeHost("party1")
 R.CreateSecondaryPortrait(party,"LOW")
 eq(party.secondaryBadge.points[1][3],"TOPLEFT","party badge faces outward, away from leader marker")
+eq(party.secondaryBadge.points[1][4],5,"party x offset preserved")
+eq(party.secondaryBadge.points[1][5],2,"party compact y offset preserved")
 eq(party.secondaryBadge.width,35,"compact secondary circle enlarged")
 eq(party.secondaryBorder.width,29,"compact ring enlarged to 29px")
 eq(party.racePortrait.width,25,"compact secondary artwork enlarged to 25px")
@@ -151,5 +161,10 @@ eq(player.secondaryBadge,nil,"released host drops badge references")
 local replacement=makeHost("target")
 R.CreateSecondaryPortrait(replacement,"LOW")
 eq(replacement.secondaryBadge,oldBadge,"pooled root badge reused instead of leaked")
-eq(replacement.secondaryBadge.points[1][3],"TOPRIGHT","reused badge reanchors to target outer corner")
+eq(replacement.secondaryBadge.points[1][3],"TOPLEFT",
+    "pooled badge repositions to target's combo-safe corner")
+eq(replacement.secondaryBadge.points[1][4],10,
+    "pooled badge uses shared target x offset")
+eq(replacement.secondaryBadge.points[1][5],12,
+    "pooled badge also restores elevated target y offset")
 print("secondary portrait race prototype: " .. checks .. " assertions passed")
