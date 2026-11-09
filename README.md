@@ -2,11 +2,38 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.210-secondary-buff-font-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.211-decayed-strength-demoralizing-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.211 — Decayed Strength joins Demoralizing Shout
+
+A live screenshot shows **Decayed Strength**, a five-minute Disease
+reducing the target's Strength (−4 at the pictured level). Its
+Classic/Forever applied aura spell ID is **6951**. It previously had
+no exact portrait tier and could only appear through generic
+harmful filtering. The user specifies that ordinary stat-reduction
+debuffs belong with Demoralizing Shout, Roar and Screech, **not**
+the higher `StatusEffects` group reserved for effects that more
+substantially disrupt the flow of combat.
+
+Added only **6951** to `Spells.lua`'s existing
+`debuffs_demoralizing` set. The exact harmful `Demoralizing`
+portrait tier already has numeric priority **185**, so it now
+includes Decayed Strength without a new tier, special-case
+renderer or changed numeric priority. `StatusEffects` retains
+its existing priority **253** and categories. The unrelated
+30-second spell ID 13528 is not included by this change.
+
+Lua 5.1/5.4 regression tests assert the exact category,
+native candidate filter, unique harmful tier owner, unchanged
+Demoralizing Shout/Roar/Screech spells and exclusion from
+StatusEffects. Primary/secondary art, cooldown formatting,
+race/pet fallbacks, combat evidence policy and all other
+spell classifications remain unchanged. No commands or
+settings; exact live client selection is still unverified.
 
 ## 0.1.210 — secondary countdown font matches regular buffs
 
