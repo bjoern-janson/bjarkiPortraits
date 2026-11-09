@@ -1,5 +1,19 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.202 standard secondary art 22 → 26px
+
+Visual-only update across the native ranked aura ribbon, pet-family
+aura-presence fallback and normal race/readable secondary path.
+The standard art enlarges to 26px within its original 37px cell and
+30px Blizzard rim. Compact party art is proportionally enlarged to
+21px within the existing 29px cell and 24px rim. Circular masks
+remain attached to the image textures. Preserve every accepted
+anchor position, countdown/swipe behavior, main portrait and
+priority/eligibility decision. No in-game commands or new settings.
+
+Native/client legibility with text overlay still requires a live test.
+
+
 ## 2026-11-09 — 0.1.201 nonhostile target native fallback
 
 The native ribbon, previously available only on hostile Target and
