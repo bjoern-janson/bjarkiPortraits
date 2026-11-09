@@ -2,11 +2,59 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.203-full-secondary-circle-scale-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.204-self-alias-focus-secondary-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.204 — make DMF and other second auras agree across Player/Target/Focus
+
+A live side-by-side screenshot showed the *same* Bjoern Janson on
+PlayerFrame and TargetFrame, with a fiery first-place buff and Sayge's
+Dark Fortune of Damage as a visibly active second effect. The
+player's small circle elected the purple fortune icon; Target's
+small circle reverted to the character's race image. Focus shares
+the same public-reader limitation and previously had **no** native
+second-aura ribbon.
+
+**Confirmed source gaps:**
+
+1. `SecondaryPortrait.GetReadableSecondaryAura` always used the
+   literal Target/Focus token for public index scans, exact-tier
+   permissions, semantic native-filter checks and application-time
+   ordering. Self auras can remain positively readable via `player`
+   while the same aura on the `target` or `focus` token is
+   relation-gated or temporarily unreadable.
+2. The native grouped runner-up had supported `player` and `target`
+   but not `focus`, so the Focus fallback was never attempted.
+
+**Fix:** When WoW positively reports
+`UnitIsUnit("target"/"focus","player") == true`, use `player` for
+that portrait's *public aura evidence and filter checks* while
+retaining the actual portrait's anchor, identity, and priority
+policy. Neither matching names nor unknown/secret equality allow
+this alias. Player `UNIT_AURA` updates also refresh only positively
+verified self aliases, so a refreshed/removed second effect does not
+leave stale artwork. Focus now has a separately anchored, same-policy
+native runner-up fallback; when a self Target/Focus must use that
+fallback, its native aura container binds to `player` only under
+the same positive witness. Changing this native source while in
+combat hides the overlay until a safe out-of-combat rebind, rather
+than displaying the previous occupant's effects.
+
+**Unchanged:** Sayge's Fortune's priority/classification, all
+numeric tiers, first-place portraits, verified race and pet-family
+fallbacks, secondary circle sizing (44px cell / 36px rim / 31px art),
+timer formatting and zero-command workflow. Regression tests cover
+a DMF-like semantic second on both self aliases, separate targets,
+unreadable `UnitIsUnit`, Focus native initialization, and safe
+combat source swaps on Lua 5.1/5.4.
+
+**Limit:** Offline models establish the source behavior and identity
+safety, not the exact live spell display. Focus adds an additional
+native group ribbon when used; visually verify both self Focus and
+ordinary other-unit Focus before considering it production-certified.
 
 ## 0.1.203 — enlarge the actual secondary circles
 
