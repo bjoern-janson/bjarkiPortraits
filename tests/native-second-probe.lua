@@ -61,7 +61,7 @@ local function frame(kind,parent)
         local b=frame("button",self)
         options.initializeFrame(b)
         eq(b.width,37,"native button cell width")
-        eq(b.icon.width,22,"native icon inner width")
+        eq(b.icon.width,26,"native masked artwork enlarges, unchanged native cell")
         eq(b.cooldown~=nil,true,"native cooldown assigned")
         eq(b.icon.mask~=nil,true,"circular icon mask installed")
     end
