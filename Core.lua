@@ -490,6 +490,44 @@ function R.GetCountdownFormatter()
     return formatter
 end
 
+-- The small SECONDARY circles show countdowns *inside* 31px artwork.
+-- Their original CooldownFrameTemplate number font is much larger than the
+-- duration captions below regular Blizzard buff icons, obscuring spell art.
+-- Use the actual Blizzard aura-duration font object (when present), falling
+-- back to the GameFontNormalSmall inherited by AuraButtonArtTemplate.Duration.
+-- This is deliberately separate from ApplyCountdownFormat so all PRIMARY
+-- portraits retain their previously tuned timer typography and formatting.
+function R.ApplySecondaryCountdownFont(cooldown)
+    if not cooldown or type(cooldown.GetCountdownFontString) ~= "function" then
+        return false
+    end
+
+    local auraFont = DEFAULT_AURA_DURATION_FONT or GameFontNormalSmall
+    if not auraFont or not R.CanAccess(auraFont) then return false end
+
+    -- Only modify an addon-owned label at a safe OOC construction/reuse
+    -- boundary; in combat the cooldown text/layout may be protected.
+    if type(InCombatLockdown) == "function" then
+        local combat, known = R.SafeBool(InCombatLockdown)
+        if not known or combat then return false end
+    end
+
+    local ok, label = pcall(cooldown.GetCountdownFontString, cooldown)
+    if not ok or not R.CanAccess(label) or not label
+        or type(label.SetFontObject) ~= "function" then return false end
+
+    -- Pooled cooldown frames can return to a host multiple times. Avoid
+    -- redundant writes, and reapply if Blizzard replaces the label/font.
+    if cooldown._bjarkiSecondaryFontLabel == label
+        and cooldown._bjarkiSecondaryFontObject == auraFont then
+        return true
+    end
+    if not pcall(label.SetFontObject, label, auraFont) then return false end
+    cooldown._bjarkiSecondaryFontLabel = label
+    cooldown._bjarkiSecondaryFontObject = auraFont
+    return true
+end
+
 function R.ApplyCountdownFormat(cooldown)
     if cooldown.SetHideCountdownNumbers then
         pcall(cooldown.SetHideCountdownNumbers, cooldown, false)
