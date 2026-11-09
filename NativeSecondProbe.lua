@@ -21,7 +21,7 @@ local R = assert(BP.Runtime, "Core.lua must load first")
 -- not replace the primary native tier stack or the readable election.
 
 local CELL = 37
-local IMAGE = 22
+local IMAGE = 26
 local RIM = 30
 local MAX_GROUPS = 80
 local pool = {}
