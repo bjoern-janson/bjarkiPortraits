@@ -2,11 +2,32 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.213-target-combo-safe-anchor-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.214-unified-mounts-white-timers-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.214 — unify placement, mount classification, white timers
+
+All second-circle centers (Player, Target, Focus, party1–4) now share
+TOPLEFT (+10,+12) against the native portrait. This also governs native
+ranked-second ribbons, Target/Focus pet-family fallback and pooled reuse.
+No second circles on ToT, ToF or PetFrame.
+
+A reviewed exact-ID `buffs_mounts` set joins HELPFUL BaselineClass 90
+alongside world/class/Camp Benefits auras, including both Classic 13819
+and Forever 1279399 Summon Warhorse. Spell data—not a tooltip image or
+private mount detection—grounds identities. No new tier.
+
+Blizzard's Forever `AuraButtonArtTemplate.Duration` inherits
+`GameFontNormalSmall`. Secondary cooldowns use that exact font size,
+center the FontString on the icon, and apply white (1,1,1,1). Main
+portrait labels retain their individually calibrated larger sizes,
+but use white ink and retry initially unavailable layout only during
+normal out-of-combat host refreshes. No additional timer math or polling.
+
+**Live validation still required** for pixel alignment and mount priority.
 
 ## 0.1.213 — Target secondary clears combo-point column
 

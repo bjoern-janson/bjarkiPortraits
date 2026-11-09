@@ -134,65 +134,55 @@ R.ApplyCountdownFormat(noNative)
 equal(noNative.fallback, 10, "missing numeric formatter API uses ten-second fallback")
 check(noNative.formatter == nil, "missing API adds no custom formatter")
 
--- Secondary circle timers must match the font used by Blizzard's
--- regular BuffFrame duration captions (AuraButtonArtTemplate.Duration
--- inherits GameFontNormalSmall). PRIMARY countdowns retain their
--- independent, previously calibrated font and formatter settings.
-local originalInCombat = InCombatLockdown
-local originalRegularFont = GameFontNormalSmall
-local originalAuraDurationFont = DEFAULT_AURA_DURATION_FONT
-local regularFont = {name="GameFontNormalSmall", size=10}
-local nativeBuffDurationFont = {name="DEFAULT_AURA_DURATION_FONT", size=10}
-GameFontNormalSmall = regularFont
-DEFAULT_AURA_DURATION_FONT = nil
-local combatLock = false
-InCombatLockdown = function() return combatLock end
-
+-- Exact native AuraButtonArtTemplate.Duration font is GameFontNormalSmall.
+local originalInCombat=InCombatLockdown
+local originalRegularFont=GameFontNormalSmall
+local originalAuraDurationFont=DEFAULT_AURA_DURATION_FONT
+local regularFont={name="GameFontNormalSmall",size=10}
+local otherFont={name="DEFAULT_AURA_DURATION_FONT",size=11}
+GameFontNormalSmall=regularFont
+DEFAULT_AURA_DURATION_FONT=nil
+local combatLock=false
+InCombatLockdown=function() return combatLock end
 local function makeSecondaryFontCooldown()
-    local cd = {calls=0}
-    local label = {writes=0}
-    function label:SetFontObject(font)
-        self.writes=self.writes+1
-        self.font=font
-    end
-    function cd:GetCountdownFontString()
-        self.calls=self.calls+1
-        return label
-    end
+    local cd={calls=0}
+    local label={writes=0,points={}}
+    function label:SetFontObject(value) self.font=value;self.writes=self.writes+1 end
+    function label:ClearAllPoints() self.points={} end
+    function label:SetPoint(...) self.points[#self.points+1]={...} end
+    function label:SetJustifyH(value) self.justifyH=value end
+    function label:SetJustifyV(value) self.justifyV=value end
+    function label:SetTextColor(...) self.color={...} end
+    function cd:GetCountdownFontString() self.calls=self.calls+1;return label end
     cd.label=label
     return cd
 end
-
-local smallTimer = makeSecondaryFontCooldown()
-check(R.ApplySecondaryCountdownFont(smallTimer),
-    "secondary font successfully applies at OOC initialization")
-check(smallTimer.label.font == regularFont,
-    "secondary timer directly inherits Blizzard's regular-buff duration font")
-equal(smallTimer.label.writes,1,"one font change at initialization")
-check(R.ApplySecondaryCountdownFont(smallTimer),
-    "reused pooled secondary with same font is idempotent")
-equal(smallTimer.label.writes,1,"pooled secondary doesn't rewrite the font")
-check(regularFont.size==10,"regular Blizzard font reference is never mutated")
-
--- The Blizzard BuffFrame may choose a dynamic default font for regular
--- duration captions. When present, use exactly that font instead of a
--- hard-coded pixel-size guess.
-DEFAULT_AURA_DURATION_FONT = nativeBuffDurationFont
-check(R.ApplySecondaryCountdownFont(smallTimer),
-    "secondary adopts currently selected Blizzard aura duration font")
-check(smallTimer.label.font==nativeBuffDurationFont,
-    "native buff duration font object takes priority over generic small font")
-equal(smallTimer.label.writes,2,"font change is applied exactly once")
-
+local smallTimer=makeSecondaryFontCooldown()
+check(R.ApplySecondaryCountdownFont(smallTimer),"font applied")
+check(smallTimer.label.font==regularFont,"exact same font object as regular buffs")
+equal(smallTimer.label.writes,1,"first font write")
+equal(smallTimer.label.points[1][1],"CENTER","center anchor")
+check(smallTimer.label.points[1][2]==smallTimer,"center relative to cooldown")
+equal(smallTimer.label.points[1][3],"CENTER","center relative point")
+equal(smallTimer.label.justifyH,"CENTER","center horizontal")
+equal(smallTimer.label.justifyV,"MIDDLE","center vertical")
+for i=1,4 do equal(smallTimer.label.color[i],1,"white RGBA "..i) end
+check(R.ApplySecondaryCountdownFont(smallTimer),"reassert style on pooled label")
+equal(smallTimer.label.writes,1,"same font not rewritten")
+DEFAULT_AURA_DURATION_FONT=otherFont
+check(R.ApplySecondaryCountdownFont(smallTimer),"template font preferred")
+check(smallTimer.label.font==regularFont,"not a potentially different default size")
+GameFontNormalSmall=nil
+check(R.ApplySecondaryCountdownFont(smallTimer),"fallback if exact font unavailable")
+check(smallTimer.label.font==otherFont,"fallback font")
+equal(smallTimer.label.writes,2,"fallback font installed")
 combatLock=true
-DEFAULT_AURA_DURATION_FONT=regularFont
-check(not R.ApplySecondaryCountdownFont(smallTimer),
-    "no secondary font layout writes during combat lockdown")
-equal(smallTimer.label.writes,2,"combat guard preserves existing font")
+GameFontNormalSmall=regularFont
+check(not R.ApplySecondaryCountdownFont(smallTimer),"no relayout in combat")
+equal(smallTimer.label.writes,2,"combat leaves existing font")
 combatLock=false
-check(R.ApplySecondaryCountdownFont(smallTimer),
-    "next safe OOC lifecycle may restore wanted font")
-equal(smallTimer.label.writes,3,"recovered font change is applied once")
+check(R.ApplySecondaryCountdownFont(smallTimer),"OOC restyles")
+equal(smallTimer.label.writes,3,"regular font restored once")
 
 local primary = makeCooldown(true)
 R.ApplyCountdownFormat(primary)

@@ -1,5 +1,22 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.214 cross-host layout and mounted auras
+
+User requests the 0.1.213 Target raised TOPLEFT (+10,+12) placement on
+all other eligible second circles. A single policy drives public, native
+and pet-family renderers and survives pooled rebinds. Existing compact
+sizes, ToT/ToF exclusion and the primary aura selection remain intact.
+
+Ground mount applied auras join one exact HELPFUL priority-90 tier with
+class and world buffs. The screenshot verifies Warhorse text, not aura ID;
+13819/1279399 identities are supported by Forever spell records.
+No special mounted-state inference or private aura reads.
+
+Secondary countdowns use Blizzard's exact regular BuffFrame duration
+FontObject GameFontNormalSmall, centered over the little icon in white;
+primary font sizes remain independent. Delayed primary labels retry safe
+OOC placement. Requires in-game confirmation.
+
 ## 2026-11-09 — 0.1.213 combo-safe Target placement
 
 Target's upper-right secondary badge collides with its native

@@ -1632,6 +1632,43 @@ PT.categories = {
         [1299446] = true, -- Aspect of the Beast Rank 3
         [1328548] = true, -- Oath of Light
     },
+    -- Exact visible Classic ground-mount auras plus Forever Warhorse.
+    -- Mounted effects, never riding lessons, teaching spells or inferred
+    -- mounts based on models, speed, cast names or secret aura contents.
+    buffs_mounts = {
+        -- Horses, wolves, rams, raptors, sabers, mechanostriders and kodos.
+        [458]=true, [459]=true, [468]=true, [470]=true, [472]=true,
+        [578]=true, [579]=true, [580]=true, [581]=true,
+        [6648]=true, [6653]=true, [6654]=true,
+        [6777]=true, [6896]=true, [6898]=true, [6899]=true,
+        [8394]=true, [8395]=true, [8980]=true,
+        [10789]=true, [10793]=true, [10795]=true, [10796]=true,
+        [10799]=true, [10873]=true, [10969]=true,
+        [15779]=true, [15780]=true, [16055]=true, [16056]=true,
+        [16080]=true, [16081]=true, [16082]=true, [16083]=true,
+        [16084]=true, [17450]=true, [17453]=true, [17459]=true,
+        [17460]=true, [17461]=true, [17462]=true, [17463]=true,
+        [17464]=true, [17465]=true, [18363]=true,
+        [18989]=true, [18990]=true, [18991]=true,
+        -- Summoned class mounts (Forever has two Summon Warhorse IDs).
+        [5784]=true,    -- Felsteed
+        [13819]=true,   -- Summon Warhorse
+        [1279399]=true, -- Summon Warhorse Forever alternate
+        [23161]=true,   -- Dreadsteed
+        [23214]=true,   -- Charger
+        -- Epic ground mounts and battleground/PvP rewards.
+        [17481]=true, [22717]=true, [22718]=true, [22719]=true,
+        [22720]=true, [22721]=true, [22722]=true, [22723]=true,
+        [22724]=true, [23219]=true, [23221]=true, [23222]=true,
+        [23223]=true, [23225]=true, [23227]=true, [23229]=true,
+        [23238]=true, [23239]=true, [23241]=true, [23242]=true,
+        [23243]=true, [23246]=true, [23247]=true, [23248]=true,
+        [23249]=true, [23250]=true, [23252]=true,
+        [23509]=true, [23510]=true, [24242]=true,
+        -- Ahn'Qiraj battle tank mount auras.
+        [25863]=true, [25953]=true, [26054]=true, [26055]=true,
+        [26056]=true, [26655]=true, [26656]=true,
+    },
     -- Helpful noncombat information at absolute bottom (level 0). The
     -- bottom HARMFUL lane cannot receive helpful auras through its filter,
     -- so this shares its numeric priority but uses the matching polarity.

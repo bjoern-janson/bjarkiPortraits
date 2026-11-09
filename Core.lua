@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.213-target-combo-safe-anchor-test"
+R.VERSION = "0.1.214-unified-mounts-white-timers-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 -- Four native Blizzard party portraits share the same aura engine as player/pet.
 -- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
@@ -19,18 +19,15 @@ R.SORT_METHOD = AuraContainerSortMethod and AuraContainerSortMethod.AuraInstance
 R.SORT_DIRECTION = AuraContainerSortDirection and AuraContainerSortDirection.Reverse
 R.SWIPE_TEXTURE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 
--- One positional contract for ALL small second circles: readable aura/race,
--- native ranked-second, and pet-family fallback. It uses only the stable
--- frame UNIT token, never aura contents or combat-restricted geometry.
--- Target's right edge carries Blizzard's vertical combo-point pips.
--- Place that circle at the elevated UPPER-LEFT of the portrait instead.
--- Lifting it 12px keeps the enlarged 36px rim off the left-side name bar.
--- Leave existing Player/party and Focus placements entirely untouched.
+-- One immutable placement policy for ALL secondary portrait renderers:
+-- public aura/race, secure ranked-second and native pet-family fallback.
+-- Use only public unit tokens; no protected aura state drives positioning.
+-- All supported hosts share Target's raised upper-left combo-safe position.
 function R.SecondaryCirclePlacement(unit)
-    if unit == "target" then return "TOPLEFT", 10, 12 end
-    if unit == "focus" then return "TOPRIGHT", -5, 0 end
-    if unit == "player" then return "TOPLEFT", 5, 0 end
-    if R.PARTY_UNITS[unit] then return "TOPLEFT", 5, 2 end
+    if unit == "player" or unit == "target" or unit == "focus"
+        or R.PARTY_UNITS[unit] then
+        return "TOPLEFT", 10, 12
+    end
     return nil
 end
 
@@ -505,39 +502,43 @@ function R.GetCountdownFormatter()
     return formatter
 end
 
--- The small SECONDARY circles show countdowns *inside* 31px artwork.
--- Their original CooldownFrameTemplate number font is much larger than the
--- duration captions below regular Blizzard buff icons, obscuring spell art.
--- Use the actual Blizzard aura-duration font object (when present), falling
--- back to the GameFontNormalSmall inherited by AuraButtonArtTemplate.Duration.
--- This is deliberately separate from ApplyCountdownFormat so all PRIMARY
--- portraits retain their previously tuned timer typography and formatting.
+-- Forever's Blizzard AuraButtonArtTemplate.Duration inherits
+-- GameFontNormalSmall. Use THAT FontObject to match ordinary buff
+-- countdown size, not a guessed number or a different default font.
+-- The badge owns its countdown label: center it over the icon and keep
+-- its ink neutral white, including on safe out-of-combat reuse.
 function R.ApplySecondaryCountdownFont(cooldown)
     if not cooldown or type(cooldown.GetCountdownFontString) ~= "function" then
         return false
     end
-
-    local auraFont = DEFAULT_AURA_DURATION_FONT or GameFontNormalSmall
+    local auraFont = GameFontNormalSmall or DEFAULT_AURA_DURATION_FONT
     if not auraFont or not R.CanAccess(auraFont) then return false end
-
-    -- Only modify an addon-owned label at a safe OOC construction/reuse
-    -- boundary; in combat the cooldown text/layout may be protected.
     if type(InCombatLockdown) == "function" then
         local combat, known = R.SafeBool(InCombatLockdown)
         if not known or combat then return false end
     end
-
     local ok, label = pcall(cooldown.GetCountdownFontString, cooldown)
     if not ok or not R.CanAccess(label) or not label
-        or type(label.SetFontObject) ~= "function" then return false end
-
-    -- Pooled cooldown frames can return to a host multiple times. Avoid
-    -- redundant writes, and reapply if Blizzard replaces the label/font.
-    if cooldown._bjarkiSecondaryFontLabel == label
-        and cooldown._bjarkiSecondaryFontObject == auraFont then
-        return true
+        or type(label.SetFontObject) ~= "function"
+        or type(label.ClearAllPoints) ~= "function"
+        or type(label.SetPoint) ~= "function"
+        or type(label.SetTextColor) ~= "function" then
+        return false
     end
-    if not pcall(label.SetFontObject, label, auraFont) then return false end
+    if cooldown._bjarkiSecondaryFontLabel ~= label
+        or cooldown._bjarkiSecondaryFontObject ~= auraFont then
+        if not pcall(label.SetFontObject, label, auraFont) then return false end
+    end
+    -- A native cooldown may reposition its FontString after the first aura.
+    -- Reassert label layout when safely revisited without reading its text.
+    local centered = pcall(function()
+        label:ClearAllPoints()
+        label:SetPoint("CENTER", cooldown, "CENTER", 0, 0)
+        if label.SetJustifyH then label:SetJustifyH("CENTER") end
+        if label.SetJustifyV then label:SetJustifyV("MIDDLE") end
+        label:SetTextColor(1, 1, 1, 1)
+    end)
+    if not centered then return false end
     cooldown._bjarkiSecondaryFontLabel = label
     cooldown._bjarkiSecondaryFontObject = auraFont
     return true

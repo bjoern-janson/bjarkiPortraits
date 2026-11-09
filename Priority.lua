@@ -86,7 +86,7 @@ R.TIERS = {
     -- Rat Familiar/Benevolence are instead low-impact priority-six effects.
     exact("BaselineClass", "HELPFUL", 90, true,
         union("buffs_class_baseline", "buffs_camp_benefits",
-            "buffs_world")),
+            "buffs_world", "buffs_mounts")),
     exact("BaselineClassHarmful", "HARMFUL", 90, false, C.debuffs_class_baseline, true),
     exact("Thorns", "HELPFUL", 120, true, C.buffs_thorns),
 

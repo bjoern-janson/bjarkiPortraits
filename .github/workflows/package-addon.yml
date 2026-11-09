@@ -2,7 +2,7 @@ name: Package addon
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'feat/secondary-portrait-p1']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -25,6 +25,7 @@ jobs:
             done
             "lua${version}" tests/low-priority.lua
             "lua${version}" tests/world-buffs.lua
+            "lua${version}" tests/mount-buffs.lua
             "lua${version}" tests/secondary-portrait.lua
             "lua${version}" tests/native-second-probe.lua
             "lua${version}" tests/secondary-aura-election.lua

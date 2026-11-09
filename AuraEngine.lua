@@ -95,6 +95,9 @@ local function alignCountdown(cooldown, host)
         end
         text:SetJustifyH("CENTER")
         text:SetJustifyV("MIDDLE")
+        -- Preserve the separately calibrated primary font size; recolor
+        -- only the addon-owned label to neutral white.
+        if text.SetTextColor then text:SetTextColor(1, 1, 1, 1) end
     end)
     cooldown._bjarkiAlignmentState = centered and "centered" or "layout-unavailable"
 end
@@ -1718,6 +1721,18 @@ function R.UpdateHost(host, forceContainerRefresh)
 
         if not setContainer(host.containers[index], enabled, forceContainerRefresh) then
             host._containerWriteFailures = host._containerWriteFailures + 1
+        end
+    end
+    -- Native cooldowns may create labels after initial construction.
+    -- Recover unresolved alignment only on an existing safe OOC host
+    -- update, never with an OnUpdate script or hidden aura inspection.
+    local inCombat, combatReadable = R.SafeBool(InCombatLockdown)
+    if combatReadable and not inCombat then
+        for _, cooldown in ipairs(host.cooldowns or {}) do
+            if cooldown._bjarkiAlignmentState ~= "centered" then
+                local shown, readable = R.SafeBool(cooldown.IsShown, cooldown)
+                if readable and shown then alignCountdown(cooldown, host) end
+            end
         end
     end
     -- Only a *complete, readable* public election can project a real second
