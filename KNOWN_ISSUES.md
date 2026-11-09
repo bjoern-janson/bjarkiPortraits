@@ -1,3 +1,35 @@
+## 2026-11-09 — 0.1.205 world-buff priority audit (live validation pending)
+
+User rule: **all world buffs belong to the same portrait priority as
+ordinary class buffs (BaselineClass 90)**, not an offensive cooldown tier
+and not an opportunistic generic fallback. Existing class baseline and
+Camp Benefits remain 90. Explicit visible world-buff IDs were absent
+from source categorization and Sayge's fortune was being treated
+generically rather than as a named baseline buff.
+
+`Spells.lua` now defines `buffs_world` with 27 named world-buff IDs:
+eight Sayge fortunes, Rallying Cry, Warchief's Blessing, Might of
+Stormwind, Spirit of Zandalar, Songflower, all three Dire Maul tribute
+buffs, regional buff variants and identified season-style world boons.
+The already-present `buffs_minor_world` (Rat Familiar, Benevolence)
+moves from PaladinAura 60 to BaselineClass 90. Blessing of Blackfathom
+(8733) was correctly already harmful at level 90 and remains so.
+
+BaselineClass is still **one** native helpful slot built from the union,
+so world buffs do not create equal-rank competing portrait owners.
+Priority excludes world IDs from IMPORTANT/HostileHelpful to avoid
+promoting their fallback. Hidden Forever secondary stat-effect twins
+have no visible aura identity of their own and are not enrolled.
+Certain dormant spell records may never be obtainable in Forever;
+their presence in the game's data alone is not live evidence.
+
+`tests/world-buffs.lua` proves all supported IDs are unique exact
+90-point owners, generic helpful fallbacks exclude them, and higher
+combat/defensive/immunity priorities and special camp status stay
+untouched. The game client still needs confirmation for actual
+applied variants; never infer secret aura identities from names.
+No commands or new settings.
+
 ## 2026-11-09 — v0.1.204 self-target/focus DMF secondary discrepancy
 
 Live Player/Target side-by-side image: the same Bjoern Janson
