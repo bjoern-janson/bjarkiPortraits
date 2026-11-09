@@ -1347,7 +1347,7 @@ PT.categories = {
         [25360] = true, -- Grace of Air
         [24907] = true, -- Moonkin Aura (recipient)
     },
-    -- Negligible passive bonuses share Elixirs/Well Fed priority 81,
+    -- Negligible passive bonuses share Consumables/Well Fed priority 81,
     -- not the major class/world-buff tier at 90. Both are helpful auras.
     buffs_minor_world = {
         [1296202] = true, -- Rat Familiar (+2 Intellect)
@@ -1421,7 +1421,7 @@ PT.categories = {
         -- Audited applied item-aura IDs, including Forever-specific variants.
         -- Not a claim of exhaustive beta data coverage; no recipe/cast IDs.
         -- Persistent elixir regeneration remains in this source category.
-        -- Native Elixirs also owns Well Fed and minor helpful categories.
+        -- Native Consumables also owns Well Fed and minor helpful categories.
         [673] = true, -- Elixir of Minor Defense
         [3166] = true, -- Elixir of Wisdom / Lesser Intellect
         [3219] = true, -- Minor Troll's Blood Elixir
