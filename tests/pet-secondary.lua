@@ -131,10 +131,11 @@ eq(st.root.shown,true,"family fallback viewport is active")
 eq(st.root.points[3],"TOPRIGHT","Target outer corner retained")
 eq(st.root.points[4],-5,"Target existing badge inset retained")
 eq(st.root.level<48,true,"family art stays below a public second aura")
+eq(st.root.width,44,"pet badge outer viewport enlarged to 44px")
 eq(#st.containers,2,"helpful and harmful have separate native gates")
 eq(#st.textures,2,"two group buttons have current pet artwork")
 for _,image in ipairs(st.textures) do
-    eq(image.width,26,"pet-family masked icon enlarged to 26px")
+    eq(image.width,31,"pet-family icon grows with secondary circle")
     eq(image.mask~=nil,true,"pet-family icon retains circular mask")
 end
 for _,c in ipairs(st.containers) do
@@ -146,7 +147,7 @@ for _,c in ipairs(st.containers) do
         "first aura icon cannot override family portrait")
     eq(c.groups[1].button.icon.width,1,
         "native receiver remains visually hidden")
-    eq(c.groups[1].button.width,37,"standard badge cell")
+    eq(c.groups[1].button.width,44,"entire conditional pet badge cell enlarged")
 end
 eq(st.containers[1].groups[1].filter,"HELPFUL|INCLUDE_NAME_PLATE_ONLY",
     "helpful native presence includes nameplate-only")
