@@ -30,6 +30,18 @@ local STRATA_ABOVE = {
 local badgePool = {}
 local AURA_SCAN_LIMIT = 48
 local MAX_FILTER_PROBES = 192 -- bounded per host refresh; no polling
+
+-- The shipped TOC always loads Core first. Some deliberately isolated
+-- regression fixtures load only SecondaryPortrait.lua, so accept the same
+-- bounded 2/64 crop without requiring a full Core simulator. This fallback
+-- must never be applied to race atlases/sprite sheets.
+local function applySecondaryArtCrop(icon)
+    if R.ApplySecondaryIconCrop then return R.ApplySecondaryIconCrop(icon) end
+    if not icon or type(icon.SetTexCoord) ~= "function" then return false end
+    local inset = R.AURA_ART_EDGE_INSET or 2 / 64
+    return pcall(icon.SetTexCoord, icon, inset, 1-inset, inset, 1-inset)
+end
+
 local function clearSecondaryCooldown(host)
     local cooldown = host and host.secondaryCooldown
     if not cooldown then return end
@@ -241,7 +253,7 @@ function R.PreviewSecondaryPortrait(host)
     local icon = host.racePortrait
     local ok, result = pcall(icon.SetTexture, icon, "Interface\\Icons\\Spell_Holy_SealOfWisdom")
     if ok and result ~= false then
-        ok = R.ApplySecondaryIconCrop and R.ApplySecondaryIconCrop(icon)
+        ok = applySecondaryArtCrop(icon)
     end
     if not ok or not pcall(host.secondaryBadge.Show, host.secondaryBadge) then
         hideBadge(host, "preview-unavailable")
@@ -867,8 +879,7 @@ local function showSecondaryAura(host, candidate)
     end
     local success, wrote = pcall(icon.SetTexture, icon, texture)
     if not success or wrote == false then return false end
-    if not R.ApplySecondaryIconCrop
-        or not R.ApplySecondaryIconCrop(icon) then return false end
+    if not applySecondaryArtCrop(icon) then return false end
     if cooldown then
         clearSecondaryCooldown(host)
         if duration > 0 then
