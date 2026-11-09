@@ -1,5 +1,34 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.201 nonhostile target native fallback
+
+The native ribbon, previously available only on hostile Target and
+PlayerFrame fallback, now supports positively classified
+friendly/neutral Target units too. A public runner-up requires
+complete helpful and harmful aura-index scans: any protected
+debuff can defeat the entire public election even when other
+beneficial effects remain visible and independently processed by
+Blizzard's native UI.
+
+The new admission requires an enabled host, positively readable
+friendly/hostile relation, positively readable NPC-versus-player
+classification, and preserved secondary setting. Unlike hostile
+Targets, **nonhostile native overlay is hidden whenever the public
+reader has elected an actual second aura or static form**. Only
+race/hidden public fallback permits native cell #2, with Ghost/
+form static primaries also explicitly vetoing it. Players retain
+race underlay; verified NPCs do not, and existing pet-family art
+continues to be beneath the native second if present.
+
+No change to numeric spell ranks, addon main portrait, native
+group filters or 37/22/30px geometry. Remaining verification:
+actual secure layout on mixed-buff/debuff friendly targets,
+semantic-filter duplication, and OOC first-binding performance.
+This screenshot did not include runtime diagnostics and therefore
+does not establish which index/filter was inaccessible in this
+specific case.
+
+
 ## 2026-11-08 — 0.1.200 conditional targeted-pet family baseline
 
 A Hunter/Warlock pet's original family/summon artwork is meaningful
