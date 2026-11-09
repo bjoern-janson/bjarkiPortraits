@@ -69,14 +69,18 @@ R.TIERS = {
     exact("TravelUtility", "HELPFUL", 50, true, C.buffs_travel_utility),
     exact("PassiveDebuff", "HARMFUL", 59, false, C.debuffs_passive, true),
     exact("PaladinAura", "HELPFUL", 60, true,
-        union("buffs_paladin_auras", "buffs_warlock_armor", "buffs_minor_world")),
+        union("buffs_paladin_auras", "buffs_warlock_armor")),
     exact("BloodPact", "HELPFUL", 70, true,
         union("buffs_blood_pact", "buffs_furious_howl", "buffs_minor_class")),
     exact("Scrolls", "HELPFUL", 80, true, C.buffs_scrolls),
     exact("Elixirs", "HELPFUL", 81, true, C.buffs_elixirs, true),
     semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 85),
+    -- All verified visible world buffs (including the Darkmoon Fortunes),
+    -- minor world buffs, maintained class buffs and Camp Benefits use one
+    -- class-buff priority lane. Do not create competing level-90 slots.
     exact("BaselineClass", "HELPFUL", 90, true,
-        union("buffs_class_baseline", "buffs_camp_benefits")),
+        union("buffs_class_baseline", "buffs_camp_benefits",
+            "buffs_world", "buffs_minor_world")),
     exact("BaselineClassHarmful", "HARMFUL", 90, false, C.debuffs_class_baseline, true),
     exact("WellFed", "HELPFUL", 110, true, C.buffs_well_fed),
     exact("Thorns", "HELPFUL", 120, true, C.buffs_thorns),
@@ -249,7 +253,8 @@ end
 -- Restricted hostile identities may still prevent enforcing the exclusions;
 -- never infer an inaccessible aura's spell ID.
 local excludedHelpful = union("buffs_bottom", "buffs_gathering", "buffs_tracking", "buffs_campfire_nearby",
-    "buffs_violet_flames", "buffs_cosmetic", "buffs_noncombat")
+    "buffs_violet_flames", "buffs_cosmetic", "buffs_noncombat",
+    "buffs_world", "buffs_minor_world")
 local excludedHarmful = union("debuffs_pet_taming", "debuffs_tracking", "debuffs_campfire_nearby",
     "debuffs_noncombat", "debuffs_boosted_rest")
 for spellID in pairs(excludedHelpful) do helpfulExplicit[spellID] = true end
