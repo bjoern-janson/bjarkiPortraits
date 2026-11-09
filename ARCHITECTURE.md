@@ -1,6 +1,6 @@
-# Architecture — bjarkiPortraits 0.1.220
+# Architecture — bjarkiPortraits 0.1.221
 
-**Current technical reference** for branch `feat/secondary-portrait-p1`, source version `0.1.220-daunting-growl-demoralizing-test` as of 2026-11-09. The original 0.1.178-and-earlier architecture chronology is preserved in [docs/ARCHITECTURE_HISTORY.md](docs/ARCHITECTURE_HISTORY.md); its old "current" statements and older tier levels must not be used as the current implementation.
+**Current technical reference** for branch `feat/secondary-portrait-p1`, source version `0.1.221-static-electricity-thorns-test` as of 2026-11-09. The original 0.1.178-and-earlier architecture chronology is preserved in [docs/ARCHITECTURE_HISTORY.md](docs/ARCHITECTURE_HISTORY.md); its old "current" statements and older tier levels must not be used as the current implementation.
 
 ## Module loading
 

@@ -1,6 +1,6 @@
-# Priority lanes — 0.1.220
+# Priority lanes — 0.1.221
 
-**Generated from the exact 62 `R.TIERS` declarations** in [`Priority.lua`](../Priority.lua) on `feat/secondary-portrait-p1`, version `0.1.220-daunting-growl-demoralizing-test` (2026-11-09). This is a readable **numeric snapshot**; the Lua files, not this Markdown, control the addon. It is sorted by numeric level descending, not by source-file declaration order.
+**Generated from the exact 62 `R.TIERS` declarations** in [`Priority.lua`](../Priority.lua) on `feat/secondary-portrait-p1`, version `0.1.221-static-electricity-thorns-test` (2026-11-09). This is a readable **numeric snapshot**; the Lua files, not this Markdown, control the addon. It is sorted by numeric level descending, not by source-file declaration order.
 
 - **Exact IDs:** membership is derived from `Spells.lua` applied-aura groupings or unions. The existence of an ID in a group does not prove that aura is currently applied to a unit.
 - **Semantic:** candidate filtering uses Blizzard-native aura metadata and can be restricted in combat. The table does not claim arbitrary secure aura identity visibility.
@@ -78,6 +78,7 @@
 
 | Applied spell / category | Actual lane | Level | Why |
 | --- | --- | ---: | --- |
+| Static Electricity `1294477` from Gahz'rilla Fang | `Thorns` | **120** | User-requested visual priority for the stacking +2% weapon proc damage buff; not the unrelated boss aura `366305` or old proc spell `3742` |
 | Daunting Growl `3146`; Decayed Strength `6951`; Curse of Weakness ranks and NPC variants | `Demoralizing` | **185** | Ordinary Strength/Agility, attack output or similar flat stat/output reductions, with existing Demo Shout/Roar/Screech |
 | Ice Claw `3130`; Thunder Clap attack cadence penalty | `StatusEffects` | **253** | Disrupts attack timing/combat flow; not an ordinary movement snare |
 | Camp Benefits, maintained class buffs, Darkmoon/other reviewed world buffs, documented mount auras | `BaselineClass` | **90** | One significant helpful native lane; no new mount priority |

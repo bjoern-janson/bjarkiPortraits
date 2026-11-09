@@ -1,6 +1,6 @@
 # Testing and debug workflow
 
-**Development branch:** `feat/secondary-portrait-p1`. **Baseline:** `0.1.220-daunting-growl-demoralizing-test`, 2026-11-09. The workflow is [`.github/workflows/package-addon.yml`](../.github/workflows/package-addon.yml).
+**Development branch:** `feat/secondary-portrait-p1`. **Baseline:** `0.1.221-static-electricity-thorns-test`, 2026-11-09. The workflow is [`.github/workflows/package-addon.yml`](../.github/workflows/package-addon.yml).
 
 ## Automated pipeline
 

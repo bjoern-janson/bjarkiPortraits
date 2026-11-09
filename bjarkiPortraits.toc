@@ -2,7 +2,7 @@
 ## Title: bjarkiPortraits
 ## Notes: Portrait aura timers for WoW: Forever
 ## Author: Bjarki / OpenAI
-## Version: 0.1.220-daunting-growl-demoralizing-test
+## Version: 0.1.221-static-electricity-thorns-test
 ## SavedVariables: BjarkiPortraitsDB
 
 Spells.lua

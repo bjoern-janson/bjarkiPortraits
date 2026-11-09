@@ -2,7 +2,7 @@
 
 Native-styled priority aura portraits for **WoW: Forever**. A high-priority observed aura or state can replace the normal Blizzard portrait; a smaller circle may show the next distinct eligible effect. The addon respects the client's protected-aura boundaries and does not guess hidden spell IDs.
 
-**Development baseline:** `0.1.220-daunting-growl-demoralizing-test` (2026-11-09), branch [`feat/secondary-portrait-p1`](https://github.com/bjoern-janson/bjarkiPortraits/tree/feat/secondary-portrait-p1). **`main` remains at 0.1.178**; the current secondary-portrait implementation is on the development branch, not `main`.
+**Development baseline:** `0.1.221-static-electricity-thorns-test` (2026-11-09), branch [`feat/secondary-portrait-p1`](https://github.com/bjoern-janson/bjarkiPortraits/tree/feat/secondary-portrait-p1). **`main` remains at 0.1.178**; the current secondary-portrait implementation is on the development branch, not `main`.
 
 ## Install
 
@@ -12,7 +12,7 @@ Native-styled priority aura portraits for **WoW: Forever**. A high-priority obse
 
 There is **no setup command** for second portraits: they are enabled by default. Existing settings are saved in `BjarkiPortraitsDB`.
 
-## Current behavior (0.1.220)
+## Current behavior (0.1.221)
 
 - **Primary portraits:** Player, pet, Target, Focus, ToT, ToF and regular `party1`–`party4` (10 unit tokens) share the priority model. Without a selected aura/state, the normal Blizzard 3D portrait or class icon remains.
 - **Secondary portraits:** Player, Target, Focus and regular party members can show a second distinct, eligible aura or state. The guarded public reader takes precedence when its complete election is proven. Player/Target/Focus also have a native ranked-second fallback when public ranking cannot be completed.
@@ -44,11 +44,12 @@ Numeric tiers indicate **portrait display priority**, not general spell strength
 | 280 | Offensive cooldowns |
 | **253** | Combat-flow penalties, including Ice Claw (3130) and Thunder Clap |
 | **185** | Demoralizing Shout/Roar/Screech; Decayed Strength (6951), Curse of Weakness and **Daunting Growl (3146)** |
+| **120** | Thorns, Fire Shield, Reflection Field and **Static Electricity (1294477)** from Gahz'rilla Fang |
 | **90** | Class buffs, major world buffs, Camp Benefits and verified mounted auras |
 | **81** | Consumables, Well Fed and approved minor effects |
 | **0** | Informational bottom auras, including Well-Rested (429959) and harmful Boosted Rest (1229451), in separate polarity lanes |
 
-For **all 62 exact/semantic lanes**, see [Current priority reference](docs/PRIORITIES.md); `Priority.lua` and `Spells.lua` remain the actual runtime source of truth. No numeric priority changes were made by this documentation pass.
+For **all 62 exact/semantic lanes**, see [Current priority reference](docs/PRIORITIES.md); `Priority.lua` and `Spells.lua` remain the actual runtime source of truth. Static Electricity was added to the existing Thorns tier without changing numeric priorities.
 
 ## Commands
 

@@ -141,6 +141,28 @@ check(R.HELPFUL_TIER_BY_SPELL[7744]==nil,
     "WotF has no helpful exact-tier lookup")
 check(not owns("Immunity",1303458),"Reflection Field no longer treated as immunity")
 unique(1303458,"Thorns")
+-- Static Electricity from Gahz'rilla Fang is a stacking HELPFUL item
+-- aura (1294477), not the direct damage spell 3742 or the unrelated
+-- boss aura 366305. User-requested Thorns display grouping does not
+-- assert that the buff itself reflects damage to attackers.
+check(contains("buffs_thorns",1294477),
+    "Gahz'rilla Fang Static Electricity applied aura belongs to Thorns source")
+unique(1294477,"Thorns")
+eq(level("Thorns"),120,"Static Electricity uses unchanged Thorns 120")
+check(tier("Thorns").helpful and tier("Thorns").exact,
+    "Static Electricity occupies the existing exact helpful Thorns lane")
+check(R.HELPFUL_TIER_BY_SPELL[1294477] == tier("Thorns"),
+    "readable second-aura rank maps Static Electricity to Thorns")
+check(R.CandidateFilters(tier("Thorns")).includeSpellIDs[1294477] == true,
+    "native secure Thorns filter accepts Gahz'rilla Fang stack aura")
+check(not owns("Offensive",1294477),
+    "stacking weapon proc amplifier is not promoted into offensive cooldowns")
+check(not owns("BaselineClass",1294477),
+    "item-specific stacking aura does not join class/world buffs")
+check(not owns("StatusEffects",1294477),
+    "item stacking buff does not become harmful StatusEffects")
+check(#ownerOf(3742)==0,"Gahz'rilla Fang damage proc 3742 is not a buff")
+check(#ownerOf(366305)==0,"unrelated Static Electricity boss aura is not this item buff")
 unique(20594,"Defensive")
 unique(6615,"PhysicalImmunity")
 unique(1310897,"SpellImmunity")

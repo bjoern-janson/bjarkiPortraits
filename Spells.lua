@@ -1245,6 +1245,7 @@ PT.categories = {
         [29131] = true, -- Bloodrage (Warrior aura; 10 sec rage generation)
     },
     buffs_thorns = {
+        [1294477] = true, -- Static Electricity: Gahz'rilla Fang stacking buff, +2% weapon proc damage per stack (Forever)
         [1303458] = true, -- Reflection Field (spell reflection, Thorns-like counterattack priority)
         [467] = true, -- Thorns Rank 1 (Druid)
         [782] = true, -- Thorns Rank 2 (Druid)

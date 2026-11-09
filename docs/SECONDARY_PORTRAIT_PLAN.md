@@ -1,8 +1,26 @@
 # Secondary portrait: two aura priorities + race identity
 
-> **Current implementation checkpoint (2026-11-09):** `0.1.220-daunting-growl-demoralizing-test` on `feat/secondary-portrait-p1`. The secondary portrait is **implemented experimentally**, not merely proposed. See [current architecture](../ARCHITECTURE.md), [live verification status](../KNOWN_ISSUES.md) and [priority reference](PRIORITIES.md). This document preserves the chronological design decisions, **including superseded proposals**; the latest `Core.SecondaryCirclePlacement` and `Core.SecondaryCircleGeometry` are authoritative.
+> **Current implementation checkpoint (2026-11-09):** `0.1.221-static-electricity-thorns-test` on `feat/secondary-portrait-p1`. The secondary portrait is **implemented experimentally**, not merely proposed. See [current architecture](../ARCHITECTURE.md), [live verification status](../KNOWN_ISSUES.md) and [priority reference](PRIORITIES.md). This document preserves the chronological design decisions, **including superseded proposals**; the latest `Core.SecondaryCirclePlacement` and `Core.SecondaryCircleGeometry` are authoritative.
 >
 > **Current layout:** Player/party `TOPRIGHT(-10,+12)`, Target/Focus `TOPLEFT(+10,+12)`; normal cell/rim/art **50/41/30**, compact party **40/33/24**. Three secondary renderers share this geometry. Verified public runner-up takes precedence; a guarded native second-slot fallback is available for Player/Target/Focus, with race/pet identity art below when appropriate. The primary aura engine remains independent. CI checks under Lua 5.1/5.4 do not imply every live combat case is certified.
+
+## 2026-11-09 — 0.1.221 Static Electricity joins Thorns tier
+
+The screenshot identifies a stacking **Static Electricity** helpful
+Magic aura increasing damage of the Gahz'rilla Fang effect by 76% at
+the shown stacks. Verified Forever **applied aura** spell ID is
+**1294477** (spell database reports +2% per stack). Add only that
+ID to `buffs_thorns` / exact HELPFUL `Thorns` **120** on explicit
+user request, beside the existing Thorns, Fire Shield and Reflection
+Field effects. This is **visual-priority grouping**, not a claim that
+Static Electricity itself retaliates when struck.
+
+Do not classify the weapon's direct damage proc spell `3742`, the
+unrelated Static Electricity boss aura `366305`, or an inferred
+stack percentage as additional portrait effects. No new tiers or
+changes to secondary geometry, combat evidence, timer formatting or
+other IDs. Tests verify one exact owner, native candidate membership,
+public rank index and absence of incorrect high-tier membership.
 
 ## 2026-11-09 — 0.1.220 Daunting Growl flat stat penalty
 

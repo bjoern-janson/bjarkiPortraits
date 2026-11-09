@@ -1,6 +1,6 @@
 # Known issues & verification status
 
-**Scope:** development branch `feat/secondary-portrait-p1`, source `0.1.220-daunting-growl-demoralizing-test`, 2026-11-09. This page is the **current** tracker. Earlier issues and intermediate fixes (including superseded 0.1.213 geometry) are retained in [docs/KNOWN_ISSUES_HISTORY.md](docs/KNOWN_ISSUES_HISTORY.md), not treated as open just because an old heading remains there.
+**Scope:** development branch `feat/secondary-portrait-p1`, source `0.1.221-static-electricity-thorns-test`, 2026-11-09. This page is the **current** tracker. Earlier issues and intermediate fixes (including superseded 0.1.213 geometry) are retained in [docs/KNOWN_ISSUES_HISTORY.md](docs/KNOWN_ISSUES_HISTORY.md), not treated as open just because an old heading remains there.
 
 ## Open or requires further in-game verification
 
