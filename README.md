@@ -2,11 +2,27 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.201-target-native-fallback-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.202-secondary-icon-26px-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.202 — enlarge secondary circle artwork
+
+Visual-only sizing pass. Standard secondary portraits now show **26px
+masked icon artwork instead of 22px** across three implementations:
+native runner-up ribbon, targeted pet-family fallback and the normal
+race/readable-aura circle. Compact party art grows **18 → 21px**.
+
+The outer standard cell is still 37px with its 30px Blizzard Totem
+rim; compact party badges stay 29px with 24px rims. All circle
+positions, icon masks, countdown fonts and timing, native priority
+ordering, aura filters and target/pet eligibility stay unchanged.
+
+No commands or settings needed. Lua regression tests verify the new
+dimensions and retained rims/masks; whether the additional detail
+is readable beneath short countdown text still needs in-game review.
 
 ## 0.1.201 — friendly/neutral Target falls back to native second
 
