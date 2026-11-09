@@ -1,5 +1,32 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.205 world buffs join class priority 90
+
+All observed or source-verified **visible** world buffs should behave
+as passive persistent raid/class buffs, not short offensive windows.
+The eight Sayge fortunes, headline world buffs (Onyxia/Nefarian, Rend,
+Zandalar, Songflower, Dire Maul tribute), regional and seasonal
+world buffs now share the **existing BaselineClass 90** slot via
+`buffs_world`. Two previously lower-priority `buffs_minor_world`
+entries join this same slot. Existing Camp Benefits and class buffs
+are not demoted, and previously classified harmful Blessing of
+Blackfathom retains its level-90 harmful lane.
+
+The generated secondary candidate ranking and secure native
+group plans both take their spell owners from the unchanged
+`R.TIERS` table. This guarantees the new world-buff category
+uses the same level 90 in both circles and avoids category-specific
+one-off ranking logic. Generic higher helpful lanes exclude the
+explicit world IDs. Hidden stat-effect twins aren't promoted to
+separate visible candidates, even if associated with the same
+world buff. Unreleased/Season-of-Discovery spell rows remain
+conditionally eligible only if an actual aura appears.
+
+Regressions check all IDs, spell polarity, uniqueness, generic
+exclusions and preserved original tiers. Native aura secrecy and
+public read limitations remain unchanged. No UI or command changes.
+
+
 ## 2026-11-09 — 0.1.204 identity-safe self alias & Focus native secondary
 
 PlayerFrame and TargetFrame simultaneously showed Bjoern Janson
