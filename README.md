@@ -2,11 +2,58 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.211-decayed-strength-demoralizing-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.212-ice-claw-curse-weakness-tiers-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.212 — combat-flow attack speed vs raw damage reduction
+
+Two screenshots and one explicit classification decision:
+
+**Ice Claw** (3130; Magic, 6 seconds, 100% longer attack interval)
+now joins `debuffs_attack_penalty`, whose single exact harmful
+`StatusEffects` tier already has priority **253**. It affects
+combat cadence in the same way as the attack-speed-reduction
+component of Thunder Clap. It is NOT a movement snare, Dazed,
+or a flat raw-damage reduction.
+
+**Curse of Weakness** reduces **physical damage dealt** without
+independently disrupting attack timing. All six positively verified
+Warlock applied ranks (702, 1108, 6205, 7646, 11707, 11708) move
+from `debuffs_other`/`StatusEffects` 253 into the existing
+`debuffs_demoralizing`/`Demoralizing` **185** tier. The screenshot
+reads **"Physical damage dealt is reduced by 5"** with about 64
+seconds remaining, which specifically matches the 2-minute
+Classic/Forever Staff of Horrors or NPC applied variant **8552**.
+This variant is included too, together with positively identified
+NPC Curse of Weakness effects 12741, 21007, 12493 and 18267.
+The screenshot does not itself expose an auraInstanceID or spell ID;
+8552 is an evidence-based variant match, not a claim of an actual
+in-game spell-data read.
+
+We preserve each aura's real spell icon, dispel polarity and
+timing. There is **no new tier** or change to the numeric
+priorities of any existing tier. Existing Demo Shout/Roar/Screech,
+Thunder Clap and the other attack/casting/healing penalties
+retain their earlier classifications. Neither an unidentified
+curse nor a tooltip alone authorizes a synthetic aura. Both
+regular and native second-portrait elections inherit these
+exact-ID owners from `R.TIERS`.
+
+Lua 5.1 and 5.4 regressions assert one exact owner per rank and
+NPC variant, correct candidate filters, no duplicated IDs,
+unchanged tier values, and the intended category distinction.
+Secondary icon sizes, fonts, aura countdowns, class/world/Consumables
+groups, protected reads, and no-command behavior are unchanged.
+The client still needs visual verification to confirm its specific
+observed occurrence maps to one of the listed applied IDs.
+
+References:
+[Forever Ice Claw 3130](https://www.wowhead.com/forever/spell=3130),
+[Forever Curse of Weakness rank listing](https://www.foreverdb.app/en/forever/spells/702/curse-of-weakness),
+[Classic Curse of Weakness 8552](https://www.wowhead.com/classic/spell=8552).
 
 ## 0.1.211 — Decayed Strength joins Demoralizing Shout
 
