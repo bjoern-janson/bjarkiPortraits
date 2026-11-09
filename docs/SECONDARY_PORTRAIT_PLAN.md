@@ -1,5 +1,25 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.208 rename to Consumables 81
+
+Following the 0.1.207 consolidation, the tier named `Elixirs`
+has become misleading because its exact native helpful candidate
+set also includes Well Fed food auras and small positive buffs.
+Rename the **single** priority-81 native tier to `Consumables`.
+Preserve its exact four-way source union and all existing spell
+IDs; no duplicate tier key and no modified numeric level.
+
+Rat Familiar and Benevolence are deliberately grouped here
+despite not being consumed. Keep their source categories
+meaningfully labeled instead of inventing category provenance.
+Potential flask additions require independently verified
+visible applied-aura IDs before any source or priority change.
+
+Main/secondary portraits, safe aura evidence gates, rank order
+and mask/timer layout are untouched. Regression checks lock
+the new tier key and non-overlap.
+
+
 ## 2026-11-09 — 0.1.207 merged Elixirs / Well Fed / minor helpful
 
 Consolidate Well Fed (previously 110), minor positive buffs
