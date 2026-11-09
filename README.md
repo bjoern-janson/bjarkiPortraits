@@ -2,11 +2,53 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.212-ice-claw-curse-weakness-tiers-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.213-target-combo-safe-anchor-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.213 — Target secondary clears combo-point column
+
+A live screenshot showed a timed second portrait at the **top-right**
+of TargetFrame's circular main portrait, obscuring the built-in combo
+point cluster on the right. After enlarging second circles to a 44px
+cell/36px rim in 0.1.203, the prior placement left too little
+clearance. This is a spatial placement defect, not a spell-selection
+or cooldown problem.
+
+**New Target placement:** set the small circle's center to the
+portrait's `TOPLEFT`, offset **+10px horizontal and +12px
+vertical**. Raising the circle keeps its lower edge near the
+portrait top, reducing interference with the left-side name/health
+bar while moving it away from the entire right-hand combo-point
+column. The position needs visual verification against the
+player's actual UI scale and custom frame layout.
+
+**All other placements are unchanged:** Player upper-left (+5,0),
+party1–4 upper-left (+5,+2), Focus upper-right (−5,0).
+ToT, ToF and PetFrame still have no second circle. No new
+slash commands, settings or saved layout state.
+
+The placement is defined exactly once in
+`Core.SecondaryCirclePlacement(unit)` and used by all three
+independent secondary presentations:
+
+1. Readable-aura or race fallback badge
+   (`SecondaryPortrait.CreateSecondaryPortrait`);
+2. Native priority-ordered second-aura clip
+   (`NativeSecondProbe.CreateNativeSecondProbe`), including
+   reused pooled units and proven self-target binding;
+3. Native aura-presence-gated Hunter/Warlock pet-family fallback
+   (`PetSecondary.anchoredFrame`), including Target→Focus reuse.
+
+The whole frame and native clip move together; icon circle
+dimensions (44px cell/36px rim/31px art), native group clipping
+distance, timer fonts, countdown logic, spell priority/election
+and protected aura evidence remain exactly the same. Lua 5.1/5.4
+tests assert the shared placement, no stale pooled Target
+coordinates, unchanged Focus/Player/party positions, and pet
+art alignment. **Live client validation remains required.**
 
 ## 0.1.212 — combat-flow attack speed vs raw damage reduction
 
