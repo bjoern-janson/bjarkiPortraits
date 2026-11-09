@@ -1,5 +1,31 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.207 merged Elixirs / Well Fed / minor helpful
+
+Consolidate Well Fed (previously 110), minor positive buffs
+(previously MinorHelpful 6), and existing elixirs (81) into a
+single `Elixirs` exact helpful priority-81 slot. This preserves
+the complete elixir inventory and all 23 Well Fed applied aura
+IDs, including the +1 Stamina variant, as well as Rat Familiar
+and Benevolence. The source sets remain independently labeled;
+the runtime native group is their union, so the same aura is
+never duplicated across distinct exact candidate slots.
+
+Retire the obsolete `WellFed`, `MinorHelpful` and unused
+`MinorHarmful` priority keys; the empty `debuffs_minor` source
+set is removed. No known minor debuffs exist to reassign, and
+the existing meaningful harmful effects retain their prior
+levels. All major named world and ordinary class buffs remain
+at BaselineClass 90, above the consolidated 81 group. The
+native/public secondary code derives candidate levels directly
+from `R.TIERS`, so no special per-frame branching is needed.
+
+Elixir and Well Fed IDs are excluded from generic high-priority
+and HostileHelpful fallback filters. Tests assert unique
+ownership, filter inclusion, absence of retired tier keys and
+unaltered external portrait geometry. No in-game commands.
+
+
 ## 2026-11-09 — 0.1.206 matched very-minor aura lanes
 
 Only significant world buffs belong beside maintained class buffs
