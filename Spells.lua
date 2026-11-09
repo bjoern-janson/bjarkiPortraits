@@ -1347,10 +1347,17 @@ PT.categories = {
         [25360] = true, -- Grace of Air
         [24907] = true, -- Moonkin Aura (recipient)
     },
+    -- Negligible, passive bonuses belong to the dedicated minor tier, NOT
+    -- the class/world-buff lane. Both confirmed effects are helpful auras.
     buffs_minor_world = {
         [1296202] = true, -- Rat Familiar (+2 Intellect)
-        [1292142] = true, -- Benevolence (minor party health regeneration)
+        [1292142] = true, -- Benevolence (+4 health per 5 sec for party)
     },
+    -- Other positively verified very minor helpful/negative effects can be
+    -- assigned here after individual review. No fabricated harmful effects:
+    -- empty includeSpellIDs means the harmful tier cannot select an aura.
+    buffs_minor = {},
+    debuffs_minor = {},
     -- Named, externally acquired WORLD BUFFS share the ordinary class-buff
     -- portrait priority 90. Include only positively identified visible aura
     -- spell IDs: Forever also attaches hidden stat-effect twins, but these
