@@ -20,6 +20,10 @@ R.ApplyCountdownFormat=function()end
 R.AURA_ANCHOR_TEMPLATE="DisableUntrustedLayoutScriptsTemplate"
 R.SORT_METHOD=8
 R.SORT_DIRECTION=1
+local selfAliases={target=false,focus=false}
+UnitIsUnit=function(unit,compared)
+    return compared=="player" and selfAliases[unit]==true
+end
 
 local checks=0
 local function eq(value,want,label)
@@ -155,7 +159,7 @@ host._secondaryElectionReason="inaccessible-index"
 R.UpdateNativeSecondProbe(host,true,false,true,true)
 eq(p.clip.shown,true,"friendly player fallback uses native second cell")
 eq(host.secondaryBadge.shown,true,"verified friendly player race stays under native")
-eq(host._nativeSecondProbeReason,"friendly-target-native-fallback",
+eq(host._nativeSecondProbeReason,"friendly-secondary-native-fallback",
    "friendly fallback is distinguishable without a slash command")
 eq(p.container.unit,"target","friendly target still uses native target token")
 host._secondaryMode="aura"
@@ -286,9 +290,61 @@ R.db.secondaryPortrait=false
 R.UpdateNativeSecondProbe(host,true,true,true,false)
 eq(host._nativeSecondProbe,nil,"secondary disabled skips auto setup")
 R.db.secondaryPortrait=true
+-- Focus has the same native second-cell fallback as Target. This fixes
+-- mixed DMF-like helpful buffs on a Focus which was never supported by the
+-- original hostile-only/native Target prototype.
 local focus={unit="focus",portrait=frame("portrait"),
-    secondaryBadge=frame("badge")}
-eq(R.CreateNativeSecondProbe(focus),false,"experimental scope is target-only")
-R.UpdateNativeSecondProbe(focus,true,true,true,true)
-eq(focus._nativeSecondProbe,nil,"focus receives no native target ribbon")
+    secondaryBadge=frame("badge"),_secondaryMode="race",
+    _raceBaselineActive=true}
+R.UpdateNativeSecondProbe(focus,true,false,true,true)
+local fp=focus._nativeSecondProbe
+eq(fp~=nil,true,"friendly Focus constructs its own native second")
+eq(fp.clip.shown,true,"Focus race fallback can show native second")
+eq(fp.container.unit,"focus","ordinary Focus native source is focus")
+eq(fp.clip.points[3],"TOPRIGHT","Focus native circle on outer right")
+eq(fp.clip.points[4],-5,"Focus retains accepted five-pixel inset")
+eq(fp.groups,p.groups,"Focus uses the existing complete tier policy")
+focus._secondaryMode="aura"
+R.UpdateNativeSecondProbe(focus,true,false,true,true)
+eq(fp.clip.shown,false,"completed readable Focus second stays authoritative")
+focus._secondaryMode="race"
+R.UpdateNativeSecondProbe(focus,true,false,true,true)
+eq(fp.clip.shown,true,"Focus native fallbacks return when index unavailable")
+
+-- Positively verified self Focus/Target can bind their native groups to
+-- the self-readable "player" token without changing their frame geometry.
+selfAliases.focus=true
+R.UpdateNativeSecondProbe(focus,true,false,true,true)
+eq(fp.boundUnit,"player","self Focus binds native player aura source")
+eq(fp.container.unit,"player","Focus native container receives verified alias")
+eq(fp.clip.shown,true,"self Focus still exposes native second")
+
+-- A target swap in combat is not permission to show the previous PLAYER'S
+-- aura over another target. Hide until the native setter can safely rebind.
+combat=true
+selfAliases.focus=false
+R.UpdateNativeSecondProbe(focus,true,false,true,true)
+eq(fp.clip.shown,false,"combat identity switch suppresses stale second")
+eq(fp.boundUnit,"player","protected native binding is not mutated in combat")
+eq(focus._nativeSecondProbeReason,"source-rebind-deferred-combat",
+    "unsafe focus rebind has an explicit fail-closed outcome")
+combat=false
+R.UpdateNativeSecondProbe(focus,true,false,true,true)
+eq(fp.boundUnit,"focus","out of combat Focus source safely rebound")
+eq(fp.container.unit,"focus","Focus native unit uses correct post-swap token")
+eq(fp.clip.shown,true,"focus native fallback recovers after safe rebind")
+R.ReleaseNativeSecondProbe(focus)
+eq(fp.container.unit,nil,"released focus does not keep old unit binding")
+
+local selfTarget={unit="target",portrait=frame("portrait"),
+    secondaryBadge=frame("badge"),_secondaryMode="race",
+    _raceBaselineActive=true}
+selfAliases.target=true
+R.UpdateNativeSecondProbe(selfTarget,true,false,true,true)
+eq(selfTarget._nativeSecondProbe.boundUnit,"player",
+    "self Target native renderer uses the verified player source")
+eq(selfTarget._nativeSecondProbe.clip.points[3],"TOPRIGHT",
+    "self Target native art remains at target outer corner")
+R.ReleaseNativeSecondProbe(selfTarget)
+selfAliases.target=false
 print("native runner-up ribbon: "..checks.." inbound/safety checks passed")
