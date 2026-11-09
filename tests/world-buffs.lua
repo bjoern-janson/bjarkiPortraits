@@ -64,6 +64,7 @@ eq(consumables.filter,"HELPFUL","merged native tier uses helpful filter")
 eq(R.TIER_BY_KEY.MinorHelpful,nil,"obsolete MinorHelpful retired")
 eq(R.TIER_BY_KEY.MinorHarmful,nil,"empty MinorHarmful retired")
 eq(R.TIER_BY_KEY.WellFed,nil,"obsolete WellFed retired")
+eq(R.TIER_BY_KEY.Elixirs,nil,"old Elixirs alias retired; one tier only")
 for _,id in ipairs({1296202,1292142}) do
     eq(C.buffs_minor_world[id],true,"minor world source membership")
     eq(baseline.spellIDs[id],nil,"minor effects cannot inherit class/world priority 90")
