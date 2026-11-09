@@ -2,7 +2,7 @@
 ## Title: bjarkiPortraits
 ## Notes: Portrait aura timers for WoW: Forever
 ## Author: Bjarki / OpenAI
-## Version: 0.1.210-secondary-buff-font-test
+## Version: 0.1.211-decayed-strength-demoralizing-test
 ## SavedVariables: BjarkiPortraitsDB
 
 Spells.lua
