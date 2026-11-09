@@ -1351,6 +1351,48 @@ PT.categories = {
         [1296202] = true, -- Rat Familiar (+2 Intellect)
         [1292142] = true, -- Benevolence (minor party health regeneration)
     },
+    -- Named, externally acquired WORLD BUFFS share the ordinary class-buff
+    -- portrait priority 90. Include only positively identified visible aura
+    -- spell IDs: Forever also attaches hidden stat-effect twins, but these
+    -- are NOT a second visible buff and must not consume a portrait slot.
+    -- A spell's presence in the client table is not proof it is obtainable.
+    buffs_world = {
+        -- Classic/Forever major world buffs and live capital-city variants.
+        [22888] = true, -- Rallying Cry of the Dragonslayer (Onyxia/Nefarian)
+        [16609] = true, -- Warchief's Blessing (Head of Rend Blackhand)
+        [460939] = true, -- Might of Stormwind (Forever, visible world aura)
+        [460940] = true, -- Might of Stormwind (alternate applied aura)
+        [24425] = true, -- Spirit of Zandalar (Hakkar)
+        [355365] = true, -- Spirit of Zandalar (alternate world aura)
+        [15366] = true, -- Songflower Serenade (Felwood)
+        [22817] = true, -- Fengus' Ferocity (Dire Maul tribute)
+        [22818] = true, -- Mol'dar's Moxie (Dire Maul tribute)
+        [22820] = true, -- Slip'kik's Savvy (Dire Maul tribute)
+
+        -- All eight visible Sayge's Dark Fortunes (Darkmoon Faire).
+        [23735] = true, -- Sayge's Dark Fortune variant
+        [23736] = true, -- Sayge's Dark Fortune variant
+        [23737] = true, -- Sayge's Dark Fortune variant
+        [23738] = true, -- Sayge's Dark Fortune variant
+        [23766] = true, -- Sayge's Dark Fortune variant
+        [23767] = true, -- Sayge's Dark Fortune variant
+        [23768] = true, -- Sayge's Dark Fortune of Damage
+        [23769] = true, -- Sayge's Dark Fortune variant
+
+        -- Other externally awarded local/zone/seasonal world effects.
+        [29534] = true, -- Traces of Silithyst (world PvP)
+        [1216566] = true, -- Traces of Silithyst (client variant)
+        [30238] = true, -- Lordaeron's Blessing (Plaguelands tower)
+        [15123] = true, -- Resist Fire (Scarshield Spellbinder)
+        [29175] = true, -- Ribbon Dance (world event)
+        -- Era/Season of Discovery-style buffs retained in Forever's spell
+        -- records, if they are ever actually encountered. Never guess a
+        -- private aura from these names or present a non-occurring effect.
+        [430947] = true, -- Boon of Blackfathom
+        [431111] = true, -- Boon of Blackfathom applied variant
+        [438537] = true, -- Spark of Inspiration
+        [446695] = true, -- Fervor of the Temple Explorer
+    },
     buffs_blood_pact = {
         [6307] = true, -- Blood Pact Rank 1 (Warlock Imp)
         [7804] = true, -- Blood Pact Rank 2 (Warlock Imp)
