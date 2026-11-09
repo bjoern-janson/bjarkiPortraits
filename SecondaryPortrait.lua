@@ -103,8 +103,8 @@ function R.CreateSecondaryPortrait(host, nativeStrata)
     if not supportsSecondary(host) or not host.layer or not host.portrait
         or not host.unitFrame then return false end
     local compact = COMPACT[host.unit] == true
-    local width, imageSize, borderSize = compact and 29 or 37,
-        compact and 21 or 26, compact and 24 or 30
+    local width, imageSize, borderSize = compact and 35 or 44,
+        compact and 25 or 31, compact and 29 or 36
     local badge = table.remove(badgePool)
     if badge then badge._bjarkiInPool = false end
     local ok = pcall(function()
