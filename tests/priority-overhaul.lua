@@ -194,6 +194,46 @@ end
 eq(level("StatusEffects"),253,
     "combat-flow StatusEffects priority is unchanged")
 
+-- Classification is functional, not spell-school or icon-color based.
+-- Curse of Weakness reduces PHYSICAL DAMAGE DONE, like Demo Roar/Shout,
+-- even when the client calls the effect a Magic debuff. All six Warlock
+-- ranks must move together from StatusEffects, and the screenshot's -5
+-- physical damage variant (8552, Staff of Horrors / NPC) must follow.
+local weaknessIDs={702,1108,6205,7646,11707,11708,
+    8552,12741,21007,12493,18267}
+for _,id in ipairs(weaknessIDs) do
+    check(contains("debuffs_demoralizing",id),
+        "Curse of Weakness "..id.." has Demoralizing source category")
+    check(not contains("debuffs_other",id),
+        "Curse of Weakness "..id.." removed from combat-flow StatusEffects source")
+    unique(id,"Demoralizing")
+    check(R.CandidateFilters(tier("Demoralizing")).includeSpellIDs[id] == true,
+        "native priority-185 exact filter owns Curse of Weakness "..id)
+    check(not owns("StatusEffects",id),
+        "Curse of Weakness "..id.." is not combat-flow StatusEffects")
+end
+eq(level("Demoralizing"),185,"Curse of Weakness uses unchanged Demo Roar priority")
+check(contains("debuffs_demoralizing",8552),
+    "screenshot's -5 damage Magic variant is included")
+
+-- Ice Claw doubles the interval between attacks for six seconds. Unlike
+-- a flat damage reduction, it changes cadence and combat interaction,
+-- just like Thunder Clap, and belongs in StatusEffects 253.
+check(contains("debuffs_attack_penalty",3130),
+    "Ice Claw has attack-speed-penalty source category")
+unique(3130,"StatusEffects")
+eq(level("StatusEffects"),253,"Ice Claw uses unchanged combat-flow tier")
+check(R.CandidateFilters(tier("StatusEffects")).includeSpellIDs[3130] == true,
+    "native priority-253 filter owns Ice Claw")
+check(not owns("Demoralizing",3130),
+    "attack-speed disruption does not enter Demo Roar/Shout tier")
+check(not owns("Slows",3130),
+    "attack speed is not a movement snare")
+check(not owns("Dazed",3130),"Ice Claw is not a movement daze")
+for _,id in ipairs({6343,8198,8204,8205,11580,11581}) do
+    unique(id,"StatusEffects")
+end
+
 -- Magic Wings is the 18-second Darkmoon Faire cannon slow-fall aura,
 -- not a movement-speed slow on the character. It shares exactly the
 -- existing Walk on Air utility priority rather than TravelUtility or
