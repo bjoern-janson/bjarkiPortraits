@@ -870,6 +870,11 @@ local function showSecondaryAura(host, candidate)
                 cooldown, expiration-duration, duration, timeMod)
             if not ok then return false end
             if R.ApplyCountdownFormat then R.ApplyCountdownFormat(cooldown) end
+            -- The label may be created lazily when the first real timer
+            -- starts; retry once at this existing positive-aura boundary.
+            if R.ApplySecondaryCountdownFont then
+                R.ApplySecondaryCountdownFont(cooldown)
+            end
             if not pcall(cooldown.Show, cooldown) then return false end
         end
     end
