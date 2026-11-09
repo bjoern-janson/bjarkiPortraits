@@ -1,3 +1,37 @@
+## 2026-11-09 — v0.1.204 self-target/focus DMF secondary discrepancy
+
+Live Player/Target side-by-side image: the same Bjoern Janson
+has the DMF damage fortune among its active buffs, displayed in
+PlayerFrame secondary but replaced with the player's race tile in
+Target secondary. Focus was reported to behave similarly. The
+specific client `secondReason` is unknown because no diagnostic
+snapshot accompanies the image; the screenshot is strong evidence
+of unit-token parity failure, not evidence of DMF priority error.
+
+Confirmed implementation gaps: Target/Focus secondary public
+enumeration always used their literal unit token, even if the
+client positively identified that unit as the current player.
+The `player` token can grant helpful-aura/semantic-filter reads
+that are unavailable through `target`/`focus`. The native
+second ribbon was also completely absent from Focus.
+
+Version 0.1.204 adds a strict public `UnitIsUnit` equality witness:
+only a positively readable self Target/Focus may read and rank
+using the `player` source token. Equality false, secret or
+unavailable never authorizes mirroring. Player UNIT_AURA events
+refresh positively confirmed self aliases to prevent stale
+second effects. Focus now gets the existing guarded native second
+fallback; on verified self aliases its secure group uses the
+`player` unit, but guarded target changes in combat hide stale
+art until an out-of-combat source rebind can occur.
+
+Do not treat matching names as proof or alter the DMF aura's
+numeric priority based on this image. The original tier ordering,
+main portrait, pet-family rules and 44px native circle geometry
+stay unchanged. CI regressions cover same-unit and different-unit
+cases. Live visual tests of self Target/Focus, others' Focus
+targets, and combat binding changes are still needed. No commands.
+
 ## 2026-11-09 — 0.1.203 full secondary-circle enlargement (visual test pending)
 
 The 0.1.202 icon artwork was enlarged 22→26px but the circle
