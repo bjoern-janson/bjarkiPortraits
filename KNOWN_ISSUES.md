@@ -1,3 +1,22 @@
+## 2026-11-09 — 0.1.208 tier name: Consumables, formerly Elixirs
+
+The single helpful priority-81 native lane now uses the broader
+runtime key `Consumables`, reflecting the 0.1.207 merger of all
+verified elixirs, 23 Well Fed food buffs, Rat Familiar and Benevolence.
+The old key `Elixirs` is not kept as a duplicate native tier;
+the source categorization `buffs_elixirs` remains separate for
+auditability. All spell IDs, filter polarity, numeric priorities,
+portrait geometry, countdowns and native secondary elections stay
+unchanged.
+
+Flasks are a natural candidate for this band, but specific
+applied-aura IDs have not been verified; no flask additions or
+inferred aura identities were made. The two small passive buffs
+are not literal consumables, but remain in the previously approved
+shared low-impact/provisions grouping. Regression tests assert
+`Consumables` 81, absence of the old key, full category membership
+and unique exact spell ownership. No commands or settings.
+
 ## 2026-11-09 — 0.1.207 Well Fed and minor buffs merged with Elixirs
 
 Per user request, the previous separate `WellFed` 110 and
