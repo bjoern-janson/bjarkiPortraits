@@ -783,6 +783,7 @@ PT.categories = {
         [24577] = true, -- Demoralizing Screech Rank 2 (Hunter pet)
         [24578] = true, -- Demoralizing Screech Rank 3 (Hunter pet)
         [24579] = true, -- Demoralizing Screech Rank 4 (Hunter pet)
+        [6951] = true, -- Decayed Strength: flat Strength reduction, 5 min (not combat-flow StatusEffects)
     },
     -- Applied casting, attack and healing penalties share the StatusEffects band.
     -- Rank families verified against current Forever 1.60.1 records.
