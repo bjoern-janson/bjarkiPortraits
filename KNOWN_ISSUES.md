@@ -1,3 +1,28 @@
+## 2026-11-09 — 0.1.207 Well Fed and minor buffs merged with Elixirs
+
+Per user request, the previous separate `WellFed` 110 and
+`MinorHelpful` 6 tiers have been retired. All 23 named Well Fed
+aura variants, Rat Familiar (+2 Intellect), and Benevolence (small
+party HP regeneration) now share the preexisting exact helpful
+`Elixirs` priority **81**. Every original elixir retains its
+priority and native filter. A single unioned native priority lane
+avoids separate equal-priority frames or double counting.
+
+The prior `MinorHarmful` level 6 had no classified debuff IDs.
+It and its empty category have been retired rather than creating
+an artificial harmful match. Previously classified meaningful
+debuffs remain at their original priority. Major world and class
+buffs (including DMF fortunes) remain BaselineClass 90; no
+Flask classification was added in this change.
+
+All Well Fed / Elixirs / minor IDs stay in source-specific categories
+to preserve evidence and straightforward audits, while generic
+hostile helpful fallback exclusion now includes both Well Fed
+and elixir source IDs to avoid lower-lane duplicates. Lua 5.1/5.4
+tests cover membership and filters. Native renderer, icon sizes,
+priorities outside these two retired tiers, and timer behavior
+are untouched. No commands or settings.
+
 ## 2026-11-09 — 0.1.206 very minor effects no longer class/world buffs
 
 Corrected the overbroad 0.1.205 world-buff consolidation. Rat Familiar
