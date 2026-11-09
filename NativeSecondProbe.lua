@@ -358,7 +358,8 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
             -- viewport and retry from the next normal OOC refresh.
             local combat, known = R.SafeBool(InCombatLockdown)
             if not known or combat then
-                hide(host, "unit-rebind-deferred-combat")
+                hide(host, changedSource and "source-rebind-deferred-combat"
+                    or "unit-rebind-deferred-combat")
                 return
             end
             local refreshed = pcall(function()
