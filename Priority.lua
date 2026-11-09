@@ -63,6 +63,13 @@ R.TIERS = {
     -- category from a restricted, arbitrary timed aura.
     semantic("HostileHelpful", "HELPFUL|INCLUDE_NAME_PLATE_ONLY", 5, { maxDuration = math.huge }),
 
+    -- Very small passive effects should not compete with major world/class
+    -- buffs, consumables or combat states. Use separate exact helpful and
+    -- harmful lanes at the SAME numeric priority; neither lane guesses
+    -- identity or changes unrelated existing low-tier classifications.
+    exact("MinorHelpful", "HELPFUL", 6, true,
+        union("buffs_minor_world", "buffs_minor")),
+    exact("MinorHarmful", "HARMFUL", 6, false, C.debuffs_minor),
     exact("PassiveSpeed", "HELPFUL", 9, true, C.buffs_passive_speed, true),
     exact("Plainsrunning", "HELPFUL", 10, true,
         union("buffs_plainsrunning", "buffs_elemental_blessing", "buffs_righteous_fury"), true),
@@ -75,12 +82,12 @@ R.TIERS = {
     exact("Scrolls", "HELPFUL", 80, true, C.buffs_scrolls),
     exact("Elixirs", "HELPFUL", 81, true, C.buffs_elixirs, true),
     semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 85),
-    -- All verified visible world buffs (including the Darkmoon Fortunes),
-    -- minor world buffs, maintained class buffs and Camp Benefits use one
-    -- class-buff priority lane. Do not create competing level-90 slots.
+    -- Significant visible world buffs (including the Darkmoon Fortunes),
+    -- maintained class buffs and Camp Benefits use the SAME level-90 slot.
+    -- Rat Familiar/Benevolence are instead low-impact priority-six effects.
     exact("BaselineClass", "HELPFUL", 90, true,
         union("buffs_class_baseline", "buffs_camp_benefits",
-            "buffs_world", "buffs_minor_world")),
+            "buffs_world")),
     exact("BaselineClassHarmful", "HARMFUL", 90, false, C.debuffs_class_baseline, true),
     exact("WellFed", "HELPFUL", 110, true, C.buffs_well_fed),
     exact("Thorns", "HELPFUL", 120, true, C.buffs_thorns),
@@ -254,9 +261,9 @@ end
 -- never infer an inaccessible aura's spell ID.
 local excludedHelpful = union("buffs_bottom", "buffs_gathering", "buffs_tracking", "buffs_campfire_nearby",
     "buffs_violet_flames", "buffs_cosmetic", "buffs_noncombat",
-    "buffs_world", "buffs_minor_world")
+    "buffs_world", "buffs_minor_world", "buffs_minor")
 local excludedHarmful = union("debuffs_pet_taming", "debuffs_tracking", "debuffs_campfire_nearby",
-    "debuffs_noncombat", "debuffs_boosted_rest")
+    "debuffs_noncombat", "debuffs_boosted_rest", "debuffs_minor")
 for spellID in pairs(excludedHelpful) do helpfulExplicit[spellID] = true end
 for spellID in pairs(excludedHarmful) do
     harmfulExplicit[spellID] = true
