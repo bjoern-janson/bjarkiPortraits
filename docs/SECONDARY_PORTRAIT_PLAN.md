@@ -1,5 +1,36 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.212 attack-speed disruption vs raw-damage penalties
+
+User's explicit priority model:
+- **Ice Claw** (3130) affects combat flow by doubling the
+  interval between melee attacks for 6 sec, like Thunder
+  Clap's attack cadence penalty. Assign to the pre-existing
+  exact harmful `StatusEffects` **253** tier via the
+  `debuffs_attack_penalty` source group.
+- **Curse of Weakness** reduces raw physical damage dealt.
+  All six player-applied Warlock ranks, the screenshot-matching
+  −5 damage NPC/Staff of Horrors applied variant 8552, and
+  positively identified NPC variants 12741, 21007, 12493,
+  18267 join existing exact harmful `Demoralizing` **185**,
+  sharing the family with Demo Shout/Roar/Screech.
+  Retire their former `debuffs_other` membership to avoid
+  duplicate or ambiguous exact tier ownership.
+
+The screenshot proves the wording, effect, duration and artwork,
+not the underlying aura ID. The 8552 association is corroborated
+by published Classic/Forever client spell records and should be
+confirmed only when a future live positive identity is readable.
+Other unavailable aura fields remain unknown, not inferred.
+
+Do not classify a functional attack-speed debuff based on
+it being called Frost or Magic, nor promote raw attack output
+debuffs to the disruptive status tier because they have a
+curse icon. No special aura selection code: native and readable
+secondary rank the exact same `R.TIERS` values. Same geometry,
+font, countdown, combat guards and zero-command workflow.
+
+
 ## 2026-11-09 — 0.1.211 Demoralizing stat-reduction classification
 
 Treat Decayed Strength 6951 (five-minute reduction in Strength)
