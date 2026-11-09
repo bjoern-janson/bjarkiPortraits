@@ -1,5 +1,31 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.206 matched very-minor aura lanes
+
+Only significant world buffs belong beside maintained class buffs
+at `BaselineClass` 90. Rat Familiar's +2 Intellect and Benevolence's
+4 HP/5s party regeneration instead belong to a dedicated,
+low-impact `MinorHelpful` 6-point lane. Add `MinorHarmful` at the
+same numeric 6 with an intentionally empty exact-ID source set until
+a genuinely negligible debuff is positively identified.
+
+Native secure and public secondary elections both derive from the
+same `R.TIERS` definition. The empty harmful exact group never
+qualifies an unverified aura; the existing broader harmful status
+tiers (including Deserter and Martyrdom) are not moved blindly.
+Helpful and harmful filter polarities remain separate, and Rat
+Familiar/Benevolence stay excluded from generic high-priority
+helpful categories.
+
+The new ordering is:
+absolute bottom 0, Gathering 1, Tracking 3, nearby 4,
+VioletFlames/HostileHelpful 5, **MinorHelpful/MinorHarmful 6**,
+PassiveSpeed 9, Plainsrunning 10, then larger effect tiers.
+No changes to main portrait, race/pet fallback, secondary frame
+geometry, or in-game commands. Regression tests verify no
+duplicate exact ownership.
+
+
 ## 2026-11-09 — 0.1.205 world buffs join class priority 90
 
 All observed or source-verified **visible** world buffs should behave
