@@ -17,6 +17,10 @@ R.SafeBool=function(fn,...)
 end
 R.CanAccess=function(v) return v ~= "SECRET" end
 R.ApplyCountdownFormat=function()end
+R.ApplySecondaryCountdownFont=function(cooldown)
+    cooldown._bjarkiUsesRegularBuffFont=true
+    return true
+end
 R.AURA_ANCHOR_TEMPLATE="DisableUntrustedLayoutScriptsTemplate"
 R.SORT_METHOD=8
 R.SORT_DIRECTION=1
@@ -75,6 +79,8 @@ local function frame(kind,parent)
         eq(b.textures[2].atlas,"UI-HUD-UnitFrame-TotemFrame",
             "enlarged native ring retains Blizzard artwork")
         eq(b.cooldown~=nil,true,"native cooldown assigned")
+        eq(b.cooldown._bjarkiUsesRegularBuffFont,true,
+            "native second countdown applies regular buff-duration font")
         eq(b.icon.mask~=nil,true,"circular icon mask installed")
     end
     return o
