@@ -617,6 +617,7 @@ PT.categories = {
     buffs_utility = {
         [1259416] = true, -- Walk on Air (Skyborne racial, 10 sec)
         [1308663] = true, -- Walk on Air (Forever variant, 1 min)
+        [24742] = true, -- Magic Wings (Darkmoon Faire cannon, 18 sec slow fall)
         [1260270] = true, -- Rapid Regeneration (Troll racial, Forever)
         [1002] = true, -- Eyes of the Beast (Hunter)
         [20707] = true, -- Soulstone Resurrection Rank 1
