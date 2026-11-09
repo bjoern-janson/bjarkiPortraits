@@ -456,7 +456,7 @@ local function ghostAura(spellID)
     return set and set[spellID] == true
 end
 
-local function candidateRank(host, candidate, cache)
+local function candidateRank(host, candidate, cache, auraUnit)
     local tiers = getRankTiers()
     if not tiers then return nil, "tiers-not-ready" end
     local winner, tied = nil, false
@@ -501,7 +501,7 @@ local function candidateRank(host, candidate, cache)
                 end
                 if not allowed then
                     if R.ExactFilterAllowed then
-                        allowed = R.ExactFilterAllowed(host.unit, tier.helpful,
+                        allowed = R.ExactFilterAllowed(auraUnit, tier.helpful,
                             tier.spellIDs, tier.allowNeverSecret)
                         if not allowed and tier.allowNeverSecret and R.AuraIsNeverSecret then
                             -- Mixed NeverSecret tiers may be *enabled* because
@@ -511,7 +511,7 @@ local function candidateRank(host, candidate, cache)
                         end
                     elseif R.NativeExactContainerAllowed then
                         -- Compatibility only for simple modeled clients.
-                        allowed = R.NativeExactContainerAllowed(host.unit, tier)
+                        allowed = R.NativeExactContainerAllowed(auraUnit, tier)
                     end
                 end
             elseif tier.semantic then
@@ -537,7 +537,7 @@ local function candidateRank(host, candidate, cache)
                     -- same-polarity public filter to establish the exact ID.
                     if yes == nil and (tier.filter == "HELPFUL"
                         or tier.filter == "HARMFUL") then
-                        yes = plainPolarityMembership(host.unit, candidate, cache)
+                        yes = plainPolarityMembership(auraUnit, candidate, cache)
                     end
                 elseif tier.key == "SmallFriendlyHarmful"
                     and not candidate.helpful
@@ -549,7 +549,7 @@ local function candidateRank(host, candidate, cache)
                     yes = true
                 end
                 if yes == nil then
-                    yes = nativeSlotMatches(host.unit, candidate, tier.filter, cache)
+                    yes = nativeSlotMatches(auraUnit, candidate, tier.filter, cache)
                 end
                 if yes == nil then return nil, "native-filter-unreadable" end
                 if yes then
@@ -594,14 +594,35 @@ local function tryGetAuraStart(unit, candidate)
         and type(expiration)=="number" then return expiration-duration end
 end
 
+-- UnitIsUnit is a positive, public identity witness: a Target/Focus frame
+-- actually bound to the local player can use the same "player" aura reader
+-- as PlayerFrame. This is essential for helpful effects that are readable
+-- on self but relation-gated on other unit tokens. Names or matching models
+-- are NEVER sufficient; unknown/secret results keep the original token.
+local function currentAuraReadUnit(host)
+    local unit = host.unit
+    if (unit == "target" or unit == "focus")
+        and type(UnitIsUnit) == "function" and type(R.SafeBool) == "function" then
+        local same, readable = R.SafeBool(UnitIsUnit, unit, "player")
+        if readable and same then return "player", true end
+    end
+    return unit, false
+end
+
 function R.GetReadableSecondaryAura(host)
     if not supportsSecondary(host) then return nil, "unit-excluded" end
     if not host._buildComplete then return nil, "host-incomplete" end
     if not R.db or R.db.secondaryPortrait == false then return nil, "disabled" end
     if R.testMode then return nil, "test-mode" end
     if not getRankTiers() then return nil, "tiers-not-ready" end
-    if host._hostileUnit == nil then return nil, "relation-unreadable" end
-    local hostile = host._hostileUnit == true
+    local auraUnit, verifiedSelf = currentAuraReadUnit(host)
+    if host._hostileUnit == nil and not verifiedSelf then
+        return nil, "relation-unreadable"
+    end
+    -- A positively identified self alias is friendly even when the target
+    -- relation helper is temporarily unavailable. It is strictly stronger
+    -- evidence than an untrusted name, faction or tooltip comparison.
+    local hostile = not verifiedSelf and host._hostileUnit == true
     local npcHarmfulProjection = false
     if hostile then
         if host._hostileRelationReadable ~= true then
@@ -631,7 +652,7 @@ function R.GetReadableSecondaryAura(host)
             and not host._formStateActive then
             return nil, "hostile-primary-unverified"
         end
-    elseif host._assistable ~= true then
+    elseif host._assistable ~= true and not verifiedSelf then
         return nil, "assist-unreadable"
     end
     if host._ghostActive and not provenGhost(host) then
@@ -653,7 +674,7 @@ function R.GetReadableSecondaryAura(host)
     -- A host with failed presentation writes or an uncertain live binding
     -- cannot certify that the native first-place view is current.
     if (host._containerWriteFailures or 0) ~= 0 then return nil, "native-update-failed" end
-    local current, reason = collectCurrentAuras(host.unit)
+    local current, reason = collectCurrentAuras(auraUnit)
     if not current then return nil, reason end
     -- Rank the complete public union, including any NPC helpful auras.
     -- A harmful first-place projection is permitted only when it outranks
@@ -664,12 +685,12 @@ function R.GetReadableSecondaryAura(host)
         -- When the existing static main Ghost presenter is authoritative,
         -- suppress its redundant harmful aura IDs from the second-place list.
         if not (ghostActive and ghostAura(candidate.spellID)) then
-            local tier, why = candidateRank(host, candidate, cache)
+            local tier, why = candidateRank(host, candidate, cache, auraUnit)
             if why then return nil, why end
             if tier then
                 candidate.tier = tier
                 if RECENCY_TIERS[tier.key] then
-                    candidate.start = tryGetAuraStart(host.unit, candidate)
+                    candidate.start = tryGetAuraStart(auraUnit, candidate)
                 end
                 ranked[#ranked+1] = candidate
             end
