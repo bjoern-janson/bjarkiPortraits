@@ -93,11 +93,25 @@ local function frame(kind,parent)
     function o:AddMaskTexture(v)self.mask=v end
     function o:SetIcon(v)self.icon=v end
     function o:SetUnit(u)
-        self.unit=u
+        assert(type(u)=="string","Blizzard SetUnit rejects nil")
+        if self.unit~=u then
+            self.unit=u
+            self:UpdateAllAuras()
+        end
+    end
+    function o:SetEnabled(value)
+        assert(type(value)=="boolean")
+        if self.enabled~=value then
+            self.enabled=value
+            self:UpdateAllAuras()
+        end
+    end
+    function o:UpdateAllAuras()
+        self.refreshes=(self.refreshes or 0)+1
         for _,group in ipairs(self.groups or {}) do
-            local present=u and (group.filter:sub(1,7)=="HELPFUL"
-                and actor.auraHelpful>0 or
-                group.filter:sub(1,7)=="HARMFUL" and actor.auraHarmful>0)
+            local present=self.enabled~=false and self.unit
+                and (group.filter:sub(1,7)=="HELPFUL" and actor.auraHelpful>0
+                or group.filter:sub(1,7)=="HARMFUL" and actor.auraHarmful>0)
             group.button.shown=present and true or false
         end
     end
@@ -172,17 +186,17 @@ eq(st.containers[2].groups[1].button.shown,false,"naked pet has no harmful art")
 -- Native engine can assign a button after a secret combat debuff, WITHOUT
 -- requiring a Lua aura scan or any UI toggling.
 actor.auraHarmful=1
-st.containers[2]:SetUnit("target") -- simulated native aura assignment
+st.containers[2]:UpdateAllAuras() -- native UNIT_AURA for same bound token
 eq(st.containers[2].groups[1].button.shown,true,
     "one harmful aura reveals family circle")
 eq(st.containers[1].groups[1].button.shown,false,
     "other polarity remains empty")
 actor.auraHelpful=1
-st.containers[1]:SetUnit("target")
+st.containers[1]:UpdateAllAuras()
 eq(st.containers[1].groups[1].button.shown,true,
     "helpful aura also gates the same family artwork")
 actor.auraHelpful,actor.auraHarmful=0,0
-for _,c in ipairs(st.containers) do c:SetUnit("target") end
+for _,c in ipairs(st.containers) do c:UpdateAllAuras() end
 eq(st.containers[1].groups[1].button.shown,false,
     "buff removal clears helpful native family art")
 eq(st.containers[2].groups[1].button.shown,false,
@@ -252,8 +266,25 @@ R.ReleasePetSecondaryFallback(h)
 eq(h._petSecondaryFallback,nil,"old host loses art ownership")
 eq(st.root.shown,false,"pooled state hidden on teardown")
 for _,c in ipairs(st.containers) do
-    eq(c.unit,nil,"pooled native group never retains previous target")
+    eq(c.unit,"target","pooled native group retains only a valid token")
+    eq(c.enabled,false,"pooled native aura-presence group is fully disabled")
+    eq(c.groups[1].button.shown,false,"released presence cannot show stale art")
 end
+-- Reuse for a DIFFERENT pet on the SAME "target" unit token. SetUnit
+-- alone is a no-op, so re-enabling must rebuild both native presence groups.
+local previousRefreshes=st.containers[1].refreshes
+actor.guid="Pet-Fifth"
+actor.auraHelpful,actor.auraHarmful=0,0
+local sameToken=host("target")
+R.UpdatePetSecondaryFallback(sameToken,true)
+eq(sameToken._petSecondaryFallback,st,
+    "released pet-family gate reuses same target-token container")
+eq(st.containers[1].enabled,true,"same-token pet family gate re-enabled")
+eq(st.containers[1].refreshes>previousRefreshes,true,
+    "same-token pet family gate performs fresh native aura read")
+eq(st.containers[1].groups[1].button.shown,false,
+    "untagged/naked replacement pet has no previous aura picture")
+R.ReleasePetSecondaryFallback(sameToken)
 local focus=host("focus")
 R.UpdatePetSecondaryFallback(focus,true)
 eq(focus._petSecondaryFallback,st,

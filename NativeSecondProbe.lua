@@ -155,12 +155,15 @@ function R.ReleaseNativeSecondProbe(host)
     if not host or not host._nativeSecondProbe then return end
     local probe = host._nativeSecondProbe
     hide(host, "host-released")
-    if probe.ready and probe.container then
-        pcall(probe.container.SetUnit, probe.container, nil)
-        pool[#pool+1] = probe
-    elseif probe.container then
-        pcall(probe.container.SetUnit, probe.container, nil)
-    end
+    -- Blizzard AuraContainerSharedMixin:SetUnit asserts STRING and rejects
+    -- nil. The previous pcall(SetUnit,nil) silently failed, leaving the old
+    -- target's auras and event registration in a pooled native container.
+    -- Disable instead: this unregisters unit events and forces a full clear.
+    -- Pool only after the reset succeeded; re-enable on the next owner.
+    local reusable = probe.ready and probe.container
+        and type(probe.container.SetEnabled) == "function"
+        and pcall(probe.container.SetEnabled, probe.container, false)
+    if reusable then pool[#pool+1] = probe end
     probe.boundUnit = nil
     probe.boundGUID = nil
     host._nativeSecondProbe = nil
@@ -216,7 +219,11 @@ function R.CreateNativeSecondProbe(host)
             probe.clip:SetPoint("CENTER", host.portrait, corner, dx, dy)
             probe.clip:SetFrameStrata(usableStrata(host))
             local source = nativeSourceUnit(host)
+            -- SetUnit does nothing when reusing the same token ("target"
+            -- -> new "target"), so enabling the previously disabled
+            -- container MUST trigger a fresh full aura parse first.
             probe.container:SetUnit(source)
+            probe.container:SetEnabled(true)
             probe.boundUnit = source
             probe.boundGUID = select(1, readableHostGUID(host.unit))
         end)
@@ -368,10 +375,10 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
                 elseif type(probe.container.UpdateAllAuras) == "function" then
                     probe.container:UpdateAllAuras()
                 else
-                    -- Safe fallback for client variants without the refresh
-                    -- method: reset the *same* token to force new aura binding.
-                    probe.container:SetUnit(nil)
-                    probe.container:SetUnit(source)
+                    -- SetUnit(nil) is invalid, and SetUnit(source) cannot
+                    -- refresh an unchanged token. Fail closed rather than
+                    -- retain a previous creature's aura behind a fake reset.
+                    error("native-aura-refresh-unavailable")
                 end
             end)
             if not refreshed then

@@ -51,10 +51,24 @@ local function frame(kind,parent)
     function o:SetClipsChildren(v)self.clips=v end
     function o:Show()self.shown=true end
     function o:Hide()self.shown=false end
-    function o:SetUnit(v)self.unit=v end
+    function o:SetUnit(v)
+        assert(type(v)=="string","Blizzard SetUnit requires a string")
+        if self.unit ~= v then
+            self.unit=v
+            self:UpdateAllAuras()
+        end
+    end
+    function o:SetEnabled(v)
+        assert(type(v)=="boolean")
+        if self.enabled ~= v then
+            self.enabled=v
+            self:UpdateAllAuras()
+        end
+    end
     function o:UpdateAllAuras()
         self.refreshes=(self.refreshes or 0)+1
         self.lastRefreshedUnit=self.unit
+        if self.enabled==false then self.clears=(self.clears or 0)+1 end
     end
     function o:CreateTexture()
         self.textures=self.textures or {}
@@ -265,12 +279,18 @@ eq(p.clip.shown,false,"inactive hostile player excluded")
 
 R.ReleaseNativeSecondProbe(host)
 eq(host._nativeSecondProbe,nil,"host releases native probe ownership")
-eq(p.container.unit,nil,"pooled native group no longer binds prior target")
+eq(p.container.unit,"target","Blizzard retains the old token when disabled")
+eq(p.container.enabled,false,"release disables and clears the native groups")
+eq(p.container.clears>0,true,"release cleared previous Rend/aura assignments")
+local beforeReuse=p.container.refreshes
 local other={unit="target",portrait=frame("portrait"),
     secondaryBadge=frame("badge")}
 other.secondaryBadge.level=60
 R.UpdateNativeSecondProbe(other,true,true,true,true)
 eq(other._nativeSecondProbe,p,"next hostile player automatically reuses pooled probe")
+eq(p.container.enabled,true,"pooled second-aura container re-enabled")
+eq(p.container.refreshes>beforeReuse,true,
+    "same token reuse forces new aura read rather than retaining Rend")
 eq(other._nativeSecondProbe.ready,true,"reused native strip is ready")
 eq(p.clip.points[2],other.portrait,"reused probe anchors to current portrait")
 eq(p.clip.points[3],"TOPLEFT","reused target probe retains combo-safe side")
@@ -337,7 +357,8 @@ eq(pp.clip.shown,false,"ineligible player frame hides ribbon")
 combat=false
 
 R.ReleaseNativeSecondProbe(player)
-eq(pp.container.unit,nil,"player native groups unbind on release")
+eq(pp.container.enabled,false,"player native groups disabled on release")
+eq(pp.container.unit,"player","native SetUnit token stays valid across release")
 eq(player._nativeSecondProbe,nil,"player native host state released")
 
 -- If the player was first initialized during combat, no protected frame
@@ -407,7 +428,8 @@ eq(fp.boundUnit,"focus","out of combat Focus source safely rebound")
 eq(fp.container.unit,"focus","Focus native unit uses correct post-swap token")
 eq(fp.clip.shown,true,"focus native fallback recovers after safe rebind")
 R.ReleaseNativeSecondProbe(focus)
-eq(fp.container.unit,nil,"released focus does not keep old unit binding")
+eq(fp.container.enabled,false,"released Focus group is disabled and cleared")
+eq(fp.container.unit,"focus","released Focus token stays string-typed")
 
 local selfTarget={unit="target",portrait=frame("portrait"),
     secondaryBadge=frame("badge"),_secondaryMode="race",

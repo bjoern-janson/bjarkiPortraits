@@ -2,11 +2,45 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.215-well-rested-target-handoff-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.216-native-secondary-pool-reset-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.216 — correct native container reset on pooled secondary reuse
+
+A screenshot of an untagged Elder Crag Boar showed a Rend icon in the
+secondary portrait despite no identified second aura belonging to that
+creature. Follow-up source inspection found a concrete flaw that the
+0.1.215 forced-refresh/GUID changes did not solve: both native
+second-aura and confirmed-pet-family pools called `SetUnit(nil)`.
+Blizzard Forever's actual `AuraContainerSharedMixin:SetUnit` asserts
+that its input is a **string**. The surrounding `pcall` hid the failure.
+Rebinding with the same `target` token is a no-op, so an old native
+frame assignment could be retained across a target change.
+
+The release path now calls `SetEnabled(false)` on addon-owned native
+aura containers. Blizzard's managed aura container marks a complete
+rebuild on a changed enabled state, unregisters unit events, and drops
+existing aura/frame assignments; only successfully disabled containers
+may re-enter the pool. Reuse calls `SetUnit(validUnit)` and
+`SetEnabled(true)` to trigger a new full parse even when the token is
+unchanged. Pet-family art changes use the same disable/re-enable
+contract. The unsupported `SetUnit(nil)` forced-refresh fallback is
+removed; if `UpdateAllAuras` is absent, hide the viewport instead.
+
+Regression mocks now **reject nil SetUnit arguments and treat repeated
+unit strings as no-ops**, matching Blizzard source. Tests cover
+same-token Target-to-Target pooled reuse, enabled-state clearing,
+Target-to-Focus pet-family reuse, and native same-token aura changes.
+All prior priority tiers, buff categories, visual geometry, timers and
+combat evidence gates remain unchanged. Live confirmation of the
+specific Rend instance is still needed.
+
+Blizzard implementation: Gethe/wow-ui-source, forever branch,
+Blizzard_AuraContainer.lua (SetUnit) and
+Blizzard_ManagedAuraContainer.lua (UpdateAllAuras/ParseAllAuras).
 
 ## 0.1.215 — Well-Rested and native target-identity handoff
 

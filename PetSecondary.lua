@@ -87,9 +87,14 @@ local function construct(host, art, guid)
         local ok = pcall(function()
             state.root:Hide()
             anchoredFrame(host,state.root)
-            for _,c in ipairs(state.containers) do c:SetUnit(nil) end
+            -- A pooled native container was disabled on release. The
+            -- original SetUnit(nil) was rejected by Blizzard and could
+            -- retain the old target's presence even after the art changed.
             for _,texture in ipairs(state.textures) do texture:SetTexture(art) end
-            for _,c in ipairs(state.containers) do c:SetUnit(host.unit) end
+            for _,c in ipairs(state.containers) do
+                c:SetUnit(host.unit)
+                c:SetEnabled(true)
+            end
         end)
         if not ok then
             host._petSecondaryReason = "rebind-failed"
@@ -159,12 +164,21 @@ function R.ReleasePetSecondaryFallback(host)
     if not state then return end
     R.HidePetSecondaryFallback(host,"host-released")
     if state.ready then
+        local disabled = true
+        -- On Forever, SetUnit(nil) asserts instead of clearing native
+        -- aura groups. SetEnabled(false) fully drops frame assignments
+        -- and unregisters unit events; the next owner re-enables them.
         for _,c in ipairs(state.containers) do
-            pcall(c.SetUnit,c,nil)
+            if type(c.SetEnabled) ~= "function"
+                or not pcall(c.SetEnabled,c,false) then
+                disabled = false
+            end
         end
-        state.guid=nil
-        state.unit=nil
-        familyPool[#familyPool+1]=state
+        if disabled then
+            state.guid=nil
+            state.unit=nil
+            familyPool[#familyPool+1]=state
+        end
     end
     host._petSecondaryFallback=nil
 end
@@ -209,9 +223,12 @@ function R.UpdatePetSecondaryFallback(host,enabled)
             return
         end
         local ok=pcall(function()
-            for _,c in ipairs(state.containers) do c:SetUnit(nil) end
+            for _,c in ipairs(state.containers) do c:SetEnabled(false) end
             for _,tex in ipairs(state.textures) do tex:SetTexture(art) end
-            for _,c in ipairs(state.containers) do c:SetUnit(host.unit) end
+            for _,c in ipairs(state.containers) do
+                c:SetUnit(host.unit)
+                c:SetEnabled(true)
+            end
         end)
         if not ok then
             R.HidePetSecondaryFallback(host,"family-update-failed")

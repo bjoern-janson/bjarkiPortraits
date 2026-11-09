@@ -1,5 +1,23 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.216 native pooled-container reset
+
+The untagged-boar Rend report prompted inspection of Blizzard's real
+Forever `AuraContainerSharedMixin:SetUnit`. It asserts a string
+unit token; `SetUnit(nil)` in the second-ribbon and pet-family pools
+was never a valid reset. Pcall swallowed the failure. Reusing
+`SetUnit("target")` with an unchanged token does not trigger a
+refresh and can retain a previous NPC's aura. 0.1.215 only handled
+forced retarget refreshes, not this pooled lifecycle.
+
+Disable native containers with `SetEnabled(false)` before pooling or
+changing pet-family artwork; only pool after successful disable.
+Re-enable on reuse so Blizzard's managed container fully reparses the
+current, valid unit. Remove invalid nil-rebind fallback. Test mocks
+must reject nil and treat same-string calls as native no-ops.
+No inference from the untagged visual state, no hidden aura reads,
+no extra tickers and no changes to priority/content/timer geometry.
+
 ## 2026-11-09 — 0.1.215 Well-Rested and stale-target native safety
 
 Well-Rested from the Sleeping Bag is applied helpful 429959, priority
