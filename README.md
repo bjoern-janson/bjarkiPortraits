@@ -2,7 +2,7 @@
 
 Native-styled priority aura portraits for **WoW: Forever**. A high-priority observed aura or state can replace the normal Blizzard portrait; a smaller circle may show the next distinct eligible effect. The addon respects the client's protected-aura boundaries and does not guess hidden spell IDs.
 
-**Development baseline:** `0.1.222-native-runner-up-duplicate-suppression-test` (2026-11-09), branch [`feat/secondary-portrait-p1`](https://github.com/bjoern-janson/bjarkiPortraits/tree/feat/secondary-portrait-p1). **`main` remains at 0.1.178**; the current secondary-portrait implementation is on the development branch, not `main`.
+**Development baseline:** `0.1.223-aura-icon-edge-crop-test` (2026-11-09), branch [`feat/secondary-portrait-p1`](https://github.com/bjoern-janson/bjarkiPortraits/tree/feat/secondary-portrait-p1). **`main` remains at 0.1.178**; the current secondary-portrait implementation is on the development branch, not `main`.
 
 ## Install
 
@@ -12,7 +12,7 @@ Native-styled priority aura portraits for **WoW: Forever**. A high-priority obse
 
 There is **no setup command** for second portraits: they are enabled by default. Existing settings are saved in `BjarkiPortraitsDB`.
 
-## Current behavior (0.1.222)
+## Current behavior (0.1.223)
 
 - **Primary portraits:** Player, pet, Target, Focus, ToT, ToF and regular `party1`–`party4` (10 unit tokens) share the priority model. Without a selected aura/state, the normal Blizzard 3D portrait or class icon remains.
 - **Secondary portraits:** Player, Target, Focus and regular party members can show a second distinct, eligible aura or state. The guarded public reader takes precedence when its complete election is proven. Player/Target/Focus also have a native ranked-second fallback when public ranking cannot be completed.
@@ -31,7 +31,7 @@ The secondary system is **experimental** under restricted combat reads: a visibl
 | Party 1–4 | `TOPRIGHT (-10, +12)` | 40px | 33px | 24px |
 | Target, Focus | `TOPLEFT (+10, +12)` | 50px | 41px | **30px** |
 
-The 30px full-size artwork matches a regular Blizzard buff icon; its Totem-style rim scales around the artwork rather than cropping it tightly. `Core.SecondaryCirclePlacement` and `Core.SecondaryCircleGeometry` are the two layout authorities for readable icons, native second-aura clips and pet-family fallbacks. Native Blizzard spell artwork is retained. The masks and cooldowns follow the icon, not a larger invisible rectangle.
+The 30px full-size artwork matches a regular Blizzard buff icon; its Totem-style rim scales around the artwork rather than cropping it tightly. Version 0.1.223 additionally applies a slight 2/64 source-image inset to actual spell/form and confirmed secondary pet-family art to hide thin square icon edges. The local PetFrame retains its prior 3/64 crop; registered race atlases and race sprite-sheet tile coordinates are left untouched. `Core.SecondaryCirclePlacement` and `Core.SecondaryCircleGeometry` are the two layout authorities for readable icons, native second-aura clips and pet-family fallbacks. Native Blizzard spell artwork is retained. The masks and cooldowns follow the icon, not a larger invisible rectangle.
 
 ### Countdown and priority examples
 

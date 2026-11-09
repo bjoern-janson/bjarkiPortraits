@@ -1,8 +1,31 @@
 # Secondary portrait: two aura priorities + race identity
 
-> **Current implementation checkpoint (2026-11-09):** `0.1.222-native-runner-up-duplicate-suppression-test` on `feat/secondary-portrait-p1`. The secondary portrait is **implemented experimentally**, not merely proposed. See [current architecture](../ARCHITECTURE.md), [live verification status](../KNOWN_ISSUES.md) and [priority reference](PRIORITIES.md). This document preserves the chronological design decisions, **including superseded proposals**; the latest `Core.SecondaryCirclePlacement` and `Core.SecondaryCircleGeometry` are authoritative.
+> **Current implementation checkpoint (2026-11-09):** `0.1.223-aura-icon-edge-crop-test` on `feat/secondary-portrait-p1`. The secondary portrait is **implemented experimentally**, not merely proposed. See [current architecture](../ARCHITECTURE.md), [live verification status](../KNOWN_ISSUES.md) and [priority reference](PRIORITIES.md). This document preserves the chronological design decisions, **including superseded proposals**; the latest `Core.SecondaryCirclePlacement` and `Core.SecondaryCircleGeometry` are authoritative.
 >
 > **Current layout:** Player/party `TOPRIGHT(-10,+12)`, Target/Focus `TOPLEFT(+10,+12)`; normal cell/rim/art **50/41/30**, compact party **40/33/24**. Three secondary renderers share this geometry. Verified public runner-up takes precedence; a guarded native second-slot fallback is available for Player/Target/Focus, with race/pet identity art below when appropriate. The primary aura engine remains independent. CI checks under Lua 5.1/5.4 do not imply every live combat case is certified.
+
+## 2026-11-09 — 0.1.223 source-edge icon border crop
+
+Live screenshot of the current forms/auras shows thin straight
+left/top/bottom source-image borders peeking through circular
+portrait masks on some Classic spell icons. Main Player had a
+very light 1/128 UV inset, other primary hosts 1/64, real
+secondary auras were untrimmed, while PetFrame already used
+a tested 3/64 source inset.
+
+Apply a symmetric 2/64 crop in the shared Core helper for normal
+primary and actual secondary spell/form/pet-family artwork. Leave
+the previously approved local PetFrame at 3/64. Crucially, DO NOT
+change race atlas or race sprite-sheet texcoords, circular masks,
+icon/rim dimensions, secondary anchors, or timer behavior.
+The source-image crop removes border pixels rather than substituting
+different icon artwork. The isolated test renderer keeps the same
+small crop when a fixture doesn't load Core.lua.
+
+Tests check per-unit primary crop, actual readable/native/pet
+secondary receivers, preview art, and aura-to-race atlas restoration.
+Lua 5.1/5.4 CI success verifies source behavior; live pixel
+appearance remains to be confirmed at the user's UI scale.
 
 ## 2026-11-09 — 0.1.222 combat-entry duplicate secondary
 

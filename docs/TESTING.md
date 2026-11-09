@@ -1,6 +1,6 @@
 # Testing and debug workflow
 
-**Development branch:** `feat/secondary-portrait-p1`. **Baseline:** `0.1.222-native-runner-up-duplicate-suppression-test`, 2026-11-09. The workflow is [`.github/workflows/package-addon.yml`](../.github/workflows/package-addon.yml).
+**Development branch:** `feat/secondary-portrait-p1`. **Baseline:** `0.1.223-aura-icon-edge-crop-test`, 2026-11-09. The workflow is [`.github/workflows/package-addon.yml`](../.github/workflows/package-addon.yml).
 
 ## Automated pipeline
 
@@ -41,6 +41,8 @@ Tests use modeled native/client interfaces and cannot prove exact protected-fram
 | Warrior stance / Druid form / Ghost | Positively observed static state competes at its intended place, without fabricated aura duration |
 | Target combo points | Secondary remains at raised `TOPLEFT`, clear of native combo-point column |
 | Player and party | Secondary on raised `TOPRIGHT`; compact party art uses 24px image rather than full 30px |
+| Main and secondary circular portraits with classic spell-icon borders | No visible straight left/top/bottom edge; original Blizzard art and 50/41/30 or 40/33/24 geometry unchanged |
+| Race icon restored after a timed aura | Atlas/tile coordinates preserved exactly—no generic aura-edge crop on race art |
 | Second countdown at 9.9s, 10s, 60s | Native formatter: one decimal strictly below 10; whole seconds 10–60; hidden above 60 |
 | PetFrame/ToT/ToF | Full primary priority engine; **no secondary circles** |
 | Verified Hunter/Warlock pet on Target/Focus | Actual pet-family artwork only when positive pet identity and native aura presence are established |

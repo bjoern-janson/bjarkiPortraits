@@ -1,6 +1,6 @@
 # Known issues & verification status
 
-**Scope:** development branch `feat/secondary-portrait-p1`, source `0.1.222-native-runner-up-duplicate-suppression-test`, 2026-11-09. This page is the **current** tracker. Earlier issues and intermediate fixes (including superseded 0.1.213 geometry) are retained in [docs/KNOWN_ISSUES_HISTORY.md](docs/KNOWN_ISSUES_HISTORY.md), not treated as open just because an old heading remains there.
+**Scope:** development branch `feat/secondary-portrait-p1`, source `0.1.223-aura-icon-edge-crop-test`, 2026-11-09. This page is the **current** tracker. Earlier issues and intermediate fixes (including superseded 0.1.213 geometry) are retained in [docs/KNOWN_ISSUES_HISTORY.md](docs/KNOWN_ISSUES_HISTORY.md), not treated as open just because an old heading remains there.
 
 ## Open or requires further in-game verification
 
@@ -14,7 +14,7 @@
 | **Combat target swaps and pooled frames** | GUID transitions, native `UpdateAllAuras`, and `SetEnabled(false/true)` pooling are regression-tested, including same-token `target` swaps (0.1.215–0.1.216). Retest repeated fresh untagged NPCs and Target↔Focus changes, especially when combat prevents rebinding; an icon may intentionally disappear until a safe refresh. |
 | **Party/raid boundaries** | Regular pooled `party1`–`party4` have primary auras and readable secondary/race badges. No native ranked-second ribbon for party; raid, raid-style compact frames and party pets remain out of scope. Verify joins/leaves, Edit Mode placeholders and party changes during combat. |
 | **Unknown race / pet evidence** | Skyborne SD face art still requires a usable validated atlas; a blank low-resolution icon is deliberately rejected. Confirmed Hunter/Warlock pet-family art is available only with positive identity/presence; unknown NPC pets and wild beasts do not receive invented artwork. |
-| **Visual calibration** | Full secondary `50/41/30` and compact party `40/33/24` cells/rims/art were last refined in 0.1.219; the user reported that this direction looks good. Pixel-perfect mask, atlas and timer alignment at every UI scale remains unverified. |
+| **Visual calibration** | Full secondary `50/41/30` and compact party `40/33/24` cell/rim/art sizes remain unchanged. Version 0.1.223 uses a modest 2/64 source-UV crop to remove straight square-icon edges from some primary/secondary auras; local PetFrame retains 3/64 and race atlases remain unmodified. Validate visually across different icon textures and UI scales. |
 | **Same-tier refresh order** | Most native lanes use reverse aura-instance ID, which is not necessarily the last *refreshed* aura. `BaselineClass`, `Healing` and `StatusEffects` use readable application-time elections only when complete timing evidence exists. |
 | **Long-duration generic harmful effects** | `SmallFriendlyHarmful` is capped at 3,599 seconds to avoid erroneously promoting Boosted Rest, which can exclude other unclassified long/permanent auras. Explicit exact tiers are unaffected. |
 

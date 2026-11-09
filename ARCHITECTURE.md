@@ -1,6 +1,6 @@
-# Architecture — bjarkiPortraits 0.1.222
+# Architecture — bjarkiPortraits 0.1.223
 
-**Current technical reference** for branch `feat/secondary-portrait-p1`, source version `0.1.222-native-runner-up-duplicate-suppression-test` as of 2026-11-09. The original 0.1.178-and-earlier architecture chronology is preserved in [docs/ARCHITECTURE_HISTORY.md](docs/ARCHITECTURE_HISTORY.md); its old "current" statements and older tier levels must not be used as the current implementation.
+**Current technical reference** for branch `feat/secondary-portrait-p1`, source version `0.1.223-aura-icon-edge-crop-test` as of 2026-11-09. The original 0.1.178-and-earlier architecture chronology is preserved in [docs/ARCHITECTURE_HISTORY.md](docs/ARCHITECTURE_HISTORY.md); its old "current" statements and older tier levels must not be used as the current implementation.
 
 ## Module loading
 
@@ -76,7 +76,7 @@ Source: `Core.SecondaryCirclePlacement(unit)` and `Core.SecondaryCircleGeometry(
 | Party1–4 | `TOPRIGHT (-10,+12)` | **40 / 33 / 24px** | `(+0.75,-1.5)` |
 | Target and Focus | `TOPLEFT (+10,+12)` | **50 / 41 / 30px** | `(+1.35,-2)` |
 
-All three secondary renderers share that policy. Icon artwork stays centered in the cell, behind `CircleMask` and the native `UI-HUD-UnitFrame-TotemFrame` bezel. The native clip width/first-cell offset are derived from the same 50px cell. The larger border avoids Target's combo-point column while preserving 30px (regular buff-size) full art. Blizzard's default spell artwork is preferred.
+All three secondary renderers share that policy. A 2/64 symmetric source crop on actual aura/form and pet-family textures hides baked-in square icon edges; the local PetFrame keeps its independently calibrated 3/64 crop. Race atlases/sheets use exact atlas or tile UVs, never the aura crop. Icon artwork stays centered in the cell, behind `CircleMask` and the native `UI-HUD-UnitFrame-TotemFrame` bezel. The native clip width/first-cell offset are derived from the same 50px cell. The larger border avoids Target's combo-point column while preserving 30px (regular buff-size) full art. Blizzard's default spell artwork is preferred.
 
 ## Countdown and layout
 
