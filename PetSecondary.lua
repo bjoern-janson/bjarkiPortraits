@@ -13,7 +13,7 @@ local R = assert(BP.Runtime, "Core.lua must load first")
 -- This is a targeted-unit feature (Target and Focus), NOT local PetFrame.
 -- Never infer that a wild beast, totem or unknown creature is a player pet.
 
-local CELL, ICON, RIM = 37, 26, 30
+local CELL, ICON, RIM = 44, 31, 36
 local UNITS = {target=true, focus=true}
 local familyPool = {}
 
