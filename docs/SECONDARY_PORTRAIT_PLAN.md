@@ -1,5 +1,41 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.204 identity-safe self alias & Focus native secondary
+
+PlayerFrame and TargetFrame simultaneously showed Bjoern Janson
+with the same 2-hour auras: Sayge's Dark Fortune of Damage was
+second on PlayerFrame, but Target displayed only race. The
+source did not share *positive evidence* across the two tokens:
+all exact/semantic aura-filter probes, public enumerations, and
+application-time probes used `host.unit` even where it was
+positively the current player. Focus additionally had no native
+runner-up at all.
+
+An independent `UnitIsUnit(target|focus, player)` query is
+now a positive identity witness. Only readable `true` permits
+ranking those unit frames' aura occurrences through `player`,
+which is legitimately readable on the self-helpful side. A
+name match, opaque/secret result, false result or unknown
+unit never triggers source reuse. The actual Target/Focus
+portrait remains bound to its own unit frame/geometry.
+
+Focus receives the same native top-two group ribbon as Target,
+using its own `focus` source by default. For positively proven
+self Target/Focus, it may bind the secure group renderer to
+`player` while preserving the separate UI placement. Rebinding
+the native source in combat fails closed and waits for a safe
+out-of-combat update; no old occupant's portrait may be shown.
+Player aura event handling also refreshes positively known
+self aliases so removal/refresh of the selected secondary
+is not left stale due to missing alias-specific UNIT_AURA.
+
+Tier priorities and original ability buckets are unchanged;
+no DMF spell-ID reclassification is made from screenshots.
+The native strip remains an experimental secure visual
+projection, with protected rendering and Focus startup cost
+still requiring in-game validation. No new slash commands.
+
+
 ## 2026-11-09 — 0.1.203 enlarge the complete badge (not just icon zoom)
 
 The first attempted readability improvement (0.1.202) changed only
