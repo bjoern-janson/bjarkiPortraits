@@ -21,7 +21,7 @@ local trackingHarmful = assert(R.TIER_BY_KEY.TrackingHarmful)
 local ambient = assert(R.TIER_BY_KEY.CampfireNearby)
 local ambientHarmful = assert(R.TIER_BY_KEY.CampfireNearbyHarmful)
 local fallback = assert(R.TIER_BY_KEY.HostileHelpful)
-local elixirs = assert(R.TIER_BY_KEY.Elixirs)
+local consumables = assert(R.TIER_BY_KEY.Consumables)
 
 equal(gathering.level, 1, "Gathering remains priority one above bottom")
 equal(info.level, 0, "passive informational harmful is absolute lowest aura tier")
@@ -33,12 +33,12 @@ equal(trackingHarmful.level, tracking.level, "harmful tracking shares the inform
 equal(ambient.level, 4, "original ambient buff above tracking")
 equal(ambientHarmful.level, 4, "nearby harmful stays at ambient level four")
 equal(fallback.level, 5, "generic hostile fallback above the exact low lanes")
-equal(elixirs.level, 81, "minor and Well Fed auras share existing Elixirs priority")
-check(elixirs.exact and elixirs.helpful, "combined elixir band uses helpful exact filter")
+equal(consumables.level, 81, "minor and Well Fed auras share Consumables priority")
+check(consumables.exact and consumables.helpful, "combined consumables band uses helpful exact filter")
 check(R.TIER_BY_KEY.MinorHelpful == nil, "former minor helpful tier is retired")
 check(R.TIER_BY_KEY.MinorHarmful == nil, "former empty harmful tier is retired")
 check(R.TIER_BY_KEY.WellFed == nil, "former Well Fed tier is retired")
-check(elixirs.level < R.TIER_BY_KEY.BaselineClass.level,
+check(consumables.level < R.TIER_BY_KEY.BaselineClass.level,
     "combined elixir band remains below class and major world buffs")
 check(gathering.helpful and gathering.exact, "gathering is exact helpful")
 check(not info.helpful and info.exact, "informational effects are exact harmful")
@@ -105,11 +105,11 @@ end
 for id, name in pairs({[1296202]="Rat Familiar (+2 Int)",
     [1292142]="Benevolence (4 HP/5s)"}) do
     check(C.buffs_minor_world[id] == true, name .. " classified as very minor")
-    check(elixirs.spellIDs[id] == true, name .. " native elixir-tier member")
-    check(R.HELPFUL_TIER_BY_SPELL[id] == elixirs, name .. " indexed at 81")
+    check(consumables.spellIDs[id] == true, name .. " native consumables-tier member")
+    check(R.HELPFUL_TIER_BY_SPELL[id] == consumables, name .. " indexed at 81")
     check(R.TIER_BY_KEY.BaselineClass.spellIDs[id] == nil,
         name .. " must never take the class/world-buff portrait")
-    check(R.CandidateFilters(elixirs).includeSpellIDs[id] == true,
+    check(R.CandidateFilters(consumables).includeSpellIDs[id] == true,
         name .. " native spell filter includes verified minor effect")
     check(R.CandidateFilters(R.TIER_BY_KEY.HostileHelpful).excludeSpellIDs[id] == true,
         name .. " excluded from generic hostile helpful fallback")
