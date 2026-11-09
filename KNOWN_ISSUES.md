@@ -1,3 +1,25 @@
+## 2026-11-09 — 0.1.211 Decayed Strength belongs to Demoralizing, not StatusEffects
+
+User's screenshot shows a five-minute Disease named Decayed Strength,
+reducing Strength by 4 at the pictured level. The corresponding
+applied aura is spell 6951. The previous answer proposed
+StatusEffects 253 as a home for this debuff; user corrected that
+ordinary stat-reduction effects should share the Demoralizing
+Shout/Roar/Screech tier (185), while StatusEffects is reserved
+for effects more directly altering combat flow.
+
+Explicitly add 6951 to `Spells.lua` `debuffs_demoralizing` (exact
+HARMFUL priority 185). No new tier, no change to the 253-point
+StatusEffects group, no demotion or promotion of unrelated
+spells. The unrelated 30-second spell 13528 remains untouched.
+Lua 5.1/5.4 regression confirms unique ownership, native
+filter membership, retained Demo Shout/Roar/Screech and
+absence from StatusEffects.
+
+The screenshot is positive name/duration evidence; native
+presentation still requires live verification in the user's
+client. No new in-game commands.
+
 ## 2026-11-09 — 0.1.210 oversized secondary portrait countdown text
 
 The user screenshot of the small PlayerFrame secondary shows the
