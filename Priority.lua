@@ -73,11 +73,11 @@ R.TIERS = {
     exact("BloodPact", "HELPFUL", 70, true,
         union("buffs_blood_pact", "buffs_furious_howl", "buffs_minor_class")),
     exact("Scrolls", "HELPFUL", 80, true, C.buffs_scrolls),
-    -- Consumable and passive nourishment band: elixirs, food's Well Fed
+    -- Consumables band: elixirs, food's Well Fed and retained minor buffs.
     -- auras and truly minor bonuses now share ONE priority-81 native
     -- helpful lane. Keep source categories for audits, but never create
     -- duplicate exact owners or competing equal-level slots.
-    exact("Elixirs", "HELPFUL", 81, true,
+    exact("Consumables", "HELPFUL", 81, true,
         union("buffs_elixirs", "buffs_well_fed", "buffs_minor_world",
             "buffs_minor"), true),
     semantic("Important", "HELPFUL|IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", 85),
