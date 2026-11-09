@@ -225,6 +225,9 @@ eq(p.clip.shown,true,"NPC native fallback recovers when public proof lost")
 -- visibly carrying two or more buffs. Its native runner-up must cover race.
 host._secondaryMode="race"
 host._raceBaselineActive=true
+-- In production ReconcileSecondaryPortrait has already painted the
+-- verified race underlay before native fallback reconciliation.
+host.secondaryBadge:Show()
 host._secondaryElectionReason="not-two-presentable"
 R.UpdateNativeSecondProbe(host,true,false,true,true)
 eq(p.clip.shown,true,"friendly player with unrankable second can use native clip")
