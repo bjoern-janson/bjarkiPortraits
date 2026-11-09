@@ -1,3 +1,16 @@
+## 2026-11-09 — 0.1.202 secondary artwork enlarged
+
+The native runner-up worked in live play, but 22px spell artwork could
+be difficult to distinguish behind its countdown. Increase the masked
+inner image in NativeSecondProbe, PetSecondary and SecondaryPortrait
+to 26px, keeping the 37px cell, 30px rim, positions, time formatting
+and complete aura priority policy unchanged. Compact party artwork
+grows from 18 to 21px within its unchanged 29px cell / 24px rim.
+
+Tests verify art geometry but not final live legibility. If timer
+text still covers too much spell detail, a future typography-only
+pass can adjust that separately without changing buff selection.
+
 ## 2026-11-09 — 0.1.201 target race fallback with mixed helpful/harmful auras
 
 The live Chero Ironhammer screenshot shows the large Target portrait
