@@ -79,7 +79,12 @@ local function frame(kind,parent)
     function o:GetFrameLevel()return self.level or 40 end
     function o:EnableMouse(v)self.mouse=v end
     function o:SetAlpha(v)self.alpha=v end
-    function o:CreateTexture()return frame("texture",self)end
+    function o:CreateTexture()
+        self.textures=self.textures or {}
+        local texture=frame("texture",self)
+        self.textures[#self.textures+1]=texture
+        return texture
+    end
     function o:CreateMaskTexture()return frame("mask",self)end
     function o:SetTexture(v)self.texture=v;return true end
     function o:SetAtlas(v)self.atlas=v end
@@ -148,6 +153,10 @@ for _,c in ipairs(st.containers) do
     eq(c.groups[1].button.icon.width,1,
         "native receiver remains visually hidden")
     eq(c.groups[1].button.width,44,"entire conditional pet badge cell enlarged")
+    eq(c.groups[1].button.textures[3].width,36,
+       "conditional pet border really grows to 36px")
+    eq(c.groups[1].button.textures[3].atlas,"UI-HUD-UnitFrame-TotemFrame",
+       "conditional pet border retains native totem artwork")
 end
 eq(st.containers[1].groups[1].filter,"HELPFUL|INCLUDE_NAME_PLATE_ONLY",
     "helpful native presence includes nameplate-only")
