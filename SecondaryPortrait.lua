@@ -180,6 +180,9 @@ function R.CreateSecondaryPortrait(host, nativeStrata)
             badge._bjarkiCooldown = cooldown
         end
         if R.ApplyCountdownFormat then R.ApplyCountdownFormat(cooldown) end
+        if R.ApplySecondaryCountdownFont then
+            R.ApplySecondaryCountdownFont(cooldown)
+        end
         cooldown:Hide()
         host.secondaryCooldown = cooldown
     end)
