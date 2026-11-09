@@ -3,6 +3,7 @@
 -- These mocks test verified identity, lifecycle and presentation policy;
 -- only the live Forever client can prove secret-group button rendering.
 local BP={Runtime={}}
+assert(loadfile("Core.lua"))("bjarkiPortraits",BP)
 local R=BP.Runtime
 R.db={enabled=true,secondaryPortrait=true,petPortraits=true}
 R.AURA_ANCHOR_TEMPLATE="DisableUntrustedLayoutScriptsTemplate"
@@ -133,8 +134,10 @@ eq(st.ready,true,"both native aura groups constructed")
 eq(st.guid,"Pet-First","current GUID tracked")
 eq(st.art,920026,"pet art stored independently of aura identity")
 eq(st.root.shown,true,"family fallback viewport is active")
-eq(st.root.points[3],"TOPRIGHT","Target outer corner retained")
-eq(st.root.points[4],-5,"Target existing badge inset retained")
+eq(st.root.points[3],"TOPLEFT",
+    "Target pet-family secondary shares combo-safe top-left location")
+eq(st.root.points[4],10,"Target pet-family x offset matches normal badge")
+eq(st.root.points[5],12,"Target pet-family y lift matches native second")
 eq(st.root.level<48,true,"family art stays below a public second aura")
 eq(st.root.width,44,"pet badge outer viewport enlarged to 44px")
 eq(#st.containers,2,"helpful and harmful have separate native gates")
