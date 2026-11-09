@@ -133,6 +133,10 @@ eq(st.root.points[4],-5,"Target existing badge inset retained")
 eq(st.root.level<48,true,"family art stays below a public second aura")
 eq(#st.containers,2,"helpful and harmful have separate native gates")
 eq(#st.textures,2,"two group buttons have current pet artwork")
+for _,image in ipairs(st.textures) do
+    eq(image.width,26,"pet-family masked icon enlarged to 26px")
+    eq(image.mask~=nil,true,"pet-family icon retains circular mask")
+end
 for _,c in ipairs(st.containers) do
     eq(c.unit,"target","native group bound to current target")
     eq(#c.groups,1,"one group per native container")
