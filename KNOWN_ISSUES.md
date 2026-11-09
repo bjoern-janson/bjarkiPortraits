@@ -1,3 +1,24 @@
+## 2026-11-09 — 0.1.209 Magic Wings at Walk on Air utility priority 225
+
+The user provided an in-game Magic Wings (Darkmoon Faire cannon
+slow-fall) screenshot and requested the same priority as Walk on
+Air. The 18-second Magic Wings applied aura is spell 24742 in
+the Classic/Forever spell database; the later 10-second 42867
+variant is not presumed relevant to Forever.
+
+Added 24742 solely to `Spells.lua` `buffs_utility`, beside
+Walk on Air 1259416 and 1308663. `Priority.lua` already maps
+the whole `buffs_utility` category to exact helpful
+`Utility` tier **225**; no numerical tier change is required.
+The lower `TravelUtility` 50 tier is explicitly not involved.
+
+Regression verifies all three exact IDs at Utility 225,
+single-owner native filter membership, and no erroneous movement
+slow, Consumables or TravelUtility classification. Exact
+client aura selection is not guaranteed by an offline test;
+live inspection remains useful. No slash commands or changes
+to portrait geometry, cooldowns or unrelated spell priorities.
+
 ## 2026-11-09 — 0.1.208 tier name: Consumables, formerly Elixirs
 
 The single helpful priority-81 native lane now uses the broader
