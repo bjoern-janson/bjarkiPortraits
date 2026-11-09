@@ -1,5 +1,33 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.210 secondary countdown typography
+
+Visual issue: large orange native cooldown digits on the 31px
+secondary spell art hide far too much of the icon compared with
+regular buff-row duration captions. Match Blizzard's regular
+`AuraButtonArtTemplate.Duration` font rather than adjusting
+pixel geometry or numeric countdown rules.
+
+Apply `DEFAULT_AURA_DURATION_FONT` when defined by Blizzard,
+otherwise `GameFontNormalSmall`. The same centralized
+secondary-only style function is used by the readable-aura
+secondary badge and every native ranked-second icon. Install
+the font on creation and, for the readable path, retry on first
+timed aura if the native label is initially lazy-created.
+FontObject preserves client locale selection and UI scaling
+without hardcoded font paths or guessed font sizes.
+
+Never apply this to main portrait cooldowns, pet-family art
+(no timer), or other native buff buttons. Keep existing
+priority logic, protected aura handling, combat safety,
+regular/compact secondary anchors, countdown formatter
+and 44px outer cell unchanged. All screen evidence is
+visual, not a request to manipulate secret countdown
+values. Lua 5.1/5.4 mocks verify registration and font
+selection; inspect in-game to confirm native numbers
+actually render at regular buff-caption size.
+
+
 ## 2026-11-09 — 0.1.209 Magic Wings utility classification
 
 The observed Darkmoon Faire cannon's Magic Wings buff shares
