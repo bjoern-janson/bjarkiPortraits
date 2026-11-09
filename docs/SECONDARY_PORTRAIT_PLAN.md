@@ -1,5 +1,41 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.213 combo-safe Target placement
+
+Target's upper-right secondary badge collides with its native
+right-side combo-point indicator (screenshot shows 45-second
+secondary above a primary with 2.8-second timer). The
+solution is **Target-only** anchor relocation, not shrinking
+icons or changing timers/portrait priorities.
+
+Use `Core.SecondaryCirclePlacement(unit)` as the immutable
+shared layout policy for the readable race/aura badge,
+native second-slot clip and pet-family fallback:
+
+- Target: TOPLEFT (+10,+12) — raised to keep clear of
+  the left-side target name/health bars and away from
+  right-hand combo points
+- Focus: TOPRIGHT (−5,0) — existing position
+- Player: TOPLEFT (+5,0) — existing position
+- party1–4: TOPLEFT (+5,+2) — existing compact placement
+- ToT, ToF, PetFrame: no secondary circle
+
+This policy uses public unit identity only. Reused pooled
+secondary clips must reanchor on each host reassignment;
+the native ranked-second group retains the same one-cell
+44px clip offset, so moving the clip can't change which
+aura the native renderer chooses. The separate pet-family
+fallback must be exactly co-located underneath actual
+native second art. Do not mutate cooldown content, unit
+frame protected parent, race identity evidence, priority
+tiers or bitmap mask sizes.
+
+Acceptance tests verify all three constructors, native
+Target→Target pooled reuse, Target→Focus pet pool reuse
+and a self-target native alias. Live screenshot validation
+is still required for combo-point and target-bar clearance.
+
+
 ## 2026-11-09 — 0.1.212 attack-speed disruption vs raw-damage penalties
 
 User's explicit priority model:
