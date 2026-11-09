@@ -2,7 +2,7 @@
 ## Title: bjarkiPortraits
 ## Notes: Portrait aura timers for WoW: Forever
 ## Author: Bjarki / OpenAI
-## Version: 0.1.211-decayed-strength-demoralizing-test
+## Version: 0.1.212-ice-claw-curse-weakness-tiers-test
 ## SavedVariables: BjarkiPortraitsDB
 
 Spells.lua
