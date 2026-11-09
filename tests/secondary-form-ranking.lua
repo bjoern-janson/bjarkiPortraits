@@ -81,6 +81,15 @@ eq(second and second.spellID,1229741,'Camp Benefits second after form')
 R.ReconcileSecondaryPortrait(h,true,true)
 eq(h._secondaryMode,'aura','Camp Benefits uses timed aura presentation')
 eq(h._secondaryAuraSpellID,1229741,'Camp Benefits icon displayed')
+-- One public spell and an independently derived form with the SAME
+-- spell identity must not consume primary and secondary slots.
+h._formStateSpellID=1229739
+lists={aura(1229739,42,48),aura(1229741,43,2100)}
+local dup,dupReason=R.GetReadableSecondaryAura(h)
+eq(dupReason,'verified-readable','duplicate form witness is not second')
+eq(dup and dup.spellID,1229741,'different Camp Benefits aura remains runner-up')
+h._formStateSpellID=2457
+
 -- A form alone is only one effect; secondary falls back to race.
 lists={}
 second,reason=R.GetReadableSecondaryAura(h)

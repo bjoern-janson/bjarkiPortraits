@@ -700,6 +700,18 @@ function R.GetReadableSecondaryAura(host)
         end
         ranked[j+1] = cand
     end
+    -- Multiple current instances of the SAME spell remain one distinct
+    -- visible effect. Retain only the highest-ranked positive occurrence.
+    -- Do not count the same buff twice; never inspect native secret buttons.
+    local distinct, seenSpellIDs = {}, {}
+    for _,candidate in ipairs(ranked) do
+        if not seenSpellIDs[candidate.spellID] then
+            seenSpellIDs[candidate.spellID] = true
+            distinct[#distinct+1] = candidate
+        end
+    end
+    ranked = distinct
+
     -- A positively displayed Warrior stance/Druid form is a real, static
     -- portrait candidate at level 149 (just below the SelfState native lane).
     -- It is NOT automatically primary: a higher-level aura can cover it. A
@@ -711,13 +723,18 @@ function R.GetReadableSecondaryAura(host)
     if host._formStateActive then
         local stateLevel = (R.TIER_BY_KEY and R.TIER_BY_KEY.SelfState
             and R.TIER_BY_KEY.SelfState.level or 150) - 1
-        form = {staticForm = true, spellID = host._formStateSpellID,
-            tier = {key = "FormState", level = stateLevel}}
-        if ranked[1] and ranked[1].tier.level == stateLevel then
+        -- A real aura and a static form witness with the same spell ID
+        -- cannot consume two portrait positions.
+        if not seenSpellIDs[host._formStateSpellID] then
+            form = {staticForm = true, spellID = host._formStateSpellID,
+                tier = {key = "FormState", level = stateLevel}}
+        end
+        if form and ranked[1] and ranked[1].tier.level == stateLevel then
             -- No assumed tie break between native aura and static presenter.
             return nil, "form-rank-tie"
         end
-        formPrimary = not ranked[1] or ranked[1].tier.level < stateLevel
+        formPrimary = form ~= nil
+            and (not ranked[1] or ranked[1].tier.level < stateLevel)
     end
 
     local primary, second, electionReason

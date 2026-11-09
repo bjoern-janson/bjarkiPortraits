@@ -105,6 +105,20 @@ local function groupPlans()
     for _, entry in ipairs(ordered) do
         local tier = entry.tier
         local filters = R.CandidateFilters and R.CandidateFilters(tier)
+        local filterString = tier.filter
+        -- Blizzard's AuraGroups are independent: one aura could occupy
+        -- two groups and be painted as its own runner-up in combat.
+        -- Keep overlapping semantic groups disjoint with supported negative
+        -- aura filter flags; do NOT change the primary R.TIERS.
+        if tier.key == "HostileHelpful" then
+            filterString = "HELPFUL|INCLUDE_NAME_PLATE_ONLY|!IMPORTANT"
+                .. "|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE"
+        elseif tier.key == "ExternalDef" then
+            filterString = tier.filter .. "|!BIG_DEFENSIVE"
+        elseif tier.key == "PriorityDebuff"
+            or tier.key == "SmallFriendlyHarmful" then
+            filterString = tier.filter .. "|!CROWD_CONTROL"
+        end
         if tier.exact then
             local pol = tier.helpful and "HELPFUL" or "HARMFUL"
             local ids = {}
@@ -130,7 +144,7 @@ local function groupPlans()
         end
         if not tier.exact or next(filters.includeSpellIDs or {}) ~= nil then
             result[#result+1] = {
-                tier=tier, key="tier"..entry.index,
+                tier=tier, key="tier"..entry.index, filter=filterString,
                 candidateFilters=filters,
             }
         end
@@ -220,6 +234,10 @@ function R.CreateNativeSecondProbe(host)
             -- SetUnit does nothing when reusing the same token ("target"
             -- -> new "target"), so enabling the previously disabled
             -- container MUST trigger a fresh full aura parse first.
+            if probe.hostileHelpfulKey then
+                probe.container:SetAuraGroupEnabled(probe.hostileHelpfulKey,false)
+            end
+            probe.hostileHelpfulEnabled = false
             probe.container:SetUnit(source)
             probe.container:SetEnabled(true)
             probe.boundUnit = source
@@ -267,7 +285,7 @@ function R.CreateNativeSecondProbe(host)
         -- refreshes immediately; binding first would rescan the same live
         -- unit (Player or Target) for every registered priority group.
         for rank, plan in ipairs(plans) do
-            c:AddAuraGroup(plan.key, plan.tier.filter, {
+            c:AddAuraGroup(plan.key, plan.filter, {
                 maxFrameCount = 2,
                 candidateFilters = plan.candidateFilters,
                 sortMethod = R.SORT_METHOD,
@@ -283,7 +301,16 @@ function R.CreateNativeSecondProbe(host)
                 initializeFrame = makeButton,
             })
             probe.groups = probe.groups + 1
+            if plan.tier.key == "HostileHelpful" then
+                probe.hostileHelpfulKey = plan.key
+            end
         end
+        -- HostileHelpful is a broad *hostile* helpful fallback. Never
+        -- allow it to duplicate an Important aura on local PlayerFrame.
+        if probe.hostileHelpfulKey then
+            c:SetAuraGroupEnabled(probe.hostileHelpfulKey,false)
+        end
+        probe.hostileHelpfulEnabled = false
         local source = nativeSourceUnit(host)
         c:SetUnit(source)
         -- CRITICAL: AuraContainerSharedMixin starts with enabled=nil and
@@ -341,6 +368,26 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
 
     local probe = host._nativeSecondProbe
     if not probe or not probe.ready or not probe.clip then return end
+
+    -- Relation may change while "target" still names the same unit.
+    -- Broad helpful only belongs to a positively hostile Target/Focus.
+    -- Never mutate protected native group state in combat: hide instead.
+    if playerEligible or otherEligible then
+        local wanted = otherEligible and hostile == true or false
+        if probe.hostileHelpfulKey and probe.hostileHelpfulEnabled ~= wanted then
+            local combat, known = R.SafeBool(InCombatLockdown)
+            if not known or combat then
+                hide(host,"hostile-group-change-deferred-combat")
+                return
+            end
+            if not pcall(probe.container.SetAuraGroupEnabled,probe.container,
+                probe.hostileHelpfulKey,wanted) then
+                hide(host,"hostile-group-change-failed")
+                return
+            end
+            probe.hostileHelpfulEnabled = wanted
+        end
+    end
 
     if playerEligible or otherEligible then
         -- On PLAYER_TARGET_CHANGED/PLAYER_FOCUS_CHANGED the bound unit TOKEN

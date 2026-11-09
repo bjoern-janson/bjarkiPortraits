@@ -65,6 +65,21 @@ local function frame(kind,parent)
             self:UpdateAllAuras()
         end
     end
+    function o:SetAuraGroupEnabled(key,enabled)
+        assert(type(enabled)=="boolean")
+        assert(not combat,"no native group setter during lockdown")
+        for _,g in ipairs(self.groups or {}) do
+            if g.key==key then
+                self.groupEnableWrites=(self.groupEnableWrites or 0)+1
+                if g.enabled~=enabled then
+                    g.enabled=enabled
+                    self:UpdateAllAuras()
+                end
+                return
+            end
+        end
+        error("unknown group")
+    end
     function o:UpdateAllAuras()
         self.refreshes=(self.refreshes or 0)+1
         self.lastRefreshedUnit=self.unit
@@ -89,7 +104,8 @@ local function frame(kind,parent)
     function o:SetUsingParentLevel()end
     function o:AddAuraGroup(key,filter,options)
         self.groups=self.groups or {}
-        self.groups[#self.groups+1]={key=key,filter=filter,options=options}
+        self.groups[#self.groups+1]={key=key,filter=filter,options=options,
+            enabled=true}
         -- The engine preallocates a guarded batch of button frames. One mock
         -- button suffices to check the inbound geometry/wiring shape.
         local b=frame("button",self)
@@ -165,10 +181,34 @@ eq(keys.HostileHelpful.options.candidateFilters.excludeSpellIDs[1126],
    true,"generic helpful cannot duplicate exact Mark")
 eq(keys.SmallFriendlyHarmful.options.candidateFilters.isPriorityAura,
    false,"generic harmful cannot duplicate priority debuff")
+eq(keys.HostileHelpful.filter,
+    "HELPFUL|INCLUDE_NAME_PLATE_ONLY|!IMPORTANT|!BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE",
+    "hostile broad helpful cannot also consume an Important/BigDef aura")
+eq(keys.ExternalDef.filter,"HELPFUL|EXTERNAL_DEFENSIVE|!BIG_DEFENSIVE",
+    "BigDef 289 excludes identical ExternalDef 288 occurrence")
+eq(keys.PriorityDebuff.filter,"HARMFUL|!CROWD_CONTROL",
+    "priority debuff cannot duplicate CrowdControl")
+eq(keys.SmallFriendlyHarmful.filter,
+    "HARMFUL|INCLUDE_NAME_PLATE_ONLY|!CROWD_CONTROL",
+    "generic harmful cannot duplicate CrowdControl")
+eq(keys.HostileHelpful.enabled,true,"hostile Target broad helpful enabled")
 
 R.UpdateNativeSecondProbe(host,true,true,true,false)
 eq(p.clip.shown,true,"verified NPC probe is shown")
 eq(host.secondaryBadge.shown,false,"legacy NPC badge hidden under native ribbon")
+local writes=p.container.groupEnableWrites
+combat=true
+R.UpdateNativeSecondProbe(host,true,false,true,true)
+eq(p.clip.shown,false,"combat relation flip suppresses stale broad group")
+eq(p.container.groupEnableWrites,writes,"combat avoids protected group write")
+eq(keys.HostileHelpful.enabled,true,"failed combat change cannot relabel secure group")
+eq(host._nativeSecondProbeReason,"hostile-group-change-deferred-combat",
+    "combat relation deferral carries explicit reason")
+combat=false
+R.UpdateNativeSecondProbe(host,true,false,true,true)
+eq(keys.HostileHelpful.enabled,false,"friendly target turns broad group off")
+R.UpdateNativeSecondProbe(host,true,true,true,false)
+eq(keys.HostileHelpful.enabled,true,"hostile target turns group on again")
 
 -- Newly targeted UNTAGGED mob: the token remains "target", but the
 -- native second must not keep the previous mob's aura and ticking timer.
@@ -236,6 +276,7 @@ R.UpdateNativeSecondProbe(host,true,false,true,true)
 eq(p.clip.shown,true,"friendly player with unrankable second can use native clip")
 eq(host.secondaryBadge.shown,true,"verified friendly race remains under native second")
 eq(p.container.enabled,true,"friend's actual native aura groups are enabled")
+eq(keys.HostileHelpful.enabled,false,"friend's important buff cannot be counted twice")
 host._secondaryElectionReason=nil
 host._secondaryMode="hidden"
 host._raceBaselineActive=false
@@ -246,6 +287,7 @@ host._raceBaselineActive=false
 host.secondaryBadge:Show()
 R.UpdateNativeSecondProbe(host,true,true,true,true)
 eq(p.clip.shown,true,"opposite-faction player receives native runner-up")
+eq(keys.HostileHelpful.enabled,true,"hostile player may retain broad helpful fallback")
 eq(host.secondaryBadge.shown,true,"hostile player's race underlay remains available")
 eq(p.container.unit,"target","hostile player uses same native target token")
 R.UpdateNativeSecondProbe(host,true,true,false,true)
@@ -334,6 +376,12 @@ local pp=player._nativeSecondProbe
 eq(pp~=nil,true,"player prewarms native ribbon before receiving a debuff")
 eq(pp.ready,true,"player native groups fully initialized out of combat")
 eq(pp.container.enabled,true,"first Player build enables native secure runner-up")
+local selfBroad
+for _,g in ipairs(pp.container.groups) do
+    if g.key==pp.hostileHelpfulKey then selfBroad=g;break end
+end
+eq(selfBroad~=nil,true,"native Player group registered for safe pool reuse")
+eq(selfBroad.enabled,false,"Player never consumes HostileHelpful into a duplicate slot")
 eq(pp.container.unit,"player","native ribbon binds its actual player token")
 eq(pp.clip.points[3],"TOPRIGHT","player native ribbon mirrors inward toward bars")
 eq(pp.clip.points[4],-10,"player native mirrored x inset")
@@ -352,6 +400,7 @@ player._secondaryElectionReason="inaccessible-index"
 player.secondaryBadge:Show()
 R.UpdateNativeSecondProbe(player,true,false,true,true)
 eq(pp.clip.shown,true,"incoming combat debuff activates native runner-up")
+eq(selfBroad.enabled,false,"combat entry cannot re-enable hostile group on Player")
 eq(player.secondaryBadge.shown,true,"underlying race is not destroyed")
 eq(player._nativeSecondProbeReason,"player-native-race-fallback",
     "native player fallback reason is explicit")
@@ -419,6 +468,11 @@ local fp=focus._nativeSecondProbe
 eq(fp~=nil,true,"friendly Focus constructs its own native second")
 eq(fp.clip.shown,true,"Focus race fallback can show native second")
 eq(fp.container.enabled,true,"first Focus build enables real secure second-aura groups")
+local focusBroad
+for _,g in ipairs(fp.container.groups) do
+    if g.key==fp.hostileHelpfulKey then focusBroad=g;break end
+end
+eq(focusBroad.enabled,false,"friendly Focus suppresses duplicate-prone group")
 eq(fp.container.unit,"focus","ordinary Focus native source is focus")
 eq(fp.clip.points[3],"TOPLEFT","Focus native circle uses shared upper-left corner")
 eq(fp.clip.points[4],10,"Focus native uses shared inset")

@@ -75,6 +75,17 @@ eq(host.racePortrait.texture,1102,'second aura icon shown')
 eq(host.secondaryCooldown.duration,10,'native timer configured')
 eq(host.secondaryBadge.shown,true,'badge visible above native')
 eq(host._secondaryElectionReason,'verified-readable','reason reports positive election')
+-- Two positive *instances* of one spell are still ONE effect. Select
+-- the highest-ranked different spell, or fall back when there is none.
+setAuras('player',{aura(101,611),aura(101,612),aura(102,613)})
+local repeated,repeatReason=R.GetReadableSecondaryAura(host)
+eq(repeatReason,'verified-readable','repeated spell does not obscure other effect')
+eq(repeated and repeated.spellID,102,'next distinct spell is the runner-up')
+setAuras('player',{aura(101,611),aura(101,612)})
+repeated,repeatReason=R.GetReadableSecondaryAura(host)
+eq(repeated,nil,'one spell with multiple instance IDs is not two effects')
+eq(repeatReason,'not-two-presentable','one distinct effect preserves fallback')
+setAuras('player',{aura(101,10),aura(102,11),aura(103,12)})
 -- Combat may seal the public aura list without changing an existing aura.
 -- A previously verified, timed secondary remains only until the first actual
 -- UNIT_AURA event, its observed expiration, or a different unit binding.
