@@ -67,6 +67,9 @@ local function makeButton(button)
     if cooldown.SetUsingParentLevel then cooldown:SetUsingParentLevel(true) end
     if R.ApplyCountdownFormat then R.ApplyCountdownFormat(cooldown) end
     button:SetDurationCooldown(cooldown)
+    if R.ApplySecondaryCountdownFont then
+        R.ApplySecondaryCountdownFont(cooldown)
+    end
 end
 
 local function orderedTiers()
