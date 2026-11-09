@@ -240,6 +240,24 @@ local function installUnitStateEvents(unitA, unitB)
             if R.NoteSecondaryAuraEvent then R.NoteSecondaryAuraEvent(unit, updateInfo) end
             if R.PublishAuraEvent then R.PublishAuraEvent(unit, updateInfo) end
             R.Refresh(unit)
+            -- A positive self Target/Focus alias must update alongside the
+            -- actual PlayerFrame aura event. Forever may notify "player"
+            -- without separately notifying "target"/"focus"; otherwise the
+            -- mirrored second can keep obsolete artwork or miss a new buff.
+            -- This is strictly identity-gated and never refreshes a different
+            -- player's protected auras on the basis of matching names.
+            if unit == "player" and type(UnitIsUnit) == "function"
+                and type(R.SafeBool) == "function" then
+                for _, alias in ipairs({"target","focus"}) do
+                    local same, readable = R.SafeBool(UnitIsUnit, alias, "player")
+                    if readable and same then
+                        if R.NoteSecondaryAuraEvent then
+                            R.NoteSecondaryAuraEvent(alias, updateInfo)
+                        end
+                        R.Refresh(alias)
+                    end
+                end
+            end
             -- A completed binding can still gain readable timing or a new
             -- positive on a full update. Re-read the bounded shortlist through
             -- the same one-shot queue; these remain first sightings/corrections.
