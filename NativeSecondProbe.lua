@@ -20,9 +20,9 @@ local R = assert(BP.Runtime, "Core.lua must load first")
 -- Unverified native layout/semantic overlap remain experimental; this does
 -- not replace the primary native tier stack or the readable election.
 
-local CELL = 37
-local IMAGE = 26
-local RIM = 30
+local CELL = 44
+local IMAGE = 31
+local RIM = 36
 local MAX_GROUPS = 80
 local pool = {}
 
@@ -204,7 +204,7 @@ function R.CreateNativeSecondProbe(host)
     host._nativeSecondProbe = probe
     local ok = pcall(function()
         -- The viewport is an independent, noninteractive UIParent sibling.
-        -- Its fixed 37px aperture never receives secret geometry.
+        -- Its fixed 44px aperture never receives secret geometry.
         local clip = CreateFrame("Frame", nil, UIParent, R.AURA_ANCHOR_TEMPLATE)
         probe.clip = clip
         clip:Hide()
