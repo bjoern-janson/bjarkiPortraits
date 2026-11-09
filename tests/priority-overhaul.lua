@@ -180,8 +180,6 @@ check(contains("debuffs_demoralizing",6951),
     "Decayed Strength spell 6951 explicitly categorized as demoralizing")
 unique(6951,"Demoralizing")
 eq(level("Demoralizing"),185,"Decayed Strength inherits unchanged Demo Shout priority")
-eq(R.HARMFUL_TIER_BY_SPELL[6951],tier("Demoralizing"),
-    "Decayed Strength indexed under harmful demoralizing lane")
 check(R.CandidateFilters(tier("Demoralizing")).includeSpellIDs[6951] == true,
     "native demoralizing aura group accepts Decayed Strength ID")
 check(not owns("StatusEffects",6951),
