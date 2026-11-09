@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.218-native-proportional-secondary-art-test"
+R.VERSION = "0.1.219-buff-size-secondary-icon-test"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 -- Four native Blizzard party portraits share the same aura engine as player/pet.
 -- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
@@ -35,13 +35,19 @@ function R.SecondaryCirclePlacement(unit)
     return nil
 end
 
--- Shared dimensions for all small portrait paths. Blizzard's regular buff
--- icon is 30px, and TotemButtonTemplate uses 37px cell, 30px rim, 22px
--- circular art. Previous 44/36/31 filled too much of the border.
--- The native atlas offsets are optical, not aura-dependent.
+-- In full-size unit frames, the actual spell/race artwork should match
+-- Blizzard's 30x30 regular buff icon. The *circular rim*, not the artwork,
+-- grows around that 30px icon. Scale native TotemButtonTemplate's original
+-- 37px cell / 30px rim / 22px art by 30/22 ~= 1.364, giving a
+-- 50px cell / 41px rim / 30px icon. This preserves the familiar
+-- rim-to-art breathing room without zooming/cropping the source texture.
+-- Party frames scale the same ratio down to 40/33/24.
+-- Native Totem atlas optical offsets scale proportionally too; the actual
+-- masked art remains centered on the cell. All three renderers consume
+-- this shared geometry, including native clipping and pooled reuse.
 function R.SecondaryCircleGeometry(unit)
-    if R.PARTY_UNITS[unit] then return 29, 18, 24, 0.5, -1 end
-    return 37, 22, 30, 1, -1.5
+    if R.PARTY_UNITS[unit] then return 40, 24, 33, 0.75, -1.5 end
+    return 50, 30, 41, 1.35, -2
 end
 
 local defaults = {

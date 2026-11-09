@@ -94,9 +94,9 @@ local function frame(kind,parent)
         -- button suffices to check the inbound geometry/wiring shape.
         local b=frame("button",self)
         options.initializeFrame(b)
-        eq(b.width,37,"native second-button cell actually enlarged")
-        eq(b.icon.width,22,"native second icon grows with its circle")
-        eq(b.textures[2].width,30,"native totem bezel visibly grows to 36px")
+        eq(b.width,50,"native second-button cell actually enlarged")
+        eq(b.icon.width,30,"secure secondary art matches regular buff icon, not border")
+        eq(b.textures[2].width,41,"native totem bezel visibly grows to 36px")
         eq(b.textures[2].atlas,"UI-HUD-UnitFrame-TotemFrame",
             "enlarged native ring retains Blizzard artwork")
         eq(b.cooldown~=nil,true,"native cooldown assigned")
@@ -104,8 +104,8 @@ local function frame(kind,parent)
             "native second countdown applies regular buff-duration font")
         eq(b.icon.mask~=nil,true,"circular icon mask installed")
 eq(b.icon.points[1],"CENTER","native art centered on its cell")
-eq(b.textures[2].points[4],1,"native rim x matches Blizzard optical inset")
-eq(b.textures[2].points[5],-1.5,"native rim y matches Blizzard optical inset")
+eq(b.textures[2].points[4],1.35,"native rim x matches Blizzard optical inset")
+eq(b.textures[2].points[5],-2,"native rim y matches Blizzard optical inset")
     end
     return o
 end
@@ -134,11 +134,11 @@ eq(host._nativeSecondProbe~=nil,true,"eligible NPC builds automatically without 
 local p=host._nativeSecondProbe
 eq(p.ready,true,"native container initialized")
 eq(p.clip.clips,true,"fixed clipping viewport")
-eq(p.clip.width,37,"entire native secondary viewport actually enlarged")
+eq(p.clip.width,50,"entire native secondary viewport actually enlarged")
 eq(p.clip.points[3],"TOPLEFT","native Target runner-up avoids right-hand combo points")
 eq(p.clip.points[4],10,"native Target has +10 upper-left x offset")
 eq(p.clip.points[5],12,"native Target is raised 12px above frame top corner")
-eq(p.container.points[4],-37,"first native cell still completely clipped after resizing")
+eq(p.container.points[4],-50,"first native cell still completely clipped after resizing")
 eq(p.container.unit,"target","native unit owns current target")
 eq(p.container.enabled,true,"first native Target build enables all secure aura groups")
 eq(p.container.refreshes>=2,true,"fresh native groups actually reparse after enable")

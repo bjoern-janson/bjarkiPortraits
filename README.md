@@ -2,11 +2,36 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.218-native-proportional-secondary-art-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.219-buff-size-secondary-icon-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.219 — secondary *artwork* matches regular 30px buffs
+
+Correction to 0.1.218: the request was for the **visible spell/race
+icon itself** to be comparable to a regular Blizzard buff icon (30px),
+with the circular border scaled proportionally around it. The prior
+update mistakenly made the entire rim 30px and shrank the icon to 22px.
+
+Full-size secondary circles now use **30px masked artwork, 41px
+Totem-style rim, 50px layout cell**. That is the native Totem art-to-rim
+proportion (22/30) scaled to 30px art, so the icon no longer nearly
+fills its ring as in the 0.1.217 31/36 image/rim pairing. Compact
+party badges use 24px art, 33px rim, 40px cell.
+
+Both normal and party rim optical offsets are scaled with their art:
++1.35/-2 and +0.75/-1.5 respectively. Artwork stays centered on
+its parent and uses the original source texture without UV zoom.
+The readable/race, native-secure runner-up and pet-family renderers all
+use Core.SecondaryCircleGeometry. Main portraits, anchor positions,
+cooldown fonts, aura ranks, masks, and native lifecycle stay unchanged.
+
+The native first-cell clip now uses the same 50px cell, so the
+second-ranked secure aura remains correctly positioned. Lua regressions
+check the icon/rim dimensions, 30px art reference, shared offsets and
+pooled restoration. Final pixel alignment still needs an in-game check.
 
 ## 0.1.218 — match secondary circles to buff icons and native Totem proportions
 

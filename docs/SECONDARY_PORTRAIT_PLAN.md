@@ -1,5 +1,18 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.219 artwork-size clarification
+
+The user requested secondary ICON artwork itself match regular 30px
+buff icons; 0.1.218 incorrectly set the whole ring to 30px.
+Scale the original Blizzard 37/30/22 Totem cell/rim/art to
+50/41/30 for full portraits and 40/33/24 for compact party.
+Keep genuine source UVs (no fabricated zoom), native atlas optical
+offsets scaled to +1.35/-2 and +0.75/-1.5, and mask centered on
+artwork. The shared Core.SecondaryCircleGeometry already controls
+readable, native-ranked and pet-family renderers so one change
+preserves consistent centering and clipping. Do not touch spell
+priority, timers, frame positions or secret-aura handling.
+
 ## 2026-11-09 — 0.1.218 native-proportional art
 
 Return to 37px cell/30px native Totem ring/22px circular art
