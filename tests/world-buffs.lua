@@ -55,22 +55,22 @@ for id in pairs(C.buffs_world) do
 end
 eq(#world,27,"27 named visible world-buff IDs audited")
 
--- Minor helpful effects and Well Fed now join the existing Elixirs=81
+-- Minor helpful effects and Well Fed now join the existing Consumables=81
 -- native exact lane, rather than maintaining separate portrait tiers.
-local elixirs=assert(R.TIER_BY_KEY.Elixirs)
-eq(elixirs.level,81,"merged nourishment/elixir priority")
-eq(elixirs.helpful,true,"merged tier retains helpful polarity")
-eq(elixirs.filter,"HELPFUL","merged native tier uses helpful filter")
+local consumables=assert(R.TIER_BY_KEY.Consumables)
+eq(consumables.level,81,"merged nourishment/elixir priority")
+eq(consumables.helpful,true,"merged tier retains helpful polarity")
+eq(consumables.filter,"HELPFUL","merged native tier uses helpful filter")
 eq(R.TIER_BY_KEY.MinorHelpful,nil,"obsolete MinorHelpful retired")
 eq(R.TIER_BY_KEY.MinorHarmful,nil,"empty MinorHarmful retired")
 eq(R.TIER_BY_KEY.WellFed,nil,"obsolete WellFed retired")
 for _,id in ipairs({1296202,1292142}) do
     eq(C.buffs_minor_world[id],true,"minor world source membership")
     eq(baseline.spellIDs[id],nil,"minor effects cannot inherit class/world priority 90")
-    eq(elixirs.spellIDs[id],true,"minor world aura in Elixirs")
+    eq(consumables.spellIDs[id],true,"minor world aura in Consumables")
     eq(paladin.spellIDs[id],nil,"minor effect not in PaladinAura 60")
-    eq(R.HELPFUL_TIER_BY_SPELL[id],elixirs,"minor indexed at priority 81")
-    eq(R.CandidateFilters(elixirs).includeSpellIDs[id],true,
+    eq(R.HELPFUL_TIER_BY_SPELL[id],consumables,"minor indexed at priority 81")
+    eq(R.CandidateFilters(consumables).includeSpellIDs[id],true,
         "minor included in shared native exact candidate")
     eq(R.CandidateFilters(R.TIER_BY_KEY.HostileHelpful).excludeSpellIDs[id],
         true,"minor excluded from hostile helpful generic fallback")
@@ -80,10 +80,10 @@ end
 local wellFedCount=0
 for id in pairs(C.buffs_well_fed) do
     wellFedCount=wellFedCount+1
-    eq(elixirs.spellIDs[id],true,"Well Fed "..id.." shares Elixirs")
-    eq(R.HELPFUL_TIER_BY_SPELL[id],elixirs,"Well Fed "..id.." indexed at 81")
-    eq(R.CandidateFilters(elixirs).includeSpellIDs[id],true,
-        "Well Fed "..id.." present in exact native elixirs filter")
+    eq(consumables.spellIDs[id],true,"Well Fed "..id.." shares Consumables")
+    eq(R.HELPFUL_TIER_BY_SPELL[id],consumables,"Well Fed "..id.." indexed at 81")
+    eq(R.CandidateFilters(consumables).includeSpellIDs[id],true,
+        "Well Fed "..id.." present in exact native consumables filter")
     eq(R.CandidateFilters(R.TIER_BY_KEY.HostileHelpful).excludeSpellIDs[id],
         true,"Well Fed "..id.." excluded from generic hostile helpful")
 end
@@ -91,16 +91,16 @@ eq(wellFedCount,23,"all 23 Well Fed variants retained")
 local elixirCount=0
 for id in pairs(C.buffs_elixirs) do
     elixirCount=elixirCount+1
-    eq(elixirs.spellIDs[id],true,"Original elixir "..id.." retained")
-    eq(R.HELPFUL_TIER_BY_SPELL[id],elixirs,
+    eq(consumables.spellIDs[id],true,"Original elixir "..id.." retained")
+    eq(R.HELPFUL_TIER_BY_SPELL[id],consumables,
         "Original elixir "..id.." remains at priority 81")
     eq(R.CandidateFilters(R.TIER_BY_KEY.HostileHelpful).excludeSpellIDs[id],
         true,"Original elixir "..id.." cannot duplicate in hostile fallback")
 end
 eq(elixirCount>30,true,"original elixir inventory remains populated")
-eq(elixirs.spellIDs[673],true,"existing Minor Defense elixir retained")
-eq(elixirs.spellIDs[17538],true,"existing Mongoose elixir retained")
-eq(elixirs.spellIDs[1248406],true,"tiny +1 Stamina Well Fed included")
+eq(consumables.spellIDs[673],true,"existing Minor Defense elixir retained")
+eq(consumables.spellIDs[17538],true,"existing Mongoose elixir retained")
+eq(consumables.spellIDs[1248406],true,"tiny +1 Stamina Well Fed included")
 -- Keep existing legitimate class and camp buffs; never demote the established
 -- special high-priority Welcoming Campfire or unrelated consumables.
 eq(baseline.spellIDs[1126],true,"Mark of the Wild stays at class-buff tier")
@@ -108,7 +108,7 @@ eq(baseline.spellIDs[1229741],true,"Camp Benefits stays at class-buff tier")
 eq(R.TIER_BY_KEY.HonorlessTarget.spellIDs[1229739],true,
     "Welcoming Campfire special lane preserved")
 eq(R.TIER_BY_KEY.WellFed,nil,"standalone WellFed no longer exists")
-eq(R.TIER_BY_KEY.Elixirs.level,81,"Elixirs tier preserved")
+eq(R.TIER_BY_KEY.Consumables.level,81,"Consumables tier preserved")
 eq(R.TIER_BY_KEY.Tracking.level,3,"Tracking tier preserved")
 eq(R.TIER_BY_KEY.PaladinAura.spellIDs[24907],true,
     "ordinary PaladinAura effects still occupy their former tier")
