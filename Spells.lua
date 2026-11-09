@@ -784,6 +784,7 @@ PT.categories = {
         [24578] = true, -- Demoralizing Screech Rank 3 (Hunter pet)
         [24579] = true, -- Demoralizing Screech Rank 4 (Hunter pet)
         [6951] = true, -- Decayed Strength: flat Strength reduction, 5 min (not combat-flow StatusEffects)
+        [3146] = true, -- Daunting Growl (Wendigo): Strength -4, Agility -4 for 30s (flat stat penalty)
         -- Curse of Weakness reduces PHYSICAL DAMAGE DONE, not attack speed
         -- or combat control. All six verified applied Warlock ranks plus
         -- positively sourced NPC/weapon variants share Demo Shout/Roar 185.

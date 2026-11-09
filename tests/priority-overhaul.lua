@@ -188,6 +188,23 @@ check(not owns("PassiveDebuff",6951),
     "5-minute stat penalty is not a passive lockout")
 check(not owns("SmallFriendlyHarmful",6951),
     "Decayed Strength must not rely on the generic harmful tier")
+-- Daunting Growl (NPC/Wendigo), 3146, applies a 30-second -4 Strength
+-- and -4 Agility aura. It is a flat stat reduction rather than a
+-- cadence/CC/status effect. Same existing tier as Decayed Strength.
+check(contains("debuffs_demoralizing",3146),
+    "Daunting Growl 3146 has exact Demoralizing source ownership")
+unique(3146,"Demoralizing")
+eq(level("Demoralizing"),185,"Daunting Growl keeps original Demo Shout rank")
+check(R.CandidateFilters(tier("Demoralizing")).includeSpellIDs[3146] == true,
+    "native secure Demoralizing filter accepts applied Daunting Growl")
+check(R.CandidateFilters(tier("PriorityDebuff")).excludeSpellIDs[3146] == true,
+    "priority debuff generic lane cannot reclassify Daunting Growl")
+check(R.CandidateFilters(tier("CrowdControl")).excludeSpellIDs[3146] == true,
+    "generic CC cannot promote ordinary flat-stat Growl")
+check(not owns("StatusEffects",3146),
+    "Daunting Growl is not disruptive StatusEffects 253")
+check(not owns("Slows",3146),"Daunting Growl does not reduce movement speed")
+check(not contains("debuffs_other",3146),"Daunting Growl has no duplicate status source")
 for _,id in ipairs({1160,6190,11554,11555,11556,99,24423}) do
     unique(id,"Demoralizing")
 end

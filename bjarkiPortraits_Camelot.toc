@@ -2,7 +2,7 @@
 ## Title: bjarkiPortraits
 ## Notes: Portrait aura timers for WoW: Forever
 ## Author: Bjarki / OpenAI
-## Version: 0.1.219-buff-size-secondary-icon-test
+## Version: 0.1.220-daunting-growl-demoralizing-test
 ## SavedVariables: BjarkiPortraitsDB
 
 Spells.lua

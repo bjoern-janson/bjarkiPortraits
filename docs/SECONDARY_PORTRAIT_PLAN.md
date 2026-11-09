@@ -1,5 +1,15 @@
 # Secondary portrait: two aura priorities + race identity
 
+## 2026-11-09 — 0.1.220 Daunting Growl flat stat penalty
+
+Daunting Growl 3146 (Wendigo NPC applied debuff, 30 seconds,
+Strength −4, Agility −4) is an ordinary stat-reduction effect.
+Add it to debuffs_demoralizing, using the existing exact harmful
+Demoralizing 185 tier with Decayed Strength/Demo Shout/Roar/Screech.
+No StatusEffects 253 promotion, no movement slow/taunt inference,
+no priority renumbering, no new aura renderer or protected reads.
+Test native exact ownership, category nonoverlap, and public index.
+
 ## 2026-11-09 — 0.1.219 artwork-size clarification
 
 The user requested secondary ICON artwork itself match regular 30px

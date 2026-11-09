@@ -2,11 +2,32 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.219-buff-size-secondary-icon-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.220-daunting-growl-demoralizing-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.220 — Daunting Growl joins Demoralizing priority 185
+
+A live Forever buff-tooltip screenshot identifies **Daunting Growl**
+as a 30-second Strength **−4** and Agility **−4** NPC debuff.
+Forever spell data identifies applied spell **3146**, with both
+effects in the same harmful aura. This is an ordinary flat
+stat-reduction penalty, not an attack-speed change, movement slow,
+taunt or interrupt.
+
+Add **3146** to the existing `debuffs_demoralizing` exact spell-ID
+set alongside Decayed Strength, Demoralizing Shout/Roar/Screech and
+Curse of Weakness. It inherits the unchanged `Demoralizing` **185**
+tier for both the primary native portrait and second-place election.
+Do not create a new tier, change its other members, or add it to
+`StatusEffects` 253.
+
+Lua 5.1 and 5.4 tests cover one exact owner, the native harmful
+candidate filter, generic CC/priority exclusions, and unchanged tier
+numeric values. In-game selection still depends on the client's
+positively present aura instance; no aura identity is invented.
 
 ## 0.1.219 — secondary *artwork* matches regular 30px buffs
 
