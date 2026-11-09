@@ -41,7 +41,12 @@ local function frame(kind,parent)
     function o:Show()self.shown=true end
     function o:Hide()self.shown=false end
     function o:SetUnit(v)self.unit=v end
-    function o:CreateTexture() return frame("texture",self) end
+    function o:CreateTexture()
+        self.textures=self.textures or {}
+        local tex=frame("texture",self)
+        self.textures[#self.textures+1]=tex
+        return tex
+    end
     function o:CreateMaskTexture() return frame("mask",self) end
     function o:SetAtlas(v)self.atlas=v end
     function o:SetAllPoints()self.allPoints=true end
@@ -62,6 +67,9 @@ local function frame(kind,parent)
         options.initializeFrame(b)
         eq(b.width,44,"native second-button cell actually enlarged")
         eq(b.icon.width,31,"native second icon grows with its circle")
+        eq(b.textures[2].width,36,"native totem bezel visibly grows to 36px")
+        eq(b.textures[2].atlas,"UI-HUD-UnitFrame-TotemFrame",
+            "enlarged native ring retains Blizzard artwork")
         eq(b.cooldown~=nil,true,"native cooldown assigned")
         eq(b.icon.mask~=nil,true,"circular icon mask installed")
     end
