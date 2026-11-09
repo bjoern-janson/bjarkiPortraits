@@ -2,11 +2,66 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.204-self-alias-focus-secondary-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.205-world-buffs-class-tier-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.205 — all identified world buffs share the class-buff priority
+
+**Rule:** Visible world buffs belong in the existing helpful
+`BaselineClass` tier at level **90**, *alongside* maintained class buffs
+and Camp Benefits. They are not offensive-cooldown buffs merely because
+their tooltip increases damage or haste, and must not steal the primary
+portrait from higher-priority active combat states.
+
+The source category `buffs_world` enumerates **27 verified spell IDs**
+covering:
+
+- All eight Sayge's Dark Fortunes (23735–23738, 23766–23769),
+  including the 2-hour damage fortune 23768.
+- Rallying Cry of the Dragonslayer (22888), Warchief's Blessing
+  (16609), Might of Stormwind (460939/460940), Spirit of Zandalar
+  (24425/355365), Songflower Serenade (15366).
+- Dire Maul tribute: Fengus' Ferocity (22817), Mol'dar's Moxie
+  (22818), and Slip'kik's Savvy (22820).
+- Regional/seasonal effects: Traces of Silithyst (29534/1216566),
+  Lordaeron's Blessing (30238), Resist Fire (15123), Ribbon Dance
+  (29175), Boon of Blackfathom (430947/431111), Spark of Inspiration
+  (438537), and Fervor of the Temple Explorer (446695).
+
+Two pre-existing minor-world effects, Rat Familiar (1296202) and
+Benevolence (1292142), were incorrectly owned by the 60-point
+PaladinAura group. Those now share the same class-buff 90-point
+category. The current negative-polarity **Blessing of Blackfathom**
+(8733) already belongs to `BaselineClassHarmful` at 90; it remains
+unchanged, rather than misclassified as a helpful buff. Existing
+Camp Benefits (1229741) stays in the level-90 class-buff band.
+**Welcoming Campfire** and its explicitly requested 257-point status
+are unrelated and intentionally unchanged.
+
+All world IDs are excluded from broad generic helpful categories,
+including `Important` and `HostileHelpful`, to prevent promotion
+when an exact aura filter is restricted. Forever also contains
+hidden stat-effect *twins* of certain world buffs (1304452,
+1304594, 1304678, 1304690, etc.); these are deliberately **not**
+independently rendered as second portrait effects. Some Season of
+Discovery-era spell rows remain in Forever's client: a spell record
+does not prove the world event is currently available in-game.
+
+No new tier or per-spell override, no priority shifts to healing,
+immunities, slows, CC, or movement, and no changes to frames, sizing,
+timers, or the native secondary. No in-game commands. Source-backed
+Lua 5.1/5.4 tests assert exact ownership, all eight DMF fortune IDs,
+native filters, generic exclusions, non-duplication, and unchanged
+class and camp priorities.
+
+Reference spell data:
+[Forever Sayge Damage](https://www.wowhead.com/forever/spell=23768),
+[Forever Might of Stormwind](https://www.wowhead.com/forever/spell=460939),
+[Classic world buff catalog](https://www.warcrafttavern.com/wow-classic/guides/world-buffs),
+[Forever hidden twins evidence](https://daybreakforever.com/discoveries/systems).
 
 ## 0.1.204 — make DMF and other second auras agree across Player/Target/Focus
 
