@@ -134,6 +134,94 @@ R.ApplyCountdownFormat(noNative)
 equal(noNative.fallback, 10, "missing numeric formatter API uses ten-second fallback")
 check(noNative.formatter == nil, "missing API adds no custom formatter")
 
+-- Secondary circle timers must match the font used by Blizzard's
+-- regular BuffFrame duration captions (AuraButtonArtTemplate.Duration
+-- inherits GameFontNormalSmall). PRIMARY countdowns retain their
+-- independent, previously calibrated font and formatter settings.
+local originalInCombat = InCombatLockdown
+local originalRegularFont = GameFontNormalSmall
+local originalAuraDurationFont = DEFAULT_AURA_DURATION_FONT
+local regularFont = {name="GameFontNormalSmall", size=10}
+local nativeBuffDurationFont = {name="DEFAULT_AURA_DURATION_FONT", size=10}
+GameFontNormalSmall = regularFont
+DEFAULT_AURA_DURATION_FONT = nil
+local combatLock = false
+InCombatLockdown = function() return combatLock end
+
+local function makeSecondaryFontCooldown()
+    local cd = {calls=0}
+    local label = {writes=0}
+    function label:SetFontObject(font)
+        self.writes=self.writes+1
+        self.font=font
+    end
+    function cd:GetCountdownFontString()
+        self.calls=self.calls+1
+        return label
+    end
+    cd.label=label
+    return cd
+end
+
+local smallTimer = makeSecondaryFontCooldown()
+check(R.ApplySecondaryCountdownFont(smallTimer),
+    "secondary font successfully applies at OOC initialization")
+check(smallTimer.label.font == regularFont,
+    "secondary timer directly inherits Blizzard's regular-buff duration font")
+equal(smallTimer.label.writes,1,"one font change at initialization")
+check(R.ApplySecondaryCountdownFont(smallTimer),
+    "reused pooled secondary with same font is idempotent")
+equal(smallTimer.label.writes,1,"pooled secondary doesn't rewrite the font")
+check(regularFont.size==10,"regular Blizzard font reference is never mutated")
+
+-- The Blizzard BuffFrame may choose a dynamic default font for regular
+-- duration captions. When present, use exactly that font instead of a
+-- hard-coded pixel-size guess.
+DEFAULT_AURA_DURATION_FONT = nativeBuffDurationFont
+check(R.ApplySecondaryCountdownFont(smallTimer),
+    "secondary adopts currently selected Blizzard aura duration font")
+check(smallTimer.label.font==nativeBuffDurationFont,
+    "native buff duration font object takes priority over generic small font")
+equal(smallTimer.label.writes,2,"font change is applied exactly once")
+
+combatLock=true
+DEFAULT_AURA_DURATION_FONT=regularFont
+check(not R.ApplySecondaryCountdownFont(smallTimer),
+    "no secondary font layout writes during combat lockdown")
+equal(smallTimer.label.writes,2,"combat guard preserves existing font")
+combatLock=false
+check(R.ApplySecondaryCountdownFont(smallTimer),
+    "next safe OOC lifecycle may restore wanted font")
+equal(smallTimer.label.writes,3,"recovered font change is applied once")
+
+local primary = makeCooldown(true)
+R.ApplyCountdownFormat(primary)
+check(primary.formatter~=nil,"primary duration formatter remains active")
+check(primary._bjarkiSecondaryFontObject==nil,
+    "ApplyCountdownFormat alone never changes main-portrait typography")
+check(not R.ApplySecondaryCountdownFont({}),
+    "missing native GetCountdownFontString is nonfatal")
+local noLabel={GetCountdownFontString=function() return nil end}
+check(not R.ApplySecondaryCountdownFont(noLabel),
+    "unavailable countdown FontString defers without fabricated text")
+local badRead={GetCountdownFontString=function() error("protected") end}
+check(not R.ApplySecondaryCountdownFont(badRead),
+    "inaccessible text is never read outside guarded pcall")
+local badSetter={GetCountdownFontString=function()
+    return {SetFontObject=function() error("protected") end}
+end}
+check(not R.ApplySecondaryCountdownFont(badSetter),
+    "rejected protected font write fails closed")
+combatLock=true
+local inCombat = makeSecondaryFontCooldown()
+check(not R.ApplySecondaryCountdownFont(inCombat),
+    "combat prevents even the initial font-object write")
+equal(inCombat.calls,0,"no font-string read attempted during combat")
+combatLock=false
+DEFAULT_AURA_DURATION_FONT=originalAuraDurationFont
+GameFontNormalSmall=originalRegularFont
+InCombatLockdown=originalInCombat
+
 -- Restore the mutable globals for compatibility with combined test runners.
 BjarkiPortraitsDB = oldGlobals.db
 C_StringUtil = oldGlobals.strings
