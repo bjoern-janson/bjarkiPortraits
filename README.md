@@ -2,11 +2,37 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.207-unified-elixirs-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
+**Experimental branch:** `0.1.208-consumables-tier-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.208 — rename unified Elixirs tier to Consumables
+
+The single priority **81** helpful aura group, created in 0.1.207,
+is now named **`Consumables`** instead of `Elixirs`. The broader name
+fits the already-merged elixir and Well Fed food categories and leaves
+a natural conceptual home for **flasks** once their actual applied
+aura IDs can be verified. No flask IDs have been guessed or added.
+
+This is a **tier-key rename only**. The same exact native spell-ID
+filter still unions `buffs_elixirs`, `buffs_well_fed`,
+`buffs_minor_world` and `buffs_minor`. All existing elixirs,
+23 Well Fed variants, Rat Familiar and Benevolence retain **81**.
+Rat Familiar and Benevolence are not literally consumed; they
+remain in the user-approved shared low-impact/provisions grouping
+rather than being reclassified by assumption.
+
+The old `Elixirs` tier key is **removed**, not retained as an alias,
+so there is only **one** native priority-81 owner. World/class buffs
+remain priority 90, and all other numeric tiers are unchanged.
+Primary/secondary portraits, sizes, masks, cooldowns, race/pet
+fallbacks, and the no-command workflow are unchanged.
+
+Lua 5.1/5.4 regression tests verify the new key, old-key absence,
+the full Well Fed/elixir/minor membership, native filter exclusions,
+and no duplicate exact-tier ownership.
 
 ## 0.1.207 — merge Well Fed and minor buffs into Elixirs 81
 
