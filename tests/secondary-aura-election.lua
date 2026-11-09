@@ -274,4 +274,65 @@ mid.level=210
 C_UnitAuras.GetAuraDataByIndex=nil
 R.ReconcileSecondaryPortrait(host,true,true)
 eq(host._secondaryMode,'race','absent aura index fails closed')
+
+-- The real local player can be displayed simultaneously on PlayerFrame,
+-- TargetFrame, and FocusFrame. The target/focus aura APIs may be restricted
+-- even when the same auras are publicly readable on the "player" token.
+-- A POSITIVE UnitIsUnit witness may choose the same authorized source;
+-- mere matching names and unknown equality may not.
+C_UnitAuras.GetAuraDataByIndex=readableIndex
+setAuras('target',{})
+setAuras('focus',{})
+setAuras('player',{aura(101,701,180,80),aura(999,702,180,80,true)})
+local oldExactPermit = R.NativeExactContainerAllowed
+R.NativeExactContainerAllowed=function(unit)
+    -- Confirm candidateRank's native permission check uses the alias source,
+    -- not the relation-gated literal target/focus token.
+    return unit=='player'
+end
+local equality='self'
+UnitIsUnit=function(left,right)
+    if equality=='unknown' then return 'SECRET' end
+    if equality=='other' then return false end
+    return (left=='target' or left=='focus') and right=='player'
+end
+for _,alias in ipairs({'target','focus'}) do
+    local own=makeHost()
+    own.unit=alias
+    own._assistable=nil
+    own._hostileUnit=nil -- local relation can be obscured independently
+    R.ReconcileSecondaryPortrait(own,true,true)
+    eq(own._secondaryMode,'aura',alias..' mirrors verified self second')
+    eq(own._secondaryAuraSpellID,999,alias..' selects semantic DMF-like aura')
+    eq(own._secondaryAuraTier,'Important',alias..' preserves original tier')
+    eq(own.secondaryBadge.shown,true,alias..' badge is present')
+    eq(own.racePortrait.texture,1999,alias..' uses current player aura icon')
+    eq(own._secondaryPrimaryAuraInstanceID,701,
+        alias..' first-place identity remains distinct')
+end
+local otherSelf=makeHost()
+otherSelf.unit='target'
+otherSelf._assistable=true
+otherSelf._hostileUnit=false
+equality='other'
+R.ReconcileSecondaryPortrait(otherSelf,true,true)
+eq(otherSelf._secondaryMode,'race','unrelated target cannot borrow player aura')
+eq(otherSelf._secondaryAuraSpellID,nil,'no player aura leak onto other target')
+equality='unknown'
+R.ReconcileSecondaryPortrait(otherSelf,true,true)
+eq(otherSelf._secondaryMode,'race','secret UnitIsUnit cannot authorize alias')
+equality='self'
+-- If the local player's auras change, the next verified read reflects them.
+setAuras('player',{aura(101,703,190,90)})
+R.ReconcileSecondaryPortrait(otherSelf,true,true)
+eq(otherSelf._secondaryMode,'race','self alias revokes vanished second')
+R.NativeExactContainerAllowed=oldExactPermit
+UnitIsUnit=nil
+
+local file=assert(io.open('Main.lua','rb'))
+local eventSource=assert(file:read('*a'));file:close()
+eq(eventSource:find('R.SafeBool(UnitIsUnit, alias, "player")',1,true)~=nil,
+    true,'player aura changes refresh only verified self aliases')
+eq(eventSource:find('R.NoteSecondaryAuraEvent(alias, updateInfo)',1,true)~=nil,
+    true,'alias refresh invalidates stale second occurrence evidence')
 print('secondary portrait readable top-two: '..checks..' assertions passed')
