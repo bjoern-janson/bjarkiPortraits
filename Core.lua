@@ -19,6 +19,21 @@ R.SORT_METHOD = AuraContainerSortMethod and AuraContainerSortMethod.AuraInstance
 R.SORT_DIRECTION = AuraContainerSortDirection and AuraContainerSortDirection.Reverse
 R.SWIPE_TEXTURE = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 
+-- One positional contract for ALL small second circles: readable aura/race,
+-- native ranked-second, and pet-family fallback. It uses only the stable
+-- frame UNIT token, never aura contents or combat-restricted geometry.
+-- Target's right edge carries Blizzard's vertical combo-point pips.
+-- Place that circle at the elevated UPPER-LEFT of the portrait instead.
+-- Lifting it 12px keeps the enlarged 36px rim off the left-side name bar.
+-- Leave existing Player/party and Focus placements entirely untouched.
+function R.SecondaryCirclePlacement(unit)
+    if unit == "target" then return "TOPLEFT", 10, 12 end
+    if unit == "focus" then return "TOPRIGHT", -5, 0 end
+    if unit == "player" then return "TOPLEFT", 5, 0 end
+    if R.PARTY_UNITS[unit] then return "TOPLEFT", 5, 2 end
+    return nil
+end
+
 local defaults = {
     enabled = true,
     player = true,
