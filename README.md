@@ -2,11 +2,48 @@
 
 A native-styled portrait-aura addon for **WoW: Forever**, displaying the highest-priority eligible, positively observed aura or state on Blizzard's portrait regions.
 
-**Experimental branch:** `0.1.200-pet-family-secondary-test` (2026-11-08), built on 0.1.178. Target/Focus pets now gain a guarded, native aura-presence-gated pet-family secondary fallback. Naked pets show no second circle; genuine aura runner-ups still take precedence. All other units retain their previous behavior. No in-game commands or new settings.
+**Experimental branch:** `0.1.201-target-native-fallback-test` (2026-11-09), built on 0.1.178. The native second-aura ribbon now supports friendly and neutral Targets as a guarded fallback when public aura ranking fails, while preserving valid second-place auras, character-race underlays and pet-family fallbacks. No in-game commands or new settings.
 
 ## Install
 
 Install the **`bjarkiPortraits`** folder in your game's `Interface/AddOns/` directory, with the thirteen `.lua` modules and both `.toc` manifests directly inside the folder. Enable the addon and `/reload`. Blizzard's in-game unit-frame settings still control whether ToT/ToF and regular party frames are visible.
+
+## 0.1.201 — friendly/neutral Target falls back to native second
+
+A screenshot of **Chero Ironhammer** shows four helpful aura icons and
+one harmful icon on Target, with a large shield-related primary portrait,
+yet the small circle continues to show race-like artwork rather than a
+second effect. The screenshot alone cannot establish the actor's exact
+client hostility/identity state or prove that the debuff causes the
+failure. The source does establish a coverage gap: `NativeSecondProbe`
+required `hostile == true`. Even on targets where Blizzard's native
+portrait can render several auras, a readable `hostile == false` was
+forced to rely exclusively on `SecondaryPortrait.collectCurrentAuras`.
+That public election fails closed if either helpful OR harmful indexing
+is secret or incomplete, regardless of how many other buffs are visible.
+
+**Fix:** After successful positive unit/relation/player-kind checks,
+the same native priority-ordered two-cell ribbon is now available to
+friendly and neutral Targets. For nonhostile units it becomes visible
+**only when the existing public second was not verified** (race/hidden
+fallback), and remains off when that reader positively elects an aura
+or static form. Independent Ghost/form witnesses also suppress this
+native substitute. Hostile Target behavior remains unchanged.
+
+A confirmed target player retains valid race art underneath a native
+second cell; nonplayer Targets hide stale race-like badge artwork.
+Targeted Hunter/Warlock pets retain their native aura-presence-gated
+family image below a real secondary. The main portrait, tier levels,
+all spell classifications, cooldown policy and the current native
+22px inner icon size are unchanged. No commands or settings.
+
+Lua 5.1/5.4 regressions verify unknown relation/identity rejection,
+mixed helpful/harmful public failure, friendly player race underlay,
+friendly NPC no-race behavior, nonoverride of verified readable
+selections, static-state precedence, and preservation of hostile
+rendering. This is a **source-backed experimental fix**: native
+clipping and the exact selected second icon still require live client
+confirmation.
 
 ## 0.1.200 — confirmed pet-family fallback as a real secondary
 
