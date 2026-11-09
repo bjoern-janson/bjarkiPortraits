@@ -1,3 +1,32 @@
+## 2026-11-09 — 0.1.201 target race fallback with mixed helpful/harmful auras
+
+The live Chero Ironhammer screenshot shows the large Target portrait
+occupied by a shield-themed state and four helpful plus one harmful
+native aura icons, while its small secondary circle still displays
+race-like artwork. Its actual in-game target relation, player
+classification and `secondReason` are not provided; a protected
+harmful index is a plausible explanation, **not a confirmed cause**.
+
+The prior native group ribbon required hostile=true and could never
+help friendly/neutral Targets. These units still depended on a
+complete Lua-visible union of helpful and harmful aura indexes.
+An inaccessible harmful aura rejects the whole public second-place
+election even if the helpful ones are readable.
+
+Version 0.1.201 admits positively classified, positively related
+friendly/neutral Target units to the native runner-up as a
+**fallback only** when the existing public secondary is race/hidden.
+Verified public aura/form secondaries take precedence, Ghost/form
+static presenters suppress the new substitution, hostile Targets
+keep their prior behavior, and an unconfirmed/non-player target
+never gets an invented race baseline. Existing pet-family art
+remains beneath the true secondary when available.
+
+This does not prove that Chero's specific target state is now fixed
+or that the visible icons all qualify for the priority tiers.
+No in-game commands are required. Await visual retest of
+0.1.201 on the same type of friendly/neutral target.
+
 ## 2026-11-08 — 0.1.200 targeted pet secondary identity
 
 **Live trigger:** A targeted Hunter pet (“Bird of Prey”) has a
