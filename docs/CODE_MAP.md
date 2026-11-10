@@ -1,0 +1,25 @@
+# bjarkiPortraits code map
+
+This guide follows version 0.1.239. The two manifests load the same Lua files in order. `Core.lua` creates `BP.Runtime`, usually called `R` inside a module, and `Main.lua` registers the events. [Standard manifest](../bjarkiPortraits.toc) · [Camelot manifest](../bjarkiPortraits_Camelot.toc)
+
+## Trace one Target aura update
+
+1. The `UNIT_AURA` handler calls `R.NoteSecondaryAuraEvent` with the delta, calls `R.PublishAuraEvent`, then invokes `refreshAuraToken`. A removal of an unrelated instance can leave a held pair valid. Removal of a winner or an aura used to link two interrupt reports requires rechecking it. [Event routing](../Main.lua) · [Delta handling](../SecondaryPortrait.lua)
+2. `R.Refresh` checks that the host still belongs to the native frame. `R.UpdateHost` reconciles recipient interrupt state, runs readable aura helpers, and enables the appropriate native containers. Its `exactReads` table shares per-filter observations within that update. Blizzard's native slots can display a protected effect even when its spell ID is unavailable to Lua. [Host and main portrait](../AuraEngine.lua)
+3. `R.ReconcileSecondaryPortrait` asks `R.GetReadableSecondaryAura` for the runner, reason, and primary, in that return order. A fresh verified pair can reuse the existing art and clock. When a read becomes restricted in combat, `retainCombatPositive` checks the prior pair's identity, current competitors, and expiry. `R.UpdateNativeSecondProbe` then decides whether the clipped second native button can show through. [Public election](../SecondaryPortrait.lua) · [Native fallback](../NativeSecondProbe.lua)
+
+## Find a change and its tests
+
+| Question | Source | Regression tests |
+| --- | --- | --- |
+| Why does a spell win? | Find its numeric ID in [Spells.lua](../Spells.lua), then follow its category into `R.TIERS` and `R.CandidateFilters` in [Priority.lua](../Priority.lua). `candidateRank` applies those rules to readable candidates in [SecondaryPortrait.lua](../SecondaryPortrait.lua). | [Priority ordering](../tests/priority-overhaul.lua) · [Filter membership](../tests/secondary-filter-proof.lua) |
+| Why did Kick appear or expire? | Follow `LOSS_OF_CONTROL_ADDED` or `LOSS_OF_CONTROL_UPDATE` to `R.GetSchoolInterrupt` in [Interrupts.lua](../Interrupts.lua). It reads active `SCHOOL_INTERRUPT` rows for the recipient, combines corroborated observations, and elects distinct effects before resolving their clocks. `updateSchoolInterrupt` owns the main presenter and expiry wake in [AuraEngine.lua](../AuraEngine.lua). | [Interrupt evidence](../tests/interrupt-evidence.lua) · [Secondary ordering](../tests/interrupt-secondary.lua) · [Target and Focus overlap](../tests/secondary-ownership.lua) |
+| Why did the badge fall back? | Check `R.SecondaryOwnerVisible` and `R.ExactFilterAllowed` in [Core.lua](../Core.lua), then `knownRibbonMismatch` in [NativeSecondProbe.lua](../NativeSecondProbe.lua). The public badge covers Player, Target, Focus, and regular party portraits. The native runner-up ribbon covers Player, Target, and Focus. | [Public ownership and clocks](../tests/secondary-ownership.lua) · [Native ribbon](../tests/native-second-probe.lua) |
+| Who owns form or pet artwork? | `R.ResolveWarriorStance` supplies Warrior stance evidence in [StanceState.lua](../StanceState.lua). `R.ResolveObservedPetSecondaryArt` verifies family art and the recipient GUID in [PetPortraits.lua](../PetPortraits.lua). `R.UpdatePetSecondaryFallback` manages its display in [PetSecondary.lua](../PetSecondary.lua). | [Stances](../tests/stance-state.lua) · [Pet fallback](../tests/pet-secondary.lua) |
+| What can reach bjarkiCC? | [EvidencePublisher.lua](../EvidencePublisher.lua) publishes readable helpful observations on verified hostile player recipients. `R.PublishDerivedSnapshot` handles target-of-target and focus-of-focus first sightings. [SharedEvidence.lua](../SharedEvidence.lua) validates records and provides bounded replay through `BjarkiEvidenceV1`. A secure portrait image alone supplies no publishable spell ID. | [Derived evidence](../tests/derived-evidence.lua) · [Recovery](../tests/pending-evidence-recovery.lua) |
+
+## Binding and verification
+
+Target and Focus tokens can change occupants. Party member frames can be recycled. `hostStillCurrent` and `nativeUnitTokenMatches` check the physical owner. A player alias can borrow player-only evidence only while `UnitIsUnit` positively confirms it. A binding change requires a fresh clock even when the new recipient would show the same icon and digits. During teardown, `R.DestroyHost` retains unfinished restoration work for retry. [Host lifecycle](../AuraEngine.lua) · [Interrupt acquisition](../Interrupts.lua) · [Restoration tests](../tests/portrait-restoration.lua)
+
+The [package workflow](../.github/workflows/package-addon.yml) syntax-checks the Lua files and runs every test script on Lua 5.1 and 5.4. These tests can verify election results, requested native writes, refused setters, and simulated event order. Protected-client visibility, taint, and the final on-screen timer placement require a live Forever session.

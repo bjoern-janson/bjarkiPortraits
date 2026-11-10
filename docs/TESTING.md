@@ -1,22 +1,23 @@
-# Testing and debug workflow
+# Testing and debugging bjarkiPortraits
 
-**Development branch:** `feat/secondary-portrait-p1`. **Baseline:** `0.1.224-hostile-helpful-combat-fallback-test`, 2026-11-09. The workflow is [`.github/workflows/package-addon.yml`](../.github/workflows/package-addon.yml).
+Run the following from the repository root in Bash with both Lua interpreters installed. Each script loads the addon modules it exercises.
 
-## Automated pipeline
+```bash
+set -e
+for version in 5.1 5.4; do
+  for test in tests/*.lua; do
+    "lua${version}" "$test"
+  done
+done
+```
 
-On development-branch pushes (and supported pull-request/workflow-dispatch triggers), GitHub Actions:
+GitHub Actions also checks syntax and stages the 14 runtime modules and both manifests under `dist/bjarkiPortraits/`. The [workflow](../.github/workflows/package-addon.yml) defines the build. For targeted checks, follow the [code map](CODE_MAP.md).
 
-1. Installs Lua **5.1 and 5.4**.
-2. Syntax checks all thirteen runtime `.lua` modules and `tests/*.lua` with `luac5.1 -p` / `luac5.4 -p`.
-3. Executes all explicitly listed regression scripts for **both** Lua versions. See the workflow's `Check Lua syntax and behavioral regressions` step for the precise, authoritative list.
-4. Packages `dist/bjarkiPortraits/` with **13 runtime modules and two `.toc` manifests**, and publishes the `bjarkiPortraits` workflow artifact.
-
-For an installable ZIP, the extracted folder must have one `bjarkiPortraits` directory, with the `.toc` files immediately inside it. Check that both manifests and `Core.lua` report the same version. A successful ZIP integrity test only proves that the archive is readable; it does **not** prove that the platform's file-download handoff will succeed.
-
-Useful regression scripts:
+### Focused regression scripts
 
 | Concern | Script(s) |
 | --- | --- |
+| School-interrupt identity, countdowns, ranking and recipient reuse | `tests/interrupt-evidence.lua`, `tests/interrupt-secondary.lua`, `tests/secondary-ownership.lua` |
 | Priority ordering, unique exact-ID owners | `tests/priority-overhaul.lua`, `tests/class-aura-coverage.lua`, `tests/world-buffs.lua`, `tests/mount-buffs.lua` |
 | Informational/bottom tiers and Well-Rested | `tests/low-priority.lua`, `tests/shiny-silver-coin.lua` |
 | Second-place readable election and priority init | `tests/secondary-aura-election.lua`, `tests/secondary-real-tiers.lua`, `tests/secondary-load-order.lua` |
@@ -68,4 +69,4 @@ A screenshot plus an exact `/bp secondary debug` result is more informative than
 - Regenerate the numeric [priority reference](PRIORITIES.md) when `Priority.lua` changes. Update classification examples only from reviewed, applied spell IDs.
 - Keep the historical [release notes](README_RELEASE_HISTORY.md), [architecture](ARCHITECTURE_HISTORY.md), [issue chronology](KNOWN_ISSUES_HISTORY.md) and [secondary design log](SECONDARY_PORTRAIT_PLAN.md) as provenance—not as the current settings/geometry authority.
 - Distinguish **in-game observation**, **source-proven defect**, **Lua CI regression** and **not yet live verified**. Never label an unresolved client behavior as fixed simply because code compiles.
-- For a documentation-only change, leave `Core.lua` and both `.toc` version strings unchanged. Add a docs-only commit to the development branch; avoid merging experimental secondary work into `main` implicitly.
+- For a documentation-only change, leave `Core.lua` and both `.toc` version strings unchanged.

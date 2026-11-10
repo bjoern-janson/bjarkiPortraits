@@ -2,28 +2,28 @@
 
 Native-styled priority aura portraits for **WoW: Forever**. A high-priority observed aura or state can replace the normal Blizzard portrait; a smaller circle may show the next distinct eligible effect. The addon respects the client's protected-aura boundaries and does not guess hidden spell IDs.
 
-**Development baseline:** `0.1.224-hostile-helpful-combat-fallback-test` (2026-11-09), branch [`feat/secondary-portrait-p1`](https://github.com/bjoern-janson/bjarkiPortraits/tree/feat/secondary-portrait-p1). **`main` remains at 0.1.178**; the current secondary-portrait implementation is on the development branch, not `main`.
+**0.1.239 for WoW: Forever.** A landed school interrupt can supply the portrait and countdown. Target and Focus each use their current recipient. For a walkthrough from the game event to the painted icon, start with the [code map](docs/CODE_MAP.md).
 
 ## Install
 
-1. Download the `bjarkiPortraits` artifact from a successful [development-branch GitHub Actions run](https://github.com/bjoern-janson/bjarkiPortraits/actions/workflows/package-addon.yml), or use a packaged release built from this branch.
-2. Place the **`bjarkiPortraits` folder** directly inside `World of Warcraft/Interface/AddOns/`. The thirteen `.lua` files and both `.toc` manifests must be **directly inside** that folder—not inside another `bjarkiPortraits` folder.
+1. Download the `bjarkiPortraits` artifact from a successful [Package addon run on main](https://github.com/bjoern-janson/bjarkiPortraits/actions/workflows/package-addon.yml?query=branch%3Amain), or use a packaged release built from this branch.
+2. Place the **`bjarkiPortraits` folder** directly inside `World of Warcraft/Interface/AddOns/`. Check that `Interface/AddOns/bjarkiPortraits/bjarkiPortraits.toc` exists alongside its Lua modules.
 3. Enable the addon, then `/reload`. The existing Blizzard settings control whether regular party frames and ToT/ToF are visible.
 
 There is **no setup command** for second portraits: they are enabled by default. Existing settings are saved in `BjarkiPortraitsDB`.
 
-## Current behavior (0.1.224)
+## Portrait behavior
 
 - **Primary portraits:** Player, pet, Target, Focus, ToT, ToF and regular `party1`–`party4` (10 unit tokens) share the priority model. Without a selected aura/state, the normal Blizzard 3D portrait or class icon remains.
 - **Secondary portraits:** Player, Target, Focus and regular party members can show a second distinct, eligible aura or state. The guarded public reader takes precedence when its complete election is proven. Player/Target/Focus also have a native ranked-second fallback when public ranking cannot be completed.
 - **Fallback artwork:** Verified race icons are secondary-only for player characters. Confirmed Hunter/Warlock pets targeted on Target/Focus can use pet-family artwork underneath real second-aura art. Unverified races and NPCs are never assigned a guessed race tile.
 - **No second circle:** Local PetFrame, ToT and ToF. Their **primary** portraits still work. Raid/compact raid frames and party-pet frames are not hosts.
 
-**Combat duplicate suppression (0.1.222):** The native runner-up partitions overlapping semantic aura groups and keeps the broad HostileHelpful group disabled on Player/friendly frames. Complete public rankings also collapse repeated instances of the same spell. The screenshot's spell identity is not independently established; live confirmation remains necessary.
+### Interrupts on Target and Focus
 
-**0.1.224 combat CC-expiry safeguard:** A hostile Target/Focus native second can continue showing its already-enabled harmful/exact runner-up groups when the optional `HostileHelpful` group cannot be enabled during combat. This optional group stays disabled until a safe out-of-combat update. Disabling an *active* hostile group on a newly friendly target still fails closed rather than risking duplicates. The screenshot's precise spell identities remain unverified.
+A readable loss-of-control record can identify a landed Kick, Pummel or other school interrupt. When Target or Focus changes, the addon rechecks the recipient. Two reports for one effect can occupy one rank, leaving room for a different active lockout. The countdown can use a native duration object or corroborated public timing. In combat, the client may allow the native secondary icon to render while withholding its identity from Lua.
 
-The secondary system is **experimental** under restricted combat reads: a visible aura does not guarantee that the addon can independently identify or prove its rank. Read [Known issues](KNOWN_ISSUES.md) before treating a race fallback as a priority bug.
+The remaining in-game checks include swapping Target and Focus during a lockout and watching a second effect take over when the first expires. [Known issues](KNOWN_ISSUES.md)
 
 ### Secondary layout
 
@@ -33,7 +33,7 @@ The secondary system is **experimental** under restricted combat reads: a visibl
 | Party 1–4 | `TOPRIGHT (-10, +12)` | 40px | 33px | 24px |
 | Target, Focus | `TOPLEFT (+10, +12)` | 50px | 41px | **30px** |
 
-The 30px full-size artwork matches a regular Blizzard buff icon; its Totem-style rim scales around the artwork rather than cropping it tightly. Version 0.1.223 additionally applies a slight 2/64 source-image inset to actual spell/form and confirmed secondary pet-family art to hide thin square icon edges. The local PetFrame retains its prior 3/64 crop; registered race atlases and race sprite-sheet tile coordinates are left untouched. `Core.SecondaryCirclePlacement` and `Core.SecondaryCircleGeometry` are the two layout authorities for readable icons, native second-aura clips and pet-family fallbacks. Native Blizzard spell artwork is retained. The masks and cooldowns follow the icon, not a larger invisible rectangle.
+The 30px full-size artwork matches a regular Blizzard buff icon; its Totem-style rim scales around the artwork rather than cropping it tightly. Version 0.1.223 additionally applies a slight 2/64 source-image inset to actual spell/form and confirmed secondary pet-family art to hide thin square icon edges. The local PetFrame retains its prior 3/64 crop; registered race atlases and race sprite-sheet tile coordinates are left untouched. `R.SecondaryCirclePlacement` and `R.SecondaryCircleGeometry` are the two layout authorities for readable icons, native second-aura clips and pet-family fallbacks. Native Blizzard spell artwork is retained. The masks and cooldowns follow the icon, not a larger invisible rectangle.
 
 ### Countdown and priority examples
 
@@ -77,11 +77,12 @@ For a regression, run the read-only debug command **before** manually refreshing
 
 ## Source and documentation
 
+- [Code map](docs/CODE_MAP.md) — event paths, state owners and tests for specific symptoms.
 - [Architecture](ARCHITECTURE.md) — current module loading, main/secondary election, guards, native pooling and lifecycle.
 - [Known issues / verification status](KNOWN_ISSUES.md) — current open questions versus source-level repairs.
-- [Priority reference](docs/PRIORITIES.md) — complete numeric lane table generated from 0.1.220's `Priority.lua`.
+- [Priority reference](docs/PRIORITIES.md) — numeric lane table from `Priority.lua`.
 - [Testing and debugging](docs/TESTING.md) — automated checks, in-game acceptance cases and release checks.
 - [Secondary portrait design history](docs/SECONDARY_PORTRAIT_PLAN.md) — chronological experiments, acceptance goals and source evidence.
 - [Historical README / release notes](docs/README_RELEASE_HISTORY.md), [legacy architecture](docs/ARCHITECTURE_HISTORY.md) and [earlier issue log](docs/KNOWN_ISSUES_HISTORY.md) — preserved provenance; **not current configuration guidance**.
 
-CI compiles the addon and executes its Lua regression scripts under **Lua 5.1 and 5.4**, then packages the 13 Lua files and two manifests into one installable folder. Passing CI verifies the modeled source behavior, **not** every in-game protected-aura or visual case. [CI workflow](.github/workflows/package-addon.yml).
+CI compiles the addon and executes its Lua regression scripts under **Lua 5.1 and 5.4**, then packages the 14 Lua files and two manifests into one installable folder. Passing CI verifies the modeled source behavior, **not** every in-game protected-aura or visual case. [CI workflow](.github/workflows/package-addon.yml).

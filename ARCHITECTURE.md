@@ -1,24 +1,25 @@
-# Architecture — bjarkiPortraits 0.1.224
+# bjarkiPortraits architecture
 
-**Current technical reference** for branch `feat/secondary-portrait-p1`, source version `0.1.224-hostile-helpful-combat-fallback-test` as of 2026-11-09. The original 0.1.178-and-earlier architecture chronology is preserved in [docs/ARCHITECTURE_HISTORY.md](docs/ARCHITECTURE_HISTORY.md); its old "current" statements and older tier levels must not be used as the current implementation.
+For the current event paths and their regression tests, start with the [code map](docs/CODE_MAP.md). Earlier architecture decisions are preserved in the [history](docs/ARCHITECTURE_HISTORY.md).
 
 ## Module loading
 
-Both `bjarkiPortraits.toc` and `bjarkiPortraits_Camelot.toc` load **13 runtime modules**, in this order:
+Both `bjarkiPortraits.toc` and `bjarkiPortraits_Camelot.toc` load **14 runtime modules** in this order.
 
 1. `Spells.lua` — reviewed applied aura ID groupings. No guessing from spell names or icons.
 2. `Core.lua` — runtime/defaults, guarded unit access, race lookup, portrait geometry and countdown formatting.
-3. `StanceState.lua` — positively readable Warrior stances and supported form state.
-4. `SharedEvidence.lua` — bounded positive-observation bus; never an oracle for hidden spell identity.
-5. `EvidencePublisher.lua` — guarded event publication and derived-unit snapshots.
-6. `Priority.lua` — immutable `R.TIERS`, exact/semantic lanes and derived spell-to-tier indexes.
-7. `SecondaryPortrait.lua` — optional readable second-election, secondary race/art badge, conservative combat retention.
-8. `NativeSecondProbe.lua` — secure native second-slot fallback for Player/Target/Focus.
-9. `AuraEngine.lua` — host lifecycle, native primary containers, readable fallback, frame restoration.
-10. `PetPortraits.lua` — confirmed pet-family and other observed pet identity artwork.
-11. `PetSecondary.lua` — targeted pet-family secondary fallback, gated by native aura presence.
-12. `Commands.lua` — user toggles and read-only diagnostics.
-13. `Main.lua` — event routing, coalesced delayed refresh, native frame hooks.
+3. `Interrupts.lua` — landed school-interrupt records, recipient evidence, ranking and clocks.
+4. `StanceState.lua` — positively readable Warrior stances and supported form state.
+5. `SharedEvidence.lua` — bounded positive-observation bus; never an oracle for hidden spell identity.
+6. `EvidencePublisher.lua` — guarded event publication and derived-unit snapshots.
+7. `Priority.lua` — immutable `R.TIERS`, exact/semantic lanes and derived spell-to-tier indexes.
+8. `SecondaryPortrait.lua` — optional readable second-election, secondary race/art badge, conservative combat retention.
+9. `NativeSecondProbe.lua` — secure native second-slot fallback for Player/Target/Focus.
+10. `AuraEngine.lua` — host lifecycle, native primary containers, readable fallback, frame restoration.
+11. `PetPortraits.lua` — confirmed pet-family and other observed pet identity artwork.
+12. `PetSecondary.lua` — targeted pet-family secondary fallback, gated by native aura presence.
+13. `Commands.lua` — user toggles and read-only diagnostics.
+14. `Main.lua` — event routing, coalesced delayed refresh, native frame hooks.
 
 **Load-order rule:** `Priority.lua` must load before `SecondaryPortrait.lua`. A real 0.1.188–0.1.189 regression built an empty secondary ranking table before the tiers existed; 0.1.190 fixed the TOCs and added lazy rank initialization. Do not regress it.
 

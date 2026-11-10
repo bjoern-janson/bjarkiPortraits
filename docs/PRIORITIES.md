@@ -1,6 +1,6 @@
-# Priority lanes — 0.1.224
+# Portrait priority lanes
 
-**Generated from the exact 62 `R.TIERS` declarations** in [`Priority.lua`](../Priority.lua) on `feat/secondary-portrait-p1`, version `0.1.224-hostile-helpful-combat-fallback-test` (2026-11-09). This is a readable **numeric snapshot**; the Lua files, not this Markdown, control the addon. It is sorted by numeric level descending, not by source-file declaration order.
+The table follows the 62 lanes in [Priority.lua](../Priority.lua), sorted by descending level. Exact spell membership comes from [Spells.lua](../Spells.lua). Landed school interrupts also enter the display election through [Interrupts.lua](../Interrupts.lua).
 
 - **Exact IDs:** membership is derived from `Spells.lua` applied-aura groupings or unions. The existence of an ID in a group does not prove that aura is currently applied to a unit.
 - **Semantic:** candidate filtering uses Blizzard-native aura metadata and can be restricted in combat. The table does not claim arbitrary secure aura identity visibility.

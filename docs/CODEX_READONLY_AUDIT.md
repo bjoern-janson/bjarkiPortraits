@@ -1,5 +1,7 @@
 # Codex deep audit handoff — v0.1.224 (READ ONLY)
 
+**Historical audit for 0.1.224.** Use the [pinned checkout](https://github.com/bjoern-janson/bjarkiPortraits/tree/ed0efa5534835db5479daedad9065e20d81036ec) to reproduce this investigation. For current source and tests, start with the [code map](CODE_MAP.md).
+
 **Prepared 2026-11-09.** Repo: [bjoern-janson/bjarkiPortraits](https://github.com/bjoern-janson/bjarkiPortraits). Target: `feat/secondary-portrait-p1`, runtime `0.1.224-hostile-helpful-combat-fallback-test`. Last runtime source change: `6936bb84f8e20fd48acefabbcc6701eab18c26ab`.
 
 ## Task to paste into Codex

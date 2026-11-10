@@ -1,6 +1,8 @@
 # Known issues & verification status
 
-**Scope:** development branch `feat/secondary-portrait-p1`, source `0.1.224-hostile-helpful-combat-fallback-test`, 2026-11-09. This page is the **current** tracker. Earlier issues and intermediate fixes (including superseded 0.1.213 geometry) are retained in [docs/KNOWN_ISSUES_HISTORY.md](docs/KNOWN_ISSUES_HISTORY.md), not treated as open just because an old heading remains there.
+The 0.1.239 offline fixtures cover fractional lockout deadlines, duplicate reports, changing Target and Focus, and an unreadable aura list after an occurrence is removed. Live checks still needed include recipient swaps during an active Kick, overlapping lockouts and expiry in combat. [Code and tests](docs/CODE_MAP.md)
+
+The dated observations below come from earlier builds. [Earlier issue history](docs/KNOWN_ISSUES_HISTORY.md)
 
 ## Open or requires further in-game verification
 
