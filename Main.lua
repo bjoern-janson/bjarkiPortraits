@@ -269,7 +269,9 @@ events:SetScript("OnEvent", function(_, event, arg1)
         -- Existing hosts also need fresh eligibility after restrictions lift;
         -- a host build request is not required for a stale disabled aura lane.
         R.RefreshAll(true)
-        R.ApplyPresentation()
+        -- Reuse settled cells. Visible/pending layout and failed formatters
+        -- still recover through the ordinary pass and the new safe epoch.
+        R.ApplyPresentation(nil,true,nil,true)
         for token in pairs(snapshotNeeded) do
             queueRefresh(token, "combat-exit", true, true)
         end

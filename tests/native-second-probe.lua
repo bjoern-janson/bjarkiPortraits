@@ -27,6 +27,14 @@ R.ApplySecondaryCountdownFont=function(cooldown)
     cooldown._bjarkiUsesRegularBuffFont=true
     return true
 end
+R.AttachPortraitAuraClock=function(button,cooldown)
+    assert(not combat,"native timer bridge is attached out of combat")
+    assert(button.cooldown==cooldown,"native cooldown is assigned before its timer bridge")
+    assert(cooldown._bjarkiUsesRegularBuffFont,"native timer bridge follows source typography")
+    cooldown.nativeClockButton=button
+    cooldown.attachCalls=(cooldown.attachCalls or 0)+1
+    return true
+end
 R.AURA_ANCHOR_TEMPLATE="DisableUntrustedLayoutScriptsTemplate"
 R.SORT_METHOD=8
 R.SORT_DIRECTION=1
@@ -181,6 +189,46 @@ CreateFrame=function(kind,name,parent,template)
 end
 assert(loadfile("NativeSecondProbe.lua"))("bjarkiPortraits",BP)
 
+-- Existing lifecycle scenarios advance the deferred native builder to its
+-- next stable boundary. The scheduling scenarios below inspect each turn.
+local constructionCallbacks={}
+C_Timer={After=function(delay,callback)
+    if delay~=.01 then return false end
+    constructionCallbacks[#constructionCallbacks+1]=callback
+end}
+local advancing,callDepth=false,0
+local function advanceConstruction()
+    if advancing then return end
+    advancing=true
+    local steps=0
+    while #constructionCallbacks>0 do
+        steps=steps+1;assert(steps<1000,"construction must be bounded")
+        table.remove(constructionCallbacks,1)()
+    end
+    advancing=false
+end
+local updateNative,createNative=R.UpdateNativeSecondProbe,R.CreateNativeSecondProbe
+R.UpdateNativeSecondProbe=function(h,...)
+    R.hosts[h.unit]=h;h.testNativeArguments={...}
+    callDepth=callDepth+1;local result=updateNative(h,...);callDepth=callDepth-1
+    if callDepth==0 then advanceConstruction() end
+    return result
+end
+R.CreateNativeSecondProbe=function(h)
+    R.hosts[h.unit]=h
+    callDepth=callDepth+1;local result=createNative(h);callDepth=callDepth-1
+    if callDepth==0 then
+        advanceConstruction()
+        return result or (h._nativeSecondProbe and h._nativeSecondProbe.ready==true) or false
+    end
+    return result
+end
+R.Refresh=function(unit)
+    local h=R.hosts[unit]
+    if h and h.testNativeArguments then R.UpdateNativeSecondProbe(h,(unpack or table.unpack)(h.testNativeArguments))
+    elseif h then R.CreateNativeSecondProbe(h) end
+end
+
 local host={unit="target",portrait=frame("portrait"),
     secondaryBadge=frame("badge")}
 host.unitFrame=frame("native target")
@@ -198,6 +246,7 @@ R.UpdateNativeSecondProbe(host,true,true,true,false)
 eq(host._nativeSecondProbe~=nil,true,"eligible NPC builds automatically without commands")
 local p=host._nativeSecondProbe
 eq(p.ready,true,"native container initialized")
+eq(p.cooldowns[1].nativeClockButton~=nil,true,"native secondary attaches its opaque aura clock")
 eq(p.clip.clips,true,"fixed clipping viewport")
 eq(p.clip.width,50,"entire native secondary viewport actually enlarged")
 eq(p.clip.points[3],"TOPLEFT","native Target runner-up avoids right-hand combo points")
@@ -388,31 +437,131 @@ eq(keys.Slows.sampleCooldown.formatCalls,alreadyFormatted,"successful native tim
 
 do
     local previousFormat,previousStrings,previousEnum=R.ApplyCountdownFormat,C_StringUtil,Enum
-    local attempts,thresholds,numeric=0,0,0
+    local attempts,visibilityWrites,numeric=0,0,0
     C_StringUtil=nil
     Enum={NumericRuleFormatRounding={Floor=1,Down=1}}
     R.RetryCountdownFormatter()
-    R.ApplyCountdownFormat=function(cd)
-        cd.SetCountdownMillisecondsThreshold=function()thresholds=thresholds+1 end
-        cd.SetCountdownFormatter=function()numeric=numeric+1 end
-        return applyRealFormat(cd)
+    R.ApplyCountdownFormat=function(cd,label,verify)
+        cd.SetHideCountdownNumbers=function(self,hidden)
+            self.numbersHidden=hidden
+            visibilityWrites=visibilityWrites+1
+        end
+        cd.GetHideCountdownNumbers=function(self)return self.numbersHidden==true end
+        cd.SetCountdownMillisecondsThreshold=function()error("decimal thresholds cannot hide long numbers")end
+        cd.SetCountdownFormatter=function(self,formatter)
+            if self.rejectNative then return false end
+            self.installed=formatter
+            numeric=numeric+1
+        end
+        cd.GetCountdownFormatter=function(self)return self.installed end
+        return applyRealFormat(cd,label,verify)
     end
     local other={unit="focus",unitFrame=frame("focus"),portrait=frame("portrait"),secondaryBadge=frame("badge")}
     assert(R.CreateNativeSecondProbe(other))
-    local count=#other._nativeSecondProbe.cooldowns
-    eq(thresholds,count,"threshold compatibility works during initial build")
-    R.ApplyNativeSecondPresentation(other)
-    eq(thresholds,count,"ordinary stable update avoids repeating threshold writes")
+    local ribbons=other._nativeSecondProbe.cooldowns
+    local count=#ribbons
+    for _,clock in ipairs(ribbons) do eq(clock.numbersHidden,true,"no cap means native strips start hidden") end
+    local before=visibilityWrites
+    for _=1,10 do R.ApplyNativeSecondPresentation(other) end
+    eq(visibilityWrites,before,"ordinary updates leave safely hidden strip clocks alone")
     C_StringUtil={CreateNumericRuleFormatter=function()
-        attempts=attempts+1;return {SetBreakpoints=function()end}
+        attempts=attempts+1
+        return {
+            SetBreakpoints=function(self,rules) self.rules=rules end,
+            FormatNumber=function(self,value)
+                local active
+                for _,rule in ipairs(self.rules) do
+                    if value>=rule.threshold then active=rule end
+                end
+                if active.step then value=math.floor(value/active.step)*active.step end
+                return string.format(active.format,value)
+            end,
+        }
     end}
     R.RetryCountdownFormatter()
-    combat=true;R.ApplyNativeSecondPresentation(other);eq(numeric,0,"combat defers formatter recovery")
-    combat=false;R.ApplyNativeSecondPresentation(other)
-    eq(numeric,count,"safe formatter recovery upgrades every threshold-only strip clock")
+    ribbons[1].rejectNative=true
+    combat=true;R.UpdateNativeSecondProbe(other,true,true,true,false);eq(numeric,0,"combat defers formatter recovery")
+    combat=false;R.UpdateNativeSecondProbe(other,true,true,true,false)
+    eq(numeric,count-1,"normal safe update upgrades hidden strips after a new formatter epoch")
+    eq(ribbons[1].numbersHidden,true,"a receiver that refuses the cap stays hidden")
+    for i=2,count do eq(ribbons[i].numbersHidden,false,"accepted cap permits short numbers") end
+    eq(ribbons[2].installed:FormatNumber(30),"30","native second shows the last permitted whole second")
+    eq(ribbons[2].installed:FormatNumber(48*60),"","native second cannot display a 48-minute label")
     eq(attempts,1,"recovery shares one native formatter")
+    ribbons[1].rejectNative=nil
+    for _=1,10 do R.ApplyNativeSecondPresentation(other) end
+    eq(numeric,count-1,"one hidden receiver does not retry every event")
+    R.RetryCountdownFormatter();R.UpdateNativeSecondProbe(other,true,true,true,false)
+    eq(ribbons[1].numbersHidden,false,"the remaining strip clock recovers on the next safe epoch")
     R.ApplyNativeSecondPresentation(other);eq(numeric,count,"successful upgrade is retained")
+    local capped=ribbons[2].installed
+    ribbons[2].installed={}
+    combat=true
+    R.ApplyNativeSecondPresentation(other,true)
+    eq(numeric,count,"combat queues explicit timer verification without native writes")
+    combat=false
+    R.UpdateNativeSecondProbe(other,true,true,true,false)
+    eq(ribbons[2].installed,capped,"normal recovery repairs a replaced native formatter")
+    eq(numeric,count+1,"verification rewrites only the changed native recipient")
+    R.UpdateNativeSecondProbe(other,true,true,true,false)
+    eq(numeric,count+1,"unchanged aura updates do not reverify the strip")
     R.ApplyCountdownFormat,C_StringUtil,Enum=previousFormat,previousStrings,previousEnum
+end
+
+do
+    local oldFormat,oldFont,oldCells=R.ApplyCountdownFormat,R.ApplySecondaryCountdownFont,R.ApplyPortraitTimer
+    local cells,base={},{}
+    local attempts,writes=0,0
+    R.ApplySecondaryCountdownFont=function(cd)
+        oldFont(cd)
+        return true,cd
+    end
+    R.ApplyPortraitTimer=function(cd,label,verify)
+        assert(not combat)
+        attempts=attempts+1
+        eq(label,cd,"native strip prepares cells using its styled source label")
+        if cd.denyCells or not cd.nativeClockButton then return false end
+        if cd.formatter~=cells then cd.formatter=cells;writes=writes+1 end
+        return true,"cells"
+    end
+    R.ApplyCountdownFormat=function(cd,label,verify)
+        local ready,backend=R.ApplyPortraitTimer(cd,label or cd,verify)
+        if ready then return true,backend end
+        cd.formatter=base
+        return true,"formatter"
+    end
+    local function owner(unit)
+        return {unit=unit,unitFrame=frame(unit),portrait=frame("portrait"),secondaryBadge=frame("badge")}
+    end
+    local other=owner("focus")
+    assert(R.CreateNativeSecondProbe(other))
+    local clocks=other._nativeSecondProbe.cooldowns
+    local count=#clocks
+    eq(writes,count,"each native button acquires cells from its own aura clock")
+    for _,cd in ipairs(clocks) do
+        eq(cd.nativeClockButton.cooldown,cd,"native timer transport remains attached to its own button")
+        eq(cd.attachCalls,1,"successful native transport is attached only once")
+    end
+    local initialAttempts=attempts
+    R.RetryCountdownFormatter();R.ApplyNativeSecondPresentation(other)
+    R.UpdateNativeSecondProbe(other,true,true,true,false,true,true)
+    eq(attempts,initialAttempts,"formatter epoch and unit rebind do not revisit successful preallocated native labels")
+    clocks[1].denyCells=true
+    R.ApplyNativeSecondPresentation(other,true)
+    eq(clocks[1].formatter,base,"explicit strip presentation falls back if one style cannot be verified")
+    local observed=attempts
+    clocks[1].denyCells=false;R.RetryCountdownFormatter();R.ApplyNativeSecondPresentation(other)
+    eq(attempts,observed+1,"next safe epoch retries only the unverified native button")
+    eq(clocks[1].formatter,cells,"native button upgrades after recovery")
+    clocks[1].formatter=base
+    assert(R.ReleaseNativeSecondProbe(other))
+    local rebound=owner("target")
+    assert(R.CreateNativeSecondProbe(rebound))
+    eq(rebound._nativeSecondProbe.cooldowns,clocks,"test exercises genuine pooled receiver")
+    eq(clocks[1].formatter,cells,"pooled reattachment repairs a replaced native renderer")
+    eq(attempts,observed+1+count,"a pooled tree verifies each of its actual recipients")
+    for _,cd in ipairs(clocks) do eq(cd.attachCalls,1,"pooled reuse preserves its native clock attachment") end
+    R.ApplyCountdownFormat,R.ApplySecondaryCountdownFont,R.ApplyPortraitTimer=oldFormat,oldFont,oldCells
 end
 
 -- A complete readable inventory can still lack the metadata to RANK
@@ -851,5 +1000,244 @@ do
     clip.Hide=hideBefore
     h._nativeSecondProbe.container.SetEnabled=function()end
     eq(R.DestroyHost("player"),true,"safe retry completes host destruction")
+end
+do
+    -- Fresh module queue, with the pinned native allocation of TEN buttons
+    -- per group even though only two may be displayed.
+    assert(loadfile("NativeSecondProbe.lua"))("bjarkiPortraits",BP)
+    local callbacks={};local allocated=0;local declineGroup
+    local function schedule(delay,callback)
+        eq(delay,.01,"construction uses a positive deferred delay")
+        callbacks[#callbacks+1]=callback
+    end
+    C_Timer={After=schedule}
+    local originalCreate=CreateFrame
+    CreateFrame=function(...)
+        local f=originalCreate(...)
+        if f.kind=="AuraContainer" then
+            local add=f.AddAuraGroup
+            local enable=f.SetEnabled
+            f.SetEnabled=function(self,enabled)
+                assert(not combat,"construction/release never writes native groups in combat")
+                return enable(self,enabled)
+            end
+            f.AddAuraGroup=function(self,key,filter,options)
+                allocated=allocated+1
+                local initialize=options.initializeFrame
+                options.initializeFrame=function(button)
+                    initialize(button)
+                    for i=2,10 do initialize(frame("button",self))end
+                end
+                local result=add(self,key,filter,options)
+                if declineGroup then declineGroup=false;return false end
+                return result
+            end
+        end
+        return f
+    end
+    local owners={}
+    R.Refresh=function(unit,force)
+        eq(force,true,"completed tree gets fresh recipient evidence")
+        local h=R.hosts[unit]
+        if h then h.finished=(h.finished or 0)+1;R.UpdateNativeSecondProbe(h,true,unit~="player",true,unit=="player")end
+    end
+    for _,unit in ipairs({"player","target","focus"})do
+        local h={unit=unit,unitFrame=frame(unit),portrait=frame("portrait"),secondaryBadge=frame("badge"),_assistable=true}
+        owners[#owners+1]=h;R.hosts[unit]=h
+        R.UpdateNativeSecondProbe(h,true,unit~="player",true,unit=="player")
+    end
+    eq(allocated,0,"eligible target event never allocates a full native strip")
+    eq(#callbacks,1,"all three hosts share one scheduled construction pump")
+    for i=1,3 do
+        local before=allocated;table.remove(callbacks,1)()
+        eq(allocated-before,1,"one native group per deferred turn globally")
+        eq(owners[i]._nativeSecondProbe.groups,1,"fair queue advances each host")
+        eq(#owners[i]._nativeSecondProbe.cooldowns,10,"native batch size is modeled accurately")
+        eq(owners[i]._nativeSecondProbe.clip.shown,false,"partial strip is never exposed")
+    end
+    combat=true
+    local before=allocated;table.remove(callbacks,1)()
+    eq(allocated,before,"combat parks construction without protected writes")
+    eq(#callbacks,0,"combat does not self-poll")
+    combat=false
+    R.UpdateNativeSecondProbe(owners[1],true,false,true,true)
+    eq(#callbacks,1,"existing safe update resumes the global queue")
+    local retired=owners[2];local partial=retired._nativeSecondProbe
+    assert(R.ReleaseNativeSecondProbe(retired));R.hosts.target=nil
+    local turns=0
+    while #callbacks>0 do
+        turns=turns+1;assert(turns<200)
+        before=allocated;table.remove(callbacks,1)()
+        assert(allocated-before<=1,"cancelled jobs never exceed the global budget")
+    end
+    eq(partial.groups,1,"retired ownership cancels outstanding construction")
+    eq(retired.finished,nil,"retired host cannot be refreshed by its old callback")
+    for _,index in ipairs({1,3})do
+        local h=owners[index];eq(h._nativeSecondProbe.ready,true,"active tree eventually completes")
+        eq(#h._nativeSecondProbe.cooldowns,h._nativeSecondProbe.groups*10,"all native groups retain their complete batches")
+        eq(h.finished,1,"completion reconciles current evidence once")
+    end
+    local rebound={unit="target",unitFrame=frame("target"),portrait=frame("new portrait"),secondaryBadge=frame("badge")}
+    R.hosts.target=rebound
+    R.UpdateNativeSecondProbe(rebound,true,true,true,false)
+    eq(rebound._nativeSecondProbe,partial,"partial pooled tree resumes under its new owner")
+    R.db.secondaryPortrait=false;before=allocated;table.remove(callbacks,1)()
+    eq(allocated,before,"disabling during construction cancels queued allocation")
+    eq(#callbacks,0,"disabled queue has no idle polling")
+    R.db.secondaryPortrait=true;guidByUnit.target="Creature-ChangedDuringConstruction"
+    R.UpdateNativeSecondProbe(rebound,true,true,true,false)
+    while #callbacks>0 do table.remove(callbacks,1)()end
+    eq(rebound._nativeSecondProbe.boundGUID,guidByUnit.target,"completion binds the latest recipient rather than captured evidence")
+    eq(retired.finished,nil,"pool takeover never revives the retired owner")
+
+    -- A declined/synchronous scheduler leaves recoverable ownership without
+    -- recursively draining the queue or trusting a callback it rejected.
+    assert(loadfile("NativeSecondProbe.lua"))("bjarkiPortraits",BP)
+    local rejectedCallback
+    C_Timer.After=function(_,callback)rejectedCallback=callback;return false end
+    local retry={unit="focus",unitFrame=frame("focus"),portrait=frame("portrait"),secondaryBadge=frame("badge")}
+    R.hosts.focus=retry;before=allocated
+    R.UpdateNativeSecondProbe(retry,true,true,true,false)
+    eq(allocated,before,"declined scheduling performs no synchronous construction")
+    C_Timer.After=schedule;R.UpdateNativeSecondProbe(retry,true,true,true,false)
+    rejectedCallback();eq(allocated,before,"stale rejected callback cannot consume a newer queue ticket")
+    table.remove(callbacks,1)();eq(allocated,before+1,"next safe opportunity recovers declined scheduling")
+    combat=true;assert(R.ReleaseNativeSecondProbe(retry))
+    table.remove(callbacks,1)();combat=false
+    eq(#callbacks,0,"combat release leaves no construction polling")
+    eq(retry._nativeSecondProbe,nil,"combat release cancels its queue owner")
+
+    assert(loadfile("NativeSecondProbe.lua"))("bjarkiPortraits",BP)
+    C_Timer.After=function(_,callback)callback()end
+    local synchronous={unit="focus",unitFrame=frame("focus"),portrait=frame("portrait"),secondaryBadge=frame("badge")}
+    R.hosts.focus=synchronous;before=allocated
+    R.UpdateNativeSecondProbe(synchronous,true,true,true,false)
+    eq(allocated,before,"synchronous callbacks cannot cause an allocation burst")
+    C_Timer.After=schedule;R.UpdateNativeSecondProbe(synchronous,true,true,true,false)
+    declineGroup=true;table.remove(callbacks,1)()
+    eq(synchronous._nativeSecondProbe.groups,0,"declined partial group remains uncommitted")
+    eq(#synchronous._nativeSecondProbe.cooldowns,10,"declined setter retains its initialized native batch")
+    before=allocated
+    R.UpdateNativeSecondProbe(synchronous,true,true,true,false)
+    eq(#callbacks,0,"ordinary events do not spin a failed native setter")
+    R.UpdateNativeSecondProbe(synchronous,true,true,true,false,true)
+    table.remove(callbacks,1)()
+    eq(allocated,before,"safe retry repairs the registered group without another native batch")
+    eq(synchronous._nativeSecondProbe.groups,1,"registered group commits after its layout repair")
+    synchronous.unitFrame.shown=false;table.remove(callbacks,1)()
+    eq(allocated,before,"hidden native owner cancels unfinished construction")
+    eq(#callbacks,0,"hidden native owner does not keep the queue alive")
+    CreateFrame=originalCreate
+end
+do
+    -- The pinned provider calls TEN initializers through securecallfunction
+    -- before registering the group. A callback error does not fail AddAuraGroup.
+    -- Reproduce that boundary with the real Refresh/UpdateHost completion path.
+    for _,reuse in ipairs({false,true}) do
+        assert(loadfile("NativeSecondProbe.lua"))("bjarkiPortraits",BP)
+        assert(loadfile("AuraEngine.lua"))("bjarkiPortraits",BP)
+        local callbacks,buttons={},{}
+        local allocated,failedButton,failedClock=0,nil,nil
+        local denied=true
+        local originalCreate=CreateFrame
+        CreateFrame=function(kind,...)
+            local f=originalCreate(kind,...)
+            if kind=="Cooldown" and f.parent==failedButton then failedClock=f end
+            if kind=="AuraContainer" then
+                f.AddAuraGroup=function(self,key,filter,options)
+                    assert(not combat,"native construction stays out of combat")
+                    allocated=allocated+1
+                    for i=1,10 do
+                        local b=frame("button",self);buttons[#buttons+1]=b
+                        if allocated==1 and i==9 then
+                            failedButton=b
+                            local setter,mask=b.SetDurationCooldown,b.CreateMaskTexture
+                            b.SetDurationCooldown=function(self,clock)
+                                assert(not combat,"initializer recovery stays out of combat")
+                                if denied then error("injected native receiver failure") end
+                                return setter(self,clock)
+                            end
+                            b.CreateMaskTexture=function(self,...)
+                                self.maskAllocations=(self.maskAllocations or 0)+1
+                                return mask(self,...)
+                            end
+                        end
+                        pcall(options.initializeFrame,b) -- secure native error isolation
+                    end
+                    self.groups=self.groups or {}
+                    self.groups[#self.groups+1]={key=key,filter=filter,options=options,enabled=true}
+                end
+            end
+            return f
+        end
+        C_Timer={After=function(delay,cb)
+            eq(delay,.01,"recovery shares the bounded native construction queue")
+            callbacks[#callbacks+1]=cb
+        end}
+        combat=false
+        R.db.enabled,R.db.secondaryPortrait=true,true
+        UnitExists=function()return true end
+        UnitCanAssist=function()return false end
+        UnitIsPlayer=function()return false end
+        UnitIsGhost=function()return false end
+        GetTime=function()return 100 end
+        C_UnitAuras={GetAuraDataByIndex=function()return nil end}
+        local h
+        local function owner()
+            local result={unit="target",unitFrame=frame("target"),portrait=frame("portrait"),
+                secondaryBadge=frame("badge"),_buildComplete=true,containers={},cooldowns={}}
+            result.unitFrame.unit="target"
+            for i=1,#R.TIERS do result.containers[i]=frame("AuraContainer")end
+            return result
+        end
+        h=owner();R.hosts.target=h
+        R.GetPortrait=function()return h.portrait,nil,h.unitFrame,true end
+        R.Refresh("target")
+        table.remove(callbacks,1)()
+        local p=h._nativeSecondProbe
+        eq(p.groups,0,"a swallowed initializer failure cannot commit its native group")
+        eq(p.ready,false,"unfinished native recipients are not ready")
+        eq(p.clip.shown,false,"unfinished native recipients stay hidden")
+        eq(p.container.enabled,false,"unfinished native recipients stay disabled")
+        eq(#callbacks,0,"a failed initializer never starts a background retry loop")
+        eq(failedButton.cooldown,nil,"injection left the real native receiver unfinished")
+        local icon,border=failedButton.textures[1],failedButton.textures[2]
+        R.Refresh("target")
+        eq(#callbacks,0,"ordinary aura refresh does not spin the failed initializer")
+        denied=false;combat=true;R.Refresh("target",true)
+        eq(#callbacks,0,"combat leaves recovery for a safe construction opportunity")
+        combat=false;R.Refresh("target",true)
+        if reuse then
+            local retired=h
+            assert(R.ReleaseNativeSecondProbe(retired))
+            h=owner();R.hosts.target=h
+            R.Refresh("target")
+            eq(h._nativeSecondProbe,p,"pooled owner retains the unfinished native batch")
+            eq(retired._nativeSecondProbe,nil,"retired host cannot own pending repair")
+        end
+        local before=allocated
+        table.remove(callbacks,1)()
+        eq(allocated,before,"repair reuses the registered group's native buttons")
+        eq(failedButton.cooldown,failedClock,"repair binds the original native cooldown")
+        eq(failedButton.textures[1],icon,"repair reuses original native artwork")
+        eq(failedButton.textures[2],border,"repair reuses original native border")
+        eq(#failedButton.textures,2,"repair cannot accumulate duplicate artwork")
+        eq(failedButton.maskAllocations,1,"repair cannot accumulate duplicate masks")
+        eq(p.clip.shown,false,"remaining native groups still gate presentation")
+        guidByUnit.target="Creature-Repaired-"..tostring(reuse)
+        while #callbacks>0 do
+            before=allocated;table.remove(callbacks,1)()
+            assert(allocated-before<=1,"repair never bypasses one group per callback")
+        end
+        eq(p.ready,true,"the repaired native tree completes")
+        eq(p.boundGUID,guidByUnit.target,"real completion refresh binds current recipient")
+        eq(p.clip.shown,true,"only a complete native tree is presented")
+        eq(#p.cooldowns,#buttons,"repaired native clocks are registered once")
+        local seen={}
+        for _,clock in ipairs(p.cooldowns)do assert(not seen[clock]);seen[clock]=true end
+        for _,button in ipairs(buttons)do assert(button.cooldown,"every allocated button has its native receiver")end
+        eq(failedClock.attachCalls,1,"recovery attaches the native clock bridge once")
+        CreateFrame=originalCreate
+    end
 end
 print("native runner-up ribbon: "..checks.." inbound/safety checks passed")

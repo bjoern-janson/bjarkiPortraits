@@ -3,11 +3,13 @@
 local BP = {}
 local oldGlobals = { db = BjarkiPortraitsDB, strings = C_StringUtil, enumeration = Enum }
 local constructors = 0
+local render
 C_StringUtil = {
     CreateNumericRuleFormatter = function()
         constructors = constructors + 1
         return {
             SetBreakpoints = function(self, rules) self.rules = rules end,
+            FormatNumber=render,
         }
     end,
 }
@@ -26,7 +28,7 @@ local function equal(actual, expected, label)
     check(actual == expected, (label or "unexpected value")
         .. ": got=" .. tostring(actual) .. " expected=" .. tostring(expected))
 end
-local function render(formatter, seconds)
+render=function(formatter, seconds)
     local choice
     for _, rule in ipairs(formatter.rules) do
         if seconds >= rule.threshold then choice = rule end
@@ -56,15 +58,14 @@ equal(enabled.rules[2].format, "%.0f", "whole-second format intact")
 equal(enabled.rules[2].step, 1, "whole-second step unchanged")
 equal(enabled.rules[2].rounding, Enum.NumericRuleFormatRounding.Down,
     "existing round-down behavior remains")
-equal(enabled.rules[3].threshold, 60.000001, "existing sixty-second hiding rule unchanged")
+equal(enabled.rules[3].threshold,30+2^-48,"hide immediately above thirty on a double-precision clock")
 equal(enabled.rules[3].format, "", "long duration text remains hidden")
 for _, case in ipairs({
     {0.1, "0.1"}, {1.4, "1.4"}, {2.9, "2.9"},
     {3, "3.0"}, {4, "4.0"}, {4.9, "4.9"},
     {5, "5.0"}, {5.1, "5.1"}, {5.9, "5.9"},
     {9.9, "9.9"}, {10, "10"}, {10.1, "10"},
-    {12.9, "12"}, {59.9, "59"}, {60, "60"},
-    {60.000001, ""}, {90, ""},
+    {12.9, "12"}, {29.99,"29"}, {30,"30"}, {30+2^-48,""}, {31,""}, {48*60,""},
 }) do
     equal(render(enabled, case[1]), case[2],
         "native decimal-on boundary " .. tostring(case[1]))
@@ -75,7 +76,10 @@ equal(constructors, 1, "no duplicate formatter construction")
 local function makeCooldown(nativeSuccess)
     local result = { hidden = nil, formatter = nil, fallback = nil,
         applyCount = 0, fallbackCount = 0 }
-    function result:SetHideCountdownNumbers(value) self.hidden = value end
+    function result:SetHideCountdownNumbers(value)
+        assert(value or self.formatter,"uncapped stock timer was exposed")
+        self.hidden = value
+    end
     function result:SetCountdownFormatter(value)
         self.applyCount = self.applyCount + 1
         if not nativeSuccess then error("native formatter unavailable") end
@@ -92,19 +96,20 @@ local working = makeCooldown(true)
 do
     local constructor=C_StringUtil.CreateNumericRuleFormatter
     R._formatter=nil
-    for _,failure in ipairs({'constructor','setup'}) do
+    for _,failure in ipairs({'constructor','setup','no numeric readback'}) do
         R.RetryCountdownFormatter()
         local attempts=0
         C_StringUtil.CreateNumericRuleFormatter=function()
             attempts=attempts+1
             if failure=='constructor' then error('denied object') end
+            if failure=='no numeric readback' then return {SetBreakpoints=function() end} end
             return {SetBreakpoints=function()error('denied rules') end}
         end
         local cd=makeCooldown(true)
-        equal(R.ApplyCountdownFormat(cd),true,'failed '..failure..' reaches native threshold')
-        equal(cd.fallback,10,'decimal fallback survives '..failure)
+        equal(R.ApplyCountdownFormat(cd),true,'failed '..failure..' hides only numbers')
+        equal(cd.hidden,true,'stock minutes remain hidden after '..failure)
         equal(R._formatter,nil,'failed build never cached')
-        for _=1,120 do equal(R.ApplyCountdownFormat(cd),true,'reuse working threshold in failed batch') end
+        for _=1,120 do equal(R.ApplyCountdownFormat(cd),true,'avoid new work in a failed batch') end
         equal(attempts,1,'one failed formatter allocation per opportunity')
     end
     C_StringUtil.CreateNumericRuleFormatter=constructor
@@ -127,8 +132,12 @@ equal(R.ApplyCountdownFormat({
     SetCountdownFormatter=function() return false end,
     SetCountdownMillisecondsThreshold=function() error("layout locked") end,
 }), false, "rejected native and compatibility paths remain retryable")
-equal(fallback.fallback, 10, "unsupported native formatter uses 10-second fallback")
-equal(fallback.fallbackCount, 1, "native fallback called exactly once")
+equal(fallback.hidden,true,"unsupported native formatter suppresses 48m")
+equal(fallback.fallbackCount,0,"decimal precision cannot enforce a visibility cutoff")
+fallback.SetCountdownFormatter=working.SetCountdownFormatter
+R.RetryCountdownFormatter()
+equal(R.ApplyCountdownFormat(fallback),true,"formatter recovers on a later opportunity")
+equal(fallback.hidden,false,"the capped countdown becomes visible on recovery")
 
 R.db.showDecimals = false
 local beforeToggle=constructors
@@ -138,17 +147,18 @@ check(disabled ~= enabled, "decimal-off mode has its own formatter")
 equal(#disabled.rules, 2, "decimal-off rule count unchanged")
 equal(disabled.rules[1].threshold, 0, "decimal-off whole seconds from zero")
 equal(disabled.rules[1].format, "%.0f", "decimal-off uses whole seconds")
-equal(disabled.rules[2].threshold, 60.000001,
-    "decimal-off long timer hiding remains unchanged")
+equal(disabled.rules[2].threshold,30+2^-48,"decimal-off uses the same visibility cap")
 equal(render(disabled, 4.9), "4", "decimal-off leaves four whole seconds")
 equal(render(disabled, 5), "5", "decimal-off five whole seconds")
 equal(render(disabled, 9.9), "9", "decimal-off below ten whole seconds")
 equal(render(disabled, 10), "10", "decimal-off ten whole seconds")
 equal(render(disabled, 10.1), "10", "decimal-off above ten whole seconds")
-equal(render(disabled, 59.9), "59", "decimal-off down-rounded whole seconds")
+equal(render(disabled,30),"30","decimal-off includes exactly 30")
+equal(render(disabled,30+2^-48),"","decimal-off suppresses the next representable instant")
+equal(render(disabled,2880),"","decimal-off suppresses 48m")
 local offFallback = makeCooldown(false)
 R.ApplyCountdownFormat(offFallback)
-equal(offFallback.fallback, 0, "decimal-off compatibility threshold remains zero")
+equal(offFallback.hidden,true,"decimal-off fallback hides uncapped stock numbers")
 local offNative = makeCooldown(true)
 R.ApplyCountdownFormat(offNative)
 check(offNative.formatter == disabled, "decimal-off native formatter applied")
@@ -163,7 +173,7 @@ R._formatter, R._formatterKey = nil, nil
 C_StringUtil = nil
 local noNative = makeCooldown(false)
 R.ApplyCountdownFormat(noNative)
-equal(noNative.fallback, 10, "missing numeric formatter API uses ten-second fallback")
+equal(noNative.hidden,true,"missing numeric formatter API keeps uncapped stock times out of the portrait")
 check(noNative.formatter == nil, "missing API adds no custom formatter")
 
 -- Exact native AuraButtonArtTemplate.Duration font is GameFontNormalSmall.
@@ -218,7 +228,7 @@ equal(smallTimer.label.writes,3,"regular font restored once")
 
 local primary = makeCooldown(true)
 R.ApplyCountdownFormat(primary)
-equal(primary.fallback,10,"primary countdown retains the native compatibility formatting path")
+equal(primary.hidden,true,"primary countdown keeps uncapped stock minutes hidden")
 check(primary._bjarkiSecondaryFontObject==nil,
     "ApplyCountdownFormat alone never changes main-portrait typography")
 check(not R.ApplySecondaryCountdownFont({}),
@@ -244,7 +254,51 @@ DEFAULT_AURA_DURATION_FONT=originalAuraDurationFont
 GameFontNormalSmall=originalRegularFont
 InCombatLockdown=originalInCombat
 
--- Restore the mutable globals for compatibility with combined test runners.
+-- Core delegates digit rendering before considering its capped stock fallback.
+-- A rejected native formatter must still never expose uncapped minutes.
+do
+    local oldCells,oldBase=R.ApplyPortraitTimer,R.GetCountdownFormatter
+    local label,base={},{}
+    local permit=true
+    R.ApplyPortraitTimer=function(clock,observed,verify)
+        if not permit then return false end
+        equal(observed,label,"the final style label reaches the cell owner")
+        clock:SetHideCountdownNumbers(true)
+        clock._bjarkiTimerNumbersShown=false
+        return true
+    end
+    R.GetCountdownFormatter=function()return base end
+    local clock={
+        SetCountdownFormatter=function(self,f) self.formatter=f;self.writes=(self.writes or 0)+1 end,
+        SetHideCountdownNumbers=function(self,hide)self.hidden=hide end,
+        GetHideCountdownNumbers=function(self)return self.hidden end,
+    }
+    local ok,backend=R.ApplyCountdownFormat(clock,label,true)
+    check(ok and backend=="cells" and clock.hidden,"complete cells retain exclusive digit ownership")
+    equal(clock.writes,nil,"Core does not install or unhide a stock formatter over cells")
+    permit=false
+    ok,backend=R.ApplyCountdownFormat(clock,label,true)
+    check(ok and backend=="formatter" and clock.formatter==base and not clock.hidden,
+        "incomplete cells recover the capped stock formatter")
+
+    -- A separate Lua handle may represent the formatter the widget accepted.
+    local function policy(_,t) return t<=30 and tostring(t) or "" end
+    base.FormatNumber=policy
+    local proxy={
+        SetCountdownFormatter=function(self,f) self.receipt={FormatNumber=f.FormatNumber} end,
+        GetCountdownFormatter=function(self)return self.receipt end,
+        SetHideCountdownNumbers=function(self,hide)self.hidden=hide end,
+    }
+    ok,backend=R.ApplyCountdownFormat(proxy,label)
+    check(ok and backend=="formatter" and not proxy.hidden,"an equivalent capped handle remains visible")
+    proxy.SetCountdownFormatter=function(self)
+        self.receipt={FormatNumber=function(_,t)return t>30 and "48m" or tostring(t) end}
+    end
+    proxy.receipt=nil
+    ok,backend=R.ApplyCountdownFormat(proxy,label,true)
+    check(ok and backend=="hidden" and proxy.hidden,"a substituted stock rule stays hidden")
+    R.ApplyPortraitTimer,R.GetCountdownFormatter=oldCells,oldBase
+end
 BjarkiPortraitsDB = oldGlobals.db
 C_StringUtil = oldGlobals.strings
 Enum = oldGlobals.enumeration

@@ -18,6 +18,15 @@ local function supportsSecondary(host)
     return host and SECONDARY_UNITS[host.unit] == true
 end
 
+local function styleSecondaryClock(cooldown,verify)
+    if R.ApplySecondaryCountdownPresentation then
+        R.ApplySecondaryCountdownPresentation(cooldown,verify)
+    else
+        if R.ApplySecondaryCountdownFont then R.ApplySecondaryCountdownFont(cooldown) end
+        if R.ApplyCountdownFormat then R.ApplyCountdownFormat(cooldown) end
+    end
+end
+
 -- All second-circle renderers share Core.SecondaryCirclePlacement: the
 -- unified raised TOPLEFT anchor applies to Player, Target, Focus and party.
 local STRATA_ABOVE = {
@@ -208,10 +217,7 @@ function R.CreateSecondaryPortrait(host, nativeStrata)
             if cooldown.SetReverse then cooldown:SetReverse(true) end
             badge._bjarkiCooldown = cooldown
         end
-        if R.ApplyCountdownFormat then R.ApplyCountdownFormat(cooldown) end
-        if R.ApplySecondaryCountdownFont then
-            R.ApplySecondaryCountdownFont(cooldown)
-        end
+        styleSecondaryClock(cooldown,true)
         cooldown:Hide()
         host.secondaryCooldown = cooldown
     end)
@@ -1517,8 +1523,7 @@ local function trySecondaryAuraClock(host, candidate, aura, source, readUnit)
         local ok, result = pcall(nativeSetter, cooldown, object, true)
         if not ok or not R.CanAccess(result) or result == false then return false end
     end
-    if R.ApplyCountdownFormat then R.ApplyCountdownFormat(cooldown) end
-    if R.ApplySecondaryCountdownFont then R.ApplySecondaryCountdownFont(cooldown) end
+    styleSecondaryClock(cooldown)
     local show = read(cooldown, "Show")
     local ok, result = pcall(show, cooldown)
     return ok and R.CanAccess(result) and result ~= false, expiry,
@@ -1700,8 +1705,7 @@ local function showSecondaryAura(host, candidate, primary, guid)
     if not cleared and (static or read(candidate.aura, "duration") == 0) then return false end
     if candidate.schoolInterrupt then
         if not cleared or not bindSchoolClock(host,candidate.schoolInterrupt,2) then return false end
-        if R.ApplyCountdownFormat then R.ApplyCountdownFormat(host.secondaryCooldown) end
-        if R.ApplySecondaryCountdownFont then R.ApplySecondaryCountdownFont(host.secondaryCooldown) end
+        styleSecondaryClock(host.secondaryCooldown)
         local ok,result=pcall(host.secondaryCooldown.Show,host.secondaryCooldown)
         if not ok or not R.CanAccess(result) or result==false then return false end
         expiry=read(candidate.schoolInterrupt,"expires")

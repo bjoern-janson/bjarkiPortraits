@@ -78,7 +78,8 @@ local function anchorsChanged(region, relativeTo, dx, dy, receipt, key)
         if not R.CanAccess(corner) or not R.CanAccess(ref) or not R.CanAccess(relativeCorner)
             or not R.CanAccess(x) or not R.CanAccess(y) or type(corner) ~= "string"
             or type(relativeCorner) ~= "string" or type(x) ~= "number" or type(y) ~= "number" then return nil end
-        if (corner ~= "TOPLEFT" and corner ~= "BOTTOMRIGHT") or corner == firstCorner or relativeCorner ~= corner then return true end
+        if (corner ~= "TOPLEFT" and corner ~= "BOTTOMRIGHT") or corner == firstCorner then return true end
+        if relativeCorner~=corner then return true end
         firstCorner = corner
         if ref ~= relativeTo then
             if ref ~= nil and relativeTo ~= nil then return true end
@@ -145,7 +146,7 @@ local function acceptedLayout(result)
     return R.CanAccess(result) and result~=false
 end
 
-local function alignCountdown(cooldown, host, routine, verifyLayout, pixelFactor)
+local function alignCountdown(cooldown, host, routine, verifyLayout, pixelFactor, verifyFormat)
     -- Operate only on the addon-created countdown, never read its text/time.
     -- Layout may be unavailable after secure initialization; retry at the next
     -- existing out-of-combat lifecycle boundary rather than attaching scripts
@@ -158,6 +159,7 @@ local function alignCountdown(cooldown, host, routine, verifyLayout, pixelFactor
     local getter=R.ReadAuraField(cooldown,"GetCountdownFontString")
     local ok,text=pcall(getter,cooldown)
     if not ok or not R.CanAccess(text) or not text then
+        if R.ApplyPortraitTimer then R.ApplyCountdownFormat(cooldown,false,verifyFormat) end
         setAlignmentState(cooldown,host,"label-unavailable")
         return
     end
@@ -199,6 +201,7 @@ local function alignCountdown(cooldown, host, routine, verifyLayout, pixelFactor
         if not changed then
             if changed == nil then setAlignmentState(cooldown,host,"verification-pending")
             else setAlignmentState(cooldown,host,scaleKnown and "centered" or "scale-unavailable") end
+            if R.ApplyPortraitTimer then R.ApplyCountdownFormat(cooldown,text,verifyFormat) end
             return
         end
     end
@@ -231,6 +234,8 @@ local function alignCountdown(cooldown, host, routine, verifyLayout, pixelFactor
     else
         setAlignmentState(cooldown,host,"layout-unavailable")
     end
+    -- Copy the final font and color after layout establishes the source label.
+    if R.ApplyPortraitTimer then R.ApplyCountdownFormat(cooldown,text,verifyFormat) end
 end
 
 local function countdownVisibility(cooldown)
@@ -240,25 +245,25 @@ local function countdownVisibility(cooldown)
     return nil,false
 end
 
-local function alignVisibleCountdown(cooldown,host,verifyLayout,pixelFactor)
+local function alignVisibleCountdown(cooldown,host,verifyLayout,pixelFactor,verifyFormat)
     -- Only visible out-of-combat clocks need physical alignment.
     local shown,readable=countdownVisibility(cooldown)
     if not readable or not shown then
         setAlignmentState(cooldown,host,readable and "hidden" or "visibility-unavailable")
         return
     end
-    alignCountdown(cooldown,host,true,verifyLayout~=false or cooldown._bjarkiAlignmentState~="centered",pixelFactor)
+    alignCountdown(cooldown,host,true,verifyLayout~=false or cooldown._bjarkiAlignmentState~="centered",pixelFactor,verifyFormat)
 end
 
 local function applyClockFormat(cooldown, routine)
     local decimals=R.db and R.db.showDecimals==true
-    local thresholdEpoch=cooldown._bjarkiThresholdEpoch
+    local fallbackEpoch=cooldown._bjarkiFallbackEpoch
     if routine and cooldown._bjarkiFormattedDecimals==decimals
-        and (not thresholdEpoch or thresholdEpoch==R.countdownFormatterEpoch) then return end
+        and (not fallbackEpoch or fallbackEpoch==R.countdownFormatterEpoch) then return end
     local ok,applied,backend=pcall(R.ApplyCountdownFormat,cooldown)
     if ok and applied==true then
         cooldown._bjarkiFormattedDecimals=decimals
-        cooldown._bjarkiThresholdEpoch=backend=="threshold" and R.countdownFormatterEpoch or nil
+        cooldown._bjarkiFallbackEpoch=backend=="hidden" and R.countdownFormatterEpoch or nil
     else
         cooldown._bjarkiFormattedDecimals=nil
     end
@@ -284,9 +289,9 @@ local function configureCooldown(cooldown, host)
     if cooldown.SetReverse then cooldown:SetReverse(true) end
     if cooldown.SetDrawBling then cooldown:SetDrawBling(false) end
     if cooldown.SetDrawEdge then cooldown:SetDrawEdge(false) end
-    applyClockPreferences(cooldown,false)
     if cooldown.SetSwipeTexture then cooldown:SetSwipeTexture(R.SWIPE_TEXTURE) end
     alignCountdown(cooldown, host)
+    applyClockPreferences(cooldown,false)
 end
 
 local function initializeButton(host, button, tier)
@@ -302,7 +307,8 @@ local function initializeButton(host, button, tier)
     local cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate," .. R.AURA_ANCHOR_TEMPLATE)
     configureCooldown(cooldown, host)
     button:SetDurationCooldown(cooldown)
-    alignCountdown(cooldown, host)
+    if R.AttachPortraitAuraClock then R.AttachPortraitAuraClock(button,cooldown) end
+    alignCountdown(cooldown, host,false,true,nil,true)
     button:EnableMouse(false)
     host.cooldowns[#host.cooldowns + 1] = cooldown
     return cooldown
@@ -2295,7 +2301,7 @@ local function retryClockLayouts(host)
     local pending=host._pendingClockLayouts
     if not pending then return end
     local factor=currentPixelFactor()
-    for cooldown in pairs(pending) do alignVisibleCountdown(cooldown,host,true,factor) end
+    for cooldown in pairs(pending) do alignVisibleCountdown(cooldown,host,true,factor,true) end
 end
 
 -- The native assignment can expose a clock one frame after UNIT_AURA, even
@@ -2709,8 +2715,11 @@ function R.BuildAll(deferRefresh)
     if not deferRefresh then R.RefreshAll() end
 end
 
-function R.ApplyPresentation(unit,routine,verifyLayout)
+function R.ApplyPresentation(unit,routine,verifyLayout,recoverRibbonOnly)
     local combat,known=R.SafeBool(InCombatLockdown)
+    -- A global scale/display event and an explicit presentation refresh also
+    -- revisit hidden preallocated labels. Ordinary unit events touch visible labels only.
+    local verifyFormat=R.ApplyPortraitTimer and (not routine or not unit and verifyLayout==true)
     local pixelFactor
     if known and not combat then pixelFactor=currentPixelFactor() end
     for token, host in pairs(R.hosts) do
@@ -2720,16 +2729,21 @@ function R.ApplyPresentation(unit,routine,verifyLayout)
         elseif selected then
             host._presentationDeferred=nil
             for _, cooldown in ipairs(host.cooldowns or {}) do
-                applyClockPreferences(cooldown,routine)
                 if known and not combat then
-                    if routine then alignVisibleCountdown(cooldown,host,verifyLayout,pixelFactor)
-                    else alignCountdown(cooldown,host,false,true,pixelFactor) end
+                    if routine and not verifyFormat then alignVisibleCountdown(cooldown,host,verifyLayout,pixelFactor,verifyFormat)
+                    else alignCountdown(cooldown,host,routine,true,pixelFactor,verifyFormat) end
                 end
+                applyClockPreferences(cooldown,routine)
             end
             if host.secondaryCooldown then
-                applyClockFormat(host.secondaryCooldown,routine)
+                if R.ApplyPortraitTimer and known and not combat then
+                    local clock=host.secondaryCooldown
+                    if verifyFormat or verifyLayout==true or clock._bjarkiTimerBackend~="cells" or clock._bjarkiTimerDecimals~=(R.db.showDecimals==true) then
+                        R.ApplySecondaryCountdownPresentation(clock,verifyFormat,true)
+                    end
+                else applyClockFormat(host.secondaryCooldown,routine) end
             end
-            if R.ApplyNativeSecondPresentation then R.ApplyNativeSecondPresentation(host) end
+            if R.ApplyNativeSecondPresentation then R.ApplyNativeSecondPresentation(host,verifyFormat and not recoverRibbonOnly) end
         end
     end
 end
@@ -2773,6 +2787,10 @@ function R.GetLayoutDebug(unit)
     local binding = host.unitFrame and host.unitFrame.unit
     local bindingState = R.CanAccess(binding) and type(binding) == "string" and binding or "unknown"
     local sample = host.cooldowns and host.cooldowns[1]
+    local function timerStyle(clock)
+        if not clock then return "missing" end
+        return (clock._bjarkiTimerBackend or "unknown") .. "/" .. (clock._bjarkiTimerSpacingReason or "unknown")
+    end
     local text
     if sample and type(sample.GetCountdownFontString) == "function" then
         local ok, value = pcall(sample.GetCountdownFontString, sample)
@@ -2841,6 +2859,8 @@ function R.GetLayoutDebug(unit)
         .. " resSicknessDirect=" .. tostring(host._resurrectionSicknessDirectWitness or false)
         .. " writeErrors=" .. tostring(host._containerWriteFailures or 0)
         .. " sampleLayout=" .. tostring(sample and sample._bjarkiAlignmentState or "missing")
+        .. " sampleTimer=" .. timerStyle(sample)
+        .. " secondaryTimer=" .. timerStyle(host.secondaryCooldown)
         .. " timerDelta=" .. delta
 end
 

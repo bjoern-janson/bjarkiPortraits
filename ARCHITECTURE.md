@@ -1,25 +1,26 @@
 # bjarkiPortraits architecture
 
-For the current event paths and their regression tests, start with the [code map](docs/CODE_MAP.md). Earlier architecture decisions are preserved in the [history](docs/ARCHITECTURE_HISTORY.md).
+This guide describes **0.1.247**. For event paths and their regression tests, start with the [code map](docs/CODE_MAP.md); for countdown and deferred native construction details, use the [timer lifecycle](docs/TIMER_LIFECYCLE.md). Earlier architecture decisions are preserved in the [history](docs/ARCHITECTURE_HISTORY.md).
 
 ## Module loading
 
-Both `bjarkiPortraits.toc` and `bjarkiPortraits_Camelot.toc` load **14 runtime modules** in this order.
+Both `bjarkiPortraits.toc` and `bjarkiPortraits_Camelot.toc` load **15 runtime modules** in this order.
 
 1. `Spells.lua` — reviewed applied aura ID groupings. No guessing from spell names or icons.
 2. `Core.lua` — runtime/defaults, guarded unit access, race lookup, portrait geometry and countdown formatting.
-3. `Interrupts.lua` — landed school-interrupt records, recipient evidence, ranking and clocks.
-4. `StanceState.lua` — positively readable Warrior stances and supported form state.
-5. `SharedEvidence.lua` — bounded positive-observation bus; never an oracle for hidden spell identity.
-6. `EvidencePublisher.lua` — guarded event publication and derived-unit snapshots.
-7. `Priority.lua` — immutable `R.TIERS`, exact/semantic lanes and derived spell-to-tier indexes.
-8. `SecondaryPortrait.lua` — optional readable second-election, secondary race/art badge, conservative combat retention.
-9. `NativeSecondProbe.lua` — secure native second-slot fallback for Player/Target/Focus.
-10. `AuraEngine.lua` — host lifecycle, native primary containers, readable fallback, frame restoration.
-11. `PetPortraits.lua` — confirmed pet-family and other observed pet identity artwork.
-12. `PetSecondary.lua` — targeted pet-family secondary fallback, gated by native aura presence.
-13. `Commands.lua` — user toggles and read-only diagnostics.
-14. `Main.lua` — event routing, coalesced delayed refresh, native frame hooks.
+3. `PortraitTimerSpacing.lua` — fixed-position digit regions driven by native duration bindings, using the existing font and the capped countdown policy. Native aura clocks reach the bindings through an addon-owned duration bar.
+4. `Interrupts.lua` — landed school-interrupt records, recipient evidence, ranking and clocks.
+5. `StanceState.lua` — positively readable Warrior stances and supported form state.
+6. `SharedEvidence.lua` — bounded positive-observation bus; never an oracle for hidden spell identity.
+7. `EvidencePublisher.lua` — guarded event publication and derived-unit snapshots.
+8. `Priority.lua` — immutable `R.TIERS`, exact/semantic lanes and derived spell-to-tier indexes.
+9. `SecondaryPortrait.lua` — optional readable second-election, secondary race/art badge, conservative combat retention.
+10. `NativeSecondProbe.lua` — secure native second-slot fallback for Player/Target/Focus. Deferred construction retains unfinished button initializers and gates readiness on their completion.
+11. `AuraEngine.lua` — host lifecycle, native primary containers, readable fallback, frame restoration.
+12. `PetPortraits.lua` — confirmed pet-family and other observed pet identity artwork.
+13. `PetSecondary.lua` — targeted pet-family secondary fallback, gated by native aura presence.
+14. `Commands.lua` — user toggles and read-only diagnostics.
+15. `Main.lua` — event routing, coalesced delayed refresh, native frame hooks.
 
 **Load-order rule:** `Priority.lua` must load before `SecondaryPortrait.lua`. A real 0.1.188–0.1.189 regression built an empty secondary ranking table before the tiers existed; 0.1.190 fixed the TOCs and added lazy rank initialization. Do not regress it.
 
@@ -65,7 +66,8 @@ The native runner-up path is **not implemented for party1–4**: they use readab
 ### Native initialization, pooling and retarget safety
 
 - New native second containers must call `SetUnit(validString)` and `SetEnabled(true)` after registering their groups. A fresh `CustomAuraContainer` does not start enabled. The same rule applies to pet-family presence containers.
-- `SetUnit(nil)` is invalid in Forever's native aura API. On release, call `SetEnabled(false)` and only pool after successfully disabling. Re-enable to force a fresh parse even when the next owner uses the same `target` token.
+- `SetUnit(nil)` is invalid in Forever's native aura API. On release, hide the viewport and attempt `SetEnabled(false)` out of combat. A hidden probe can enter the pool with `needsDisable` pending; a failed hide keeps its current owner. The next binding must finish the disable before `SetUnit(validString)` and `SetEnabled(true)` can expose a new recipient, including when the token is still `target`.
+- Construction uses one shared deferred queue, processes at most one native group per callback, and pauses during combat without polling. A native group may preallocate ten buttons even though only two are eligible for display. In .247, unfinished initializer allocations remain in `pendingButtons`; `probe.groups` and `probe.ready` cannot advance until those callbacks finish. Retry uses the existing icon, mask, border and cooldown instead of duplicating them. Completion re-enters `R.Refresh(host.unit, true)` so queued eligibility cannot authorize a stale recipient.
 - Target/Focus source swaps carry a positive current GUID when readable. Forced retarget refreshes call native `UpdateAllAuras` out of combat; if the old identity cannot safely be replaced or refreshed, hide instead of showing an old NPC's timed aura.
 - Do not read, iterate or compare secure hidden aura contents to decide whether to show the clip. Native children are clipped by geometry; public readability is not secretly recovered by a screenshot or native button inspection.
 
@@ -83,7 +85,11 @@ All three secondary renderers share that policy. A 2/64 symmetric source crop on
 
 ## Countdown and layout
 
-`Core.GetCountdownFormatter` gives one decimal strictly below 10 seconds, truncated whole seconds from 10 to 60, and empty text after 60.000001 when available. `ApplyCountdownFormat` retains native fallback behavior if the formatter API is unavailable. `/bp decimals` and `/bp swipe` toggle the existing behavior.
+`Core.GetCountdownFormatter` gives one decimal strictly below 10 seconds when enabled, truncated whole seconds through 30, and empty text above 30 at the supported native numeric precision. It probes public constants to choose the first representable cutoff above 30. Native decimal rounding can produce `10.0` immediately below the ten-second transition; the fixed cells preserve that result. `/bp decimals` and `/bp swipe` retain their separate number/swipe preferences.
+
+`PortraitTimerSpacing.lua` copies the final label's actual font, size, flags, scale, color and shadow into six fixed-position glyph cells. Each cell has a native `DurationTextBinding`; Lua builds its rules from public sample constants and does not read the live countdown. Native aura buttons supply their stable opaque duration through `SetDurationBar` and an addon-owned hidden StatusBar's `GetTimerDuration`. Readable projections and school interrupts instead reach the same cells through public cooldown setters. These are different clock acquisition paths, not interchangeable sources of aura identity.
+
+`R.ApplyCountdownFormat` first attempts the fixed cells, then the same capped native formatter. If neither can be installed, it hides numbers rather than exposing an uncapped stock countdown; the aura icon and native swipe keep their own clock. Failed cell groups are deactivated before fallback, and unchanged bindings are reused. See [timer lifecycle](docs/TIMER_LIFECYCLE.md) for recovery and the .246–.247 construction contract.
 
 `Core.ApplySecondaryCountdownFont` applies Blizzard's `GameFontNormalSmall` to the addon-owned secondary cooldown label, centers it on the icon and paints it white. This is separate from the larger per-unit primary countdown alignment in `AuraEngine.lua`. The pet-family fallback has no synthetic countdown. Avoid polling or arithmetic on secret countdown values.
 

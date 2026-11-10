@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.239"
+R.VERSION = "0.1.247"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 -- Four native Blizzard party portraits share the same aura engine as player/pet.
 -- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
@@ -565,32 +565,38 @@ function R.ReadAuraField(aura, key)
     return value, true
 end
 
+R.PORTRAIT_TIMER_LIMIT=30
+local nextDouble=R.PORTRAIT_TIMER_LIMIT+2^-48
+local nextFloat=R.PORTRAIT_TIMER_LIMIT+2^-19
+R.PORTRAIT_TIMER_HIDE_AT=nextDouble
+
 local function buildCountdownFormatter(key)
     local rounding=Enum and Enum.NumericRuleFormatRounding
     local down=rounding and rounding.Down
     if not R.CanAccess(down) or type(down)~="number" then return nil end
     if not C_StringUtil or type(C_StringUtil.CreateNumericRuleFormatter)~="function" then return nil end
     local formatter = C_StringUtil.CreateNumericRuleFormatter()
-    if not R.CanAccess(formatter) or not formatter or type(formatter.SetBreakpoints)~="function" then return nil end
+    if not R.CanAccess(formatter) or not formatter or type(formatter.SetBreakpoints)~="function"
+        or type(formatter.FormatNumber)~="function" then return nil end
 
     -- Match native aura whole seconds by truncating, not rounding to nearest.
-    -- Show decimals strictly below 10 seconds; preserve the native whole-second
-    -- rounding and 60-second hide boundary.
-    local accepted
-    if key == 1 then
-        accepted=formatter:SetBreakpoints({
-            { threshold = 0, format = "%.1f" },
-            { threshold = 10, step = 1, rounding = down, format = "%.0f" },
-            { threshold = 60.000001, format = "" },
-        })
-    else
-        accepted=formatter:SetBreakpoints({
-            { threshold = 0, step = 1, rounding = down, format = "%.0f" },
-            { threshold = 60.000001, format = "" },
-        })
-    end
-
+    local cutoff={threshold=nextDouble,format=""}
+    local whole={threshold=key==1 and 10 or 0,step=1,rounding=down,format="%.0f"}
+    local rules=key==1 and {{threshold=0,format="%.1f"},whole,cutoff} or {whole,cutoff}
+    local accepted=formatter:SetBreakpoints(rules)
     if not R.CanAccess(accepted) or accepted==false then return nil end
+    -- Sample public constants. Native inputs or thresholds can be single precision.
+    local function renders(value,expected)
+        local text=formatter:FormatNumber(value)
+        return R.CanAccess(text) and text==expected
+    end
+    if not renders(30,"30") or not renders(nextDouble,"") then
+        cutoff.threshold=nextFloat
+        accepted=formatter:SetBreakpoints(rules)
+        if not R.CanAccess(accepted) or accepted==false then return nil end
+    end
+    if not renders(30,"30") or not renders(cutoff.threshold,"") or not renders(2880,"") then return nil end
+    R.PORTRAIT_TIMER_HIDE_AT=cutoff.threshold
     return formatter
 end
 
@@ -620,16 +626,14 @@ end
 -- countdown size, not a guessed number or a different default font.
 -- The badge owns its countdown label: center it over the icon and keep
 -- its ink neutral white, including on safe out-of-combat reuse.
-function R.ApplySecondaryCountdownFont(cooldown)
+function R.ApplySecondaryCountdownFont(cooldown, styleOnly, verify)
     if not cooldown or type(cooldown.GetCountdownFontString) ~= "function" then
         return false
     end
     local auraFont = GameFontNormalSmall or DEFAULT_AURA_DURATION_FONT
     if not auraFont or not R.CanAccess(auraFont) then return false end
-    if type(InCombatLockdown) == "function" then
-        local combat, known = R.SafeBool(InCombatLockdown)
-        if not known or combat then return false end
-    end
+    local combat, known = R.SafeBool(InCombatLockdown)
+    if not known or combat then return false end
     local ok, label = pcall(cooldown.GetCountdownFontString, cooldown)
     if not ok or not R.CanAccess(label) or not label
         or type(label.SetFontObject) ~= "function"
@@ -638,9 +642,15 @@ function R.ApplySecondaryCountdownFont(cooldown)
         or type(label.SetTextColor) ~= "function" then
         return false
     end
-    if cooldown._bjarkiSecondaryFontLabel ~= label
-        or cooldown._bjarkiSecondaryFontObject ~= auraFont then
-        if not pcall(label.SetFontObject, label, auraFont) then return false end
+    local same=cooldown._bjarkiSecondaryFontLabel==label and cooldown._bjarkiSecondaryFontObject==auraFont
+    if same and verify then
+        local found,font=pcall(label.GetFontObject,label)
+        same=found and R.CanAccess(font) and font==auraFont
+    end
+    if same and styleOnly then return true,label end
+    if not same then
+        local wrote,result=pcall(label.SetFontObject,label,auraFont)
+        if not wrote or not R.CanAccess(result) or result==false then return false end
     end
     -- A native cooldown may reposition its FontString after the first aura.
     -- Reassert label layout when safely revisited without reading its text.
@@ -654,30 +664,96 @@ function R.ApplySecondaryCountdownFont(cooldown)
     if not centered then return false end
     cooldown._bjarkiSecondaryFontLabel = label
     cooldown._bjarkiSecondaryFontObject = auraFont
+    return true,label
+end
+
+local formatterProbes={1.1,11,30,nextFloat,31,2880}
+local function sameCountdownFormatter(active,wanted)
+    if rawequal(active,wanted) then return true end
+    local activeMethod=R.ReadAuraField(active,"FormatNumber")
+    local wantedMethod=R.ReadAuraField(wanted,"FormatNumber")
+    if type(activeMethod)~="function" or type(wantedMethod)~="function" then return false end
+    -- Some getters expose a separate Lua handle. Compare its public output,
+    -- including long durations, without inspecting the widget's current time.
+    for _,value in ipairs(formatterProbes) do
+        local got,a=pcall(activeMethod,active,value)
+        local expected,b=pcall(wantedMethod,wanted,value)
+        if not got or not expected or not R.CanAccess(a) or not R.CanAccess(b)
+            or type(a)~="string" or a~=b or (value>R.PORTRAIT_TIMER_LIMIT and a~="") then return false end
+    end
     return true
 end
 
-function R.ApplyCountdownFormat(cooldown)
-    if cooldown.SetHideCountdownNumbers then
-        pcall(cooldown.SetHideCountdownNumbers, cooldown, false)
+local function showCountdown(cooldown,shown)
+    if cooldown._bjarkiTimerNumbersShown==shown then return true end
+    if type(cooldown.SetHideCountdownNumbers)~="function" then return shown and cooldown._bjarkiTimerNumbersShown~=false end
+    local ok,result=pcall(cooldown.SetHideCountdownNumbers,cooldown,not shown)
+    if not ok or not R.CanAccess(result) or result==false then return false end
+    if type(cooldown.GetHideCountdownNumbers)=="function" then
+        local read,hidden=pcall(cooldown.GetHideCountdownNumbers,cooldown)
+        if read and R.CanAccess(hidden) and type(hidden)=="boolean" and hidden==shown then return false end
     end
+    cooldown._bjarkiTimerNumbersShown=shown
+    return true
+end
 
+local function installCountdownFormatter(cooldown,formatter,decimals,backend)
+    if not formatter or not cooldown.SetCountdownFormatter then return false end
+    if not cooldown._bjarkiTimerReinstall and rawequal(cooldown._bjarkiTimerFormatter,formatter)
+        and cooldown._bjarkiTimerDecimals==decimals then
+        cooldown._bjarkiTimerBackend=backend
+        return showCountdown(cooldown,true)
+    end
+    local ok,result=pcall(cooldown.SetCountdownFormatter,cooldown,formatter)
+    local read,active
+    if type(cooldown.GetCountdownFormatter)=="function" then read,active=pcall(cooldown.GetCountdownFormatter,cooldown) end
+    local observed=read and R.CanAccess(active)
+    if not ok or not R.CanAccess(result) or result==false or (observed and not sameCountdownFormatter(active,formatter)) then
+        if observed then cooldown._bjarkiTimerFormatter=active end
+        cooldown._bjarkiTimerReinstall=true
+        return false
+    end
+    cooldown._bjarkiTimerFormatter,cooldown._bjarkiTimerDecimals,cooldown._bjarkiTimerBackend=formatter,decimals,backend
+    cooldown._bjarkiTimerReinstall=nil
+    return showCountdown(cooldown,true)
+end
+
+-- Prepare fixed-position cells from the final native label style. Native aura
+-- clocks arrive through their duration-bar bridge; public projection setters
+-- feed the same cells. Fall back only after the cell owner has disabled them.
+function R.ApplyCountdownFormat(cooldown,label,verify)
+    local decimals=R.db and R.db.showDecimals==true or false
+    if R.ApplyPortraitTimer and R.ApplyPortraitTimer(cooldown,label,verify) then
+        cooldown._bjarkiTimerBackend="cells"
+        cooldown._bjarkiTimerDecimals=decimals
+        cooldown._bjarkiTimerSpacingReason="fixed-cells"
+        return true,"cells"
+    end
+    if verify then
+        if type(cooldown.GetHideCountdownNumbers)=="function" then
+            local ok,hidden=pcall(cooldown.GetHideCountdownNumbers,cooldown)
+            cooldown._bjarkiTimerNumbersShown=nil
+            if ok and R.CanAccess(hidden) and type(hidden)=="boolean" then cooldown._bjarkiTimerNumbersShown=not hidden end
+        end
+        local found,active=pcall(cooldown.GetCountdownFormatter,cooldown)
+        cooldown._bjarkiTimerReinstall=not (found and R.CanAccess(active) and sameCountdownFormatter(active,cooldown._bjarkiTimerFormatter)) or nil
+    end
     local formatter = R.GetCountdownFormatter()
-    if formatter and cooldown.SetCountdownFormatter then
-        local ok, result = pcall(cooldown.SetCountdownFormatter, cooldown, formatter)
-        if ok and R.CanAccess(result) and result ~= false then return true,"formatter" end
-    end
+    if installCountdownFormatter(cooldown,formatter,decimals,"formatter") then return true,"formatter" end
 
-    -- Compatibility fallback: if this client does not accept the formatter,
-    -- retain the user's decimal preference through the native millisecond
-    -- threshold. The 60s cutoff is guaranteed by the formatter path.
-    if cooldown.SetCountdownMillisecondsThreshold then
-        local ok, result = pcall(
-            cooldown.SetCountdownMillisecondsThreshold,
-            cooldown,
-            R.db and R.db.showDecimals and 10 or 0
-        )
-        return ok and R.CanAccess(result) and result ~= false,"threshold"
+    -- The stock countdown has no upper time limit. Hide only its numbers until
+    -- a capped rule can be installed. The icon and swipe retain their native clock.
+    cooldown._bjarkiTimerFormatter=nil
+    cooldown._bjarkiTimerBackend="hidden"
+    cooldown._bjarkiTimerDecimals=decimals
+    return showCountdown(cooldown,false),"hidden"
+end
+
+function R.ApplySecondaryCountdownPresentation(cooldown,verify,styleOnly)
+    local styled,label=R.ApplySecondaryCountdownFont(cooldown,styleOnly,verify)
+    if not styled and R.ApplyPortraitTimer then
+        local combat,known=R.SafeBool(InCombatLockdown)
+        if known and not combat then label=false end
     end
-    return false
+    return R.ApplyCountdownFormat(cooldown,label,verify)
 end

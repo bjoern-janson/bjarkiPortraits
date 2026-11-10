@@ -1,6 +1,16 @@
 # Known issues & verification status
 
+**Current source: 0.1.247.** The verification set contains 35 regression scripts run under Lua 5.1 and 5.4; the package contains 15 runtime modules and both manifests. These checks exercise source behavior and distribution contents. They do not certify all live client behavior or establish that the addon is free of bugs. [Verification commands](docs/TESTING.md) · [Timer ownership and lifecycle](docs/TIMER_LIFECYCLE.md)
+
+**0.1.247 initializer recovery, live verification pending:** Fixed portrait timers and deferred secondary construction remain enabled. A failed native button initializer is now retained as unfinished work; the secondary tree must not become ready until initialization succeeds. Completed allocations and mask/clock-registration receipts are retained so retry reuses the original icon, mask, border and cooldown. Regression coverage models Blizzard catching callback errors while registering the group, safe retry, combat interruption, pooled reuse and recipient changes. The audited failure was injected; it was not established as a cause of the reported live hitch.
+
+**.246 forward timer repair, live verification pending:** Fixed portrait timers remain enabled. Native secondary groups preallocate ten buttons each; 62 groups therefore create 620 cooldowns and 3,720 fixed-digit bindings. Construction is now budgeted across deferred out-of-combat callbacks, with a fresh recipient refresh before showing the completed tree. Target-layout checks no longer force unchanged timer bindings to be rewritten. Tests model the actual ten-button native allocation and lifecycle interruptions; they do not measure live frame time. The .245 rollback was rejected and is not the current approach.
+
 The 0.1.239 offline fixtures cover fractional lockout deadlines, duplicate reports, changing Target and Focus, and an unreadable aura list after an occurrence is removed. Live checks still needed include recipient swaps during an active Kick, overlapping lockouts and expiry in combat. [Code and tests](docs/CODE_MAP.md)
+
+Portrait timer motion was still observed in .242. Version .243 replaces inline spacer text with separate fixed-position digit regions in the existing font, using the native aura duration object via `SetDurationBar` and the addon-owned bar's `GetTimerDuration`. The number policy remains tenths below ten when enabled, truncated whole seconds through thirty, then hidden. If fixed cells fail, only a verified capped formatter can show ordinary numbers. Offline checks cover the bridge and rendering policy; exact client typography, protected execution and the native getter retaining a live duration reference still require an in-game retest.
+
+Combat-exit stutter was reported with .243 installed; its start date is uncertain. Version .244 removes a redundant full timer-presentation pass. A production-path model with one Target host (62 native and 27 helper clocks) observed 9,701 presentation setters before the change and zero for unchanged hidden clocks afterward. The model isolates presentation and does not measure the retained aura reconciliation or live frame time. In-game hitch improvement remains unverified.
 
 The dated observations below come from earlier builds. [Earlier issue history](docs/KNOWN_ISSUES_HISTORY.md)
 

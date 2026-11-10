@@ -18,6 +18,17 @@ local R = assert(BP.Runtime, "Core.lua must load first")
 local CELL, IMAGE, RIM, RIM_X, RIM_Y = R.SecondaryCircleGeometry("target")
 local MAX_GROUPS = 80
 local pool = {}
+local constructionQueue = {}
+local constructionTimer
+local queueConstruction
+
+local function cancelConstruction(probe)
+    if not probe then return end
+    probe.constructionTicket=nil
+    for i=#constructionQueue,1,-1 do
+        if constructionQueue[i].probe==probe then table.remove(constructionQueue,i) end
+    end
+end
 
 local function usableStrata(host)
     local badge = host and host.secondaryBadge
@@ -44,78 +55,106 @@ local function anchorClip(clip, host)
     end
 end
 
-local function makeButton(button, probe)
+local function needsFormatterRecovery(backend)
+    return backend=="hidden" or (R.ApplyPortraitTimer and backend~="cells")
+end
+
+local function makeButton(parts, probe)
     -- Invoked by Blizzard during the group frame-provider's initial
     -- preallocation. Never use aura existence/count/ID in this callback.
+    -- Keep completed allocations when a native setter interrupts setup.
+    local button = parts.button
     button:SetSize(CELL, CELL)
     button:EnableMouse(false)
 
-    local icon = button:CreateTexture(nil, "ARTWORK")
+    local icon = parts.icon or button:CreateTexture(nil, "ARTWORK")
+    parts.icon = icon
     icon:SetSize(IMAGE, IMAGE)
     icon:SetPoint("CENTER", button, "CENTER")
     -- The secure renderer changes the spell texture, not its source UVs.
     -- Trim classic square artwork borders without changing native ordering.
     R.ApplySecondaryIconCrop(icon)
-    local mask = button:CreateMaskTexture(nil, "ARTWORK")
+    local mask = parts.mask or button:CreateMaskTexture(nil, "ARTWORK")
+    parts.mask = mask
     mask:SetAtlas("CircleMask", false)
     mask:SetAllPoints(icon)
-    icon:AddMaskTexture(mask)
+    if not parts.masked then
+        icon:AddMaskTexture(mask)
+        parts.masked = true
+    end
     button:SetIcon(icon)
 
-    local border = button:CreateTexture(nil, "OVERLAY")
+    local border = parts.border or button:CreateTexture(nil, "OVERLAY")
+    parts.border = border
     border:SetAtlas("UI-HUD-UnitFrame-TotemFrame", false)
     border:SetSize(RIM, RIM)
     border:SetPoint("CENTER", button, "CENTER", RIM_X, RIM_Y)
 
-    local cooldown = CreateFrame("Cooldown", nil, button,
+    local cooldown = parts.cooldown or CreateFrame("Cooldown", nil, button,
         "CooldownFrameTemplate," .. R.AURA_ANCHOR_TEMPLATE)
+    parts.cooldown = cooldown
     cooldown:SetAllPoints(icon)
     if cooldown.SetDrawBling then cooldown:SetDrawBling(false) end
     if cooldown.SetDrawEdge then cooldown:SetDrawEdge(false) end
     if cooldown.SetDrawSwipe then cooldown:SetDrawSwipe(false) end
     if cooldown.SetReverse then cooldown:SetReverse(true) end
     if cooldown.SetUsingParentLevel then cooldown:SetUsingParentLevel(true) end
-    probe.cooldowns[#probe.cooldowns+1] = cooldown
-    local ok,applied,backend=pcall(R.ApplyCountdownFormat,cooldown)
-    if not ok or applied~=true then
-        probe.formatRetries[#probe.formatRetries+1] = cooldown
-    elseif backend=="threshold" then
-        probe.thresholdClocks[#probe.thresholdClocks+1]=cooldown
+    if not parts.clockListed then
+        probe.cooldowns[#probe.cooldowns+1] = cooldown
+        parts.clockListed = true
     end
     button:SetDurationCooldown(cooldown)
-    if R.ApplySecondaryCountdownFont then
-        R.ApplySecondaryCountdownFont(cooldown)
+    local ok,applied,backend=pcall(R.ApplySecondaryCountdownPresentation,cooldown)
+    if R.AttachPortraitAuraClock then
+        -- The native button owns a stable opaque duration. Attach only after
+        -- its source label has the final font and placement used by the cells.
+        pcall(R.AttachPortraitAuraClock,button,cooldown)
+        ok,applied,backend=pcall(R.ApplyCountdownFormat,cooldown)
     end
+    if not ok or applied~=true then
+        probe.formatRetries[#probe.formatRetries+1] = cooldown
+    elseif needsFormatterRecovery(backend) then
+        probe.fallbackClocks[#probe.fallbackClocks+1]=cooldown
+    end
+    parts.button = nil
 end
 
-function R.ApplyNativeSecondPresentation(host)
+function R.ApplyNativeSecondPresentation(host,verifyFonts)
     local probe = host and host._nativeSecondProbe
     if not probe or not probe.ready then return end
     local decimals = R.db.showDecimals == true
     local changed=probe.decimals~=decimals
+    if verifyFonts then probe.verifyTimerFormats=true end
+    local reselect=probe.verifyTimerFormats
+    local fallback=probe.fallbackClocks or {}
     local recover=probe.formatterEpoch~=R.countdownFormatterEpoch
-        and probe.thresholdClocks and #probe.thresholdClocks>0
-    local pending=changed and probe.cooldowns or probe.formatRetries or {}
+        and #fallback>0
+    local pending=(changed or reselect) and probe.cooldowns or probe.formatRetries or {}
     if #pending==0 and not recover then return end
     local combat, readable = R.SafeBool(InCombatLockdown)
     if not readable or combat then
         return
     end
-    local fallback=probe.thresholdClocks or {}
-    if changed then
+    if changed or reselect then
         fallback={} -- all clocks will be classified again under the new preference
-    elseif recover and R.GetCountdownFormatter() then
+    elseif recover and (R.ApplyPortraitTimer or R.GetCountdownFormatter()) then
         for _,clock in ipairs(fallback) do pending[#pending+1]=clock end
         fallback={}
     end
     local retries = {}
     for _, cooldown in ipairs(pending) do
-        local ok,applied,backend=pcall(R.ApplyCountdownFormat,cooldown)
+        local ok,applied,backend
+        if R.ApplyPortraitTimer then
+            ok,applied,backend=pcall(R.ApplySecondaryCountdownPresentation,cooldown,reselect,true)
+        else
+            ok,applied,backend=pcall(R.ApplyCountdownFormat,cooldown,nil,reselect)
+        end
         if not ok or applied~=true then retries[#retries+1]=cooldown
-        elseif backend=="threshold" then fallback[#fallback+1]=cooldown end
+        elseif needsFormatterRecovery(backend) then fallback[#fallback+1]=cooldown end
     end
-    probe.decimals,probe.formatRetries,probe.thresholdClocks=decimals,retries,fallback
+    probe.decimals,probe.formatRetries,probe.fallbackClocks=decimals,retries,fallback
     probe.formatterEpoch=R.countdownFormatterEpoch
+    probe.verifyTimerFormats=nil
 end
 
 local function orderedTiers()
@@ -238,6 +277,7 @@ end
 function R.ReleaseNativeSecondProbe(host)
     if not host or not host._nativeSecondProbe then return true end
     local probe = host._nativeSecondProbe
+    cancelConstruction(probe)
     local hidden = hide(host, "host-released")
     -- Blizzard AuraContainerSharedMixin:SetUnit asserts STRING and rejects
     -- nil. The previous pcall(SetUnit,nil) silently failed, leaving the old
@@ -245,9 +285,12 @@ function R.ReleaseNativeSecondProbe(host)
     -- Disabling requests a native rebuild. A hidden viewport can retain a
     -- failed disable in the pool; no later owner may bind it until that
     -- disable actually succeeds. A failed hide retains the current owner.
-    local disabled = not probe.container or pcall(function()
-        probe.container:SetEnabled(false)
-    end)
+    local combat,known=R.SafeBool(InCombatLockdown)
+    local disabled=not probe.container
+    if probe.container and known and not combat then
+        local ok,result=pcall(probe.container.SetEnabled,probe.container,false)
+        disabled=ok and R.CanAccess(result) and result~=false
+    end
     probe.needsDisable = not disabled
     if not hidden then
         host._nativeSecondProbeReason = "native-release-pending"
@@ -313,26 +356,33 @@ local function setHostileGroups(probe, wanted)
 end
 
 local function prepareGroupTree(probe, host)
-    if not probe.clip then
-        probe.clip = CreateFrame("Frame", nil, UIParent, R.AURA_ANCHOR_TEMPLATE)
-    end
-    local clip = probe.clip
-    clip:Hide()
-    clip:SetSize(CELL, CELL)
-    anchorClip(clip, host)
-    clip:EnableMouse(false)
-    clip:SetClipsChildren(true)
+    if not probe.structureReady then
+        if not probe.clip then
+            probe.clip = CreateFrame("Frame", nil, UIParent, R.AURA_ANCHOR_TEMPLATE)
+        end
+        local clip = probe.clip
+        local hidden=clip:Hide()
+        assert(R.CanAccess(hidden) and hidden~=false,"native construction viewport hide declined")
+        clip:SetSize(CELL, CELL)
+        anchorClip(clip, host)
+        clip:EnableMouse(false)
+        clip:SetClipsChildren(true)
 
-    if not probe.container then
-        probe.container = CreateFrame("AuraContainer", nil, clip, "CustomAuraContainerTemplate")
+        if not probe.container then
+            probe.container = CreateFrame("AuraContainer", nil, clip, "CustomAuraContainerTemplate")
+        end
+        local c = probe.container
+        local disabled=c:SetEnabled(false)
+        assert(R.CanAccess(disabled) and disabled~=false,"native construction disable declined")
+        c:ClearAllPoints()
+        c:SetPoint("TOPLEFT", clip, "TOPLEFT", -CELL, 0)
+        c:SetFrameLevel(clip:GetFrameLevel()+1)
+        probe.structureReady=true
     end
-    local c = probe.container
-    c:SetEnabled(false)
-    c:ClearAllPoints()
-    c:SetPoint("TOPLEFT", clip, "TOPLEFT", -CELL, 0)
-    c:SetFrameLevel(clip:GetFrameLevel()+1)
+    local c=probe.container
 
-    for rank = probe.groups + 1, #probe.plans do
+    local rank=probe.groups+1
+    if rank<=#probe.plans then
         local plan = probe.plans[rank]
         local layout = {
             layoutIndex = rank, elementWidth = CELL, elementHeight = CELL,
@@ -342,15 +392,33 @@ local function prepareGroupTree(probe, host)
         -- throws. HasAuraGroup checks our fixed configuration key only.
         if c:HasAuraGroup(plan.key) then
             -- Forever installs layout after it registers the group.
-            c:SetAuraGroupLayout(plan.key, layout)
+            local result=c:SetAuraGroupLayout(plan.key, layout)
+            assert(R.CanAccess(result) and result~=false,"native group layout declined")
+            -- The native provider catches initializer exceptions separately
+            -- from AddAuraGroup. Repair only the unfinished fixed recipients;
+            -- never inspect the group's protected aura or frame population.
+            local pending=probe.pendingButtons
+            while pending and #pending>0 do
+                makeButton(pending[1],probe)
+                table.remove(pending,1)
+            end
         else
-            c:AddAuraGroup(plan.key, plan.filter, {
+            local result=c:AddAuraGroup(plan.key, plan.filter, {
                 maxFrameCount = 2, candidateFilters = plan.candidateFilters,
                 sortMethod = R.SORT_METHOD, sortDirection = R.SORT_DIRECTION,
                 layout = layout,
-                initializeFrame = function(button) makeButton(button, probe) end,
+                initializeFrame = function(button)
+                    local parts={button=button}
+                    if not pcall(makeButton,parts,probe) then
+                        probe.pendingButtons=probe.pendingButtons or {}
+                        probe.pendingButtons[#probe.pendingButtons+1]=parts
+                    end
+                end,
             })
+            assert(R.CanAccess(result) and result~=false,"native group creation declined")
         end
+        assert(not probe.pendingButtons or #probe.pendingButtons==0,"native button initialization incomplete")
+        probe.pendingButtons=nil
         if plan.tier.key == "HostileHelpful" then
             probe.hostileHelpfulKey = plan.key
         elseif plan.hostileFilter then
@@ -361,9 +429,78 @@ local function prepareGroupTree(probe, host)
             }
         end
         probe.groups = rank
+        probe.failedAt = nil
     end
+    if probe.groups<#probe.plans then return false end
     probe.witnessPlans, probe.plans, probe.failedAt = probe.plans, nil, nil
     probe.ready = true
+    return true
+end
+
+local function currentConstruction(ticket)
+    local host,probe=ticket.host,ticket.probe
+    return probe.constructionTicket==ticket and host._nativeSecondProbe==probe
+        and R.hosts[host.unit]==host and R.db and R.db.enabled==true
+        and R.db.secondaryPortrait~=false and not R.testMode
+        and (not R.IsUnitEnabled or R.IsUnitEnabled(host.unit))
+        and R.SecondaryOwnerVisible(host)
+end
+
+local function scheduleConstruction()
+    if constructionTimer or #constructionQueue==0 then return end
+    local combat,known=R.SafeBool(InCombatLockdown)
+    if not known or combat or not C_Timer or type(C_Timer.After)~="function" then return end
+    local timer={scheduling=true}
+    constructionTimer=timer
+    local ok,result=pcall(C_Timer.After,.01,function()
+        if constructionTimer~=timer then return end
+        constructionTimer=nil
+        -- A synchronous timer implementation cannot turn the bounded queue
+        -- into one recursive burst. Leave work for the next safe event.
+        if timer.scheduling then return end
+        local combat,known=R.SafeBool(InCombatLockdown)
+        if not known or combat then return end
+        local ticket
+        while #constructionQueue>0 do
+            local candidate=table.remove(constructionQueue,1)
+            if currentConstruction(candidate) then ticket=candidate;break end
+            if candidate.probe.constructionTicket==candidate then candidate.probe.constructionTicket=nil end
+        end
+        if not ticket then return end
+        local host,probe=ticket.host,ticket.probe
+        local built,complete=pcall(prepareGroupTree,probe,host)
+        if not built then
+            cancelConstruction(probe)
+            if probe.failedAt==probe.groups then probe.quarantined=true end
+            probe.failedAt=probe.groups
+            hide(host,probe.quarantined and "native-group-retry-exhausted" or "native-group-construction-failed")
+        elseif complete then
+            local current=currentConstruction(ticket)
+            probe.constructionTicket=nil
+            -- Never replay eligibility or a recipient captured when queued.
+            -- The normal refresh binds and exposes only the current owner.
+            if current and R.Refresh then
+                pcall(R.Refresh,host.unit,true)
+            end
+        elseif currentConstruction(ticket) then
+            table.insert(constructionQueue,ticket)
+        end
+        scheduleConstruction()
+    end)
+    timer.scheduling=nil
+    if not ok or not R.CanAccess(result) or result==false then
+        if constructionTimer==timer then constructionTimer=nil end
+    end
+end
+
+queueConstruction=function(probe,host)
+    if not probe.constructionTicket then
+        local ticket={probe=probe,host=host}
+        probe.constructionTicket=ticket
+        table.insert(constructionQueue,ticket)
+    end
+    host._nativeSecondProbeReason="native-group-construction-pending"
+    scheduleConstruction()
 end
 
 local function bindProbe(probe, host)
@@ -397,20 +534,17 @@ function R.CreateNativeSecondProbe(host)
             host._nativeSecondProbeReason = "tiers-unavailable"
             return false
         end
-        probe = {plans=plans, ready=false, groups=0, cooldowns={}, formatRetries={},thresholdClocks={},
+        probe = {plans=plans, ready=false, groups=0, cooldowns={}, formatRetries={},fallbackClocks={},
             formatterEpoch=R.countdownFormatterEpoch,
             decimals=R.db.showDecimals == true, relationFilters={}, needsBind=true}
     end
+    local reused=probe.ready and probe.needsBind
     -- Publish ownership before the first operation that can partially succeed.
     host._nativeSecondProbe = probe
     if probe.quarantined then return false end
     if not probe.ready then
-        if not pcall(prepareGroupTree, probe, host) then
-            if probe.failedAt == probe.groups then probe.quarantined = true end
-            probe.failedAt = probe.groups
-            hide(host, probe.quarantined and "native-group-retry-exhausted" or "native-group-construction-failed")
-            return false
-        end
+        queueConstruction(probe,host)
+        return false
     end
     if probe.needsBind then
         if not pcall(bindProbe, probe, host) then
@@ -421,7 +555,7 @@ function R.CreateNativeSecondProbe(host)
         end
     end
     host._nativeSecondProbeReason = "ready"
-    R.ApplyNativeSecondPresentation(host)
+    R.ApplyNativeSecondPresentation(host,reused)
     return true
 end
 
@@ -589,6 +723,7 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
     if existing and bindingChanged and host.unit ~= "player" then existing.rebindPending = true end
     local visible, visibilityReason = R.SecondaryOwnerVisible(host)
     if not visible then
+        cancelConstruction(existing)
         hide(host, visibilityReason)
         return
     end
@@ -607,6 +742,8 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
     local otherEligible = (host.unit == "target" or host.unit == "focus")
         and base and type(hostile) == "boolean"
         and playerReadable == true and type(isPlayer) == "boolean"
+
+    if not playerEligible and not otherEligible then cancelConstruction(existing) end
 
     local newlyConstructed = false
     if (playerEligible or otherEligible) and
@@ -627,7 +764,9 @@ function R.UpdateNativeSecondProbe(host, enabled, hostile, playerReadable, isPla
 
     local probe = host._nativeSecondProbe
     if not probe or not probe.ready or probe.needsBind or not probe.clip then return end
-    if probe.decimals ~= (R.db.showDecimals == true) or forceContainerRefresh then
+    local retryEpoch=probe.formatterEpoch~=R.countdownFormatterEpoch
+        and ((probe.fallbackClocks and #probe.fallbackClocks>0) or (probe.formatRetries and #probe.formatRetries>0))
+    if probe.decimals ~= (R.db.showDecimals == true) or forceContainerRefresh or probe.verifyTimerFormats or retryEpoch then
         R.ApplyNativeSecondPresentation(host)
     end
 

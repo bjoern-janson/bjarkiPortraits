@@ -7,32 +7,27 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   package:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Lua compilers
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Lua 5.1 and 5.4
         run: |
           sudo apt-get update
           sudo apt-get install -y lua5.1 lua5.4
-      - name: Check Lua syntax and behavioral regressions
+      - name: Verify current source and package
         run: |
-          set -euo pipefail
-          for version in 5.1 5.4; do
-            for file in Spells.lua Core.lua Interrupts.lua SecondaryPortrait.lua NativeSecondProbe.lua StanceState.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua PetSecondary.lua Commands.lua Main.lua tests/*.lua; do
-              "luac${version}" -p "$file"
-            done
-            for test in tests/*.lua; do
-              "lua${version}" "$test"
-            done
-          done
-      - name: Stage addon
-        run: |
-          mkdir -p dist/bjarkiPortraits
-          cp Spells.lua Core.lua Interrupts.lua SecondaryPortrait.lua NativeSecondProbe.lua StanceState.lua SharedEvidence.lua EvidencePublisher.lua Priority.lua AuraEngine.lua PetPortraits.lua PetSecondary.lua Commands.lua Main.lua bjarkiPortraits.toc bjarkiPortraits_Camelot.toc dist/bjarkiPortraits/
+          python3 tools/verify.py --output "$RUNNER_TEMP/bjarkiPortraits-verified.zip"
+          python3 -m zipfile -e "$RUNNER_TEMP/bjarkiPortraits-verified.zip" "$RUNNER_TEMP/bjarkiPortraits-package"
       - uses: actions/upload-artifact@v4
         with:
           name: bjarkiPortraits
-          path: dist
+          path: ${{ runner.temp }}/bjarkiPortraits-package
           if-no-files-found: error

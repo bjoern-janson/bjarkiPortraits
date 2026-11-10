@@ -282,6 +282,83 @@ test('format updates include the prepared native secondary for the requested hos
     eq(formatted[s.R.hosts.focus],nil,'other owner is untouched')
 end)
 
+test('presentation prepares cells after final typography and keeps their native clock hidden', function()
+    local s=setup()
+    local R=s.R
+    local h=s:build()
+    local oldSmall=GameFontNormalSmall
+    GameFontNormalSmall={}
+    local base={}
+    local function clock()
+        local cd=s.original:CreateTexture()
+        cd.label=s.original:CreateTexture()
+        cd.label.size=12
+        function cd:GetCountdownFontString() self.reads=(self.reads or 0)+1;return self.label end
+        function cd.label:GetFont()return 'native-font',self.size,'OUTLINE'end
+        function cd.label:SetFont(_,size)self.size=size end
+        function cd.label:SetFontObject(obj)self.object=obj;self.size=11 end
+        function cd.label:GetFontObject()return self.object end
+        cd.label.SetTextColor=function()end
+        cd.label.SetJustifyH=function()end
+        cd.label.SetJustifyV=function()end
+        function cd:SetCountdownFormatter(value)self.formatter=value end
+        function cd:GetCountdownFormatter()return self.formatter end
+        function cd:SetHideCountdownNumbers(value)self.hidden=value end
+        function cd:GetHideCountdownNumbers()return self.hidden end
+        return cd
+    end
+    local main,second=clock(),clock()
+    h.cooldowns,h.secondaryCooldown={main},second
+    R.SMALL_UNITS.target=true
+    R.GetCountdownFormatter=function()return base end
+    local prepared={}
+    R.ApplyPortraitTimer=function(cd,label,verify)
+        if label then
+            assert(not s.combat,'style is only observed outside combat')
+            local _,size=label:GetFont()
+            prepared[cd]={label=label,size=size,decimals=R.db.showDecimals,verify=verify}
+        end
+        local saved=prepared[cd]
+        if not saved or saved.decimals~=R.db.showDecimals then return false end
+        cd:SetHideCountdownNumbers(true)
+        cd._bjarkiTimerNumbersShown=false
+        return true
+    end
+    R.ApplyPresentation('target')
+    eq(prepared[main].size,10,'primary cells copy the final compact font')
+    eq(prepared[second].size,11,'secondary cells copy the buff font')
+    eq(second.label.object,GameFontNormalSmall)
+    eq(main.label.points[1][3],'TOPLEFT','label retains its calibrated bounds')
+    eq(main.label.points[2][3],'BOTTOMRIGHT')
+    eq(main.points[1][3],'TOPLEFT','swipe retains its original bounds')
+    eq(main.hidden,true);eq(second.hidden,true)
+    eq(main.formatter,nil);eq(second.formatter,nil)
+    local info=R.GetLayoutDebug('target')
+    assert(info:find('sampleTimer=cells/fixed-cells',1,true),info)
+    assert(info:find('secondaryTimer=cells/fixed-cells',1,true),info)
+    main.IsVisible=function()return true end
+    main.hidden,second.hidden=false,false
+    R.ApplyPresentation('target',true,true)
+    eq(main.hidden,true,'settled primary verifies exclusive cell ownership')
+    eq(second.hidden,true,'settled secondary verifies exclusive cell ownership')
+    eq(prepared[main].verify,false,'unit layout refresh preserves healthy primary cell bindings')
+    eq(prepared[second].verify,false,'unit layout refresh preserves healthy secondary cell bindings')
+    R.ApplyPresentation(nil,true,true)
+    eq(prepared[main].verify,true,'global display change still verifies every cell receiver')
+    eq(prepared[second].verify,true,'global display change still verifies secondary cells')
+    h._pendingClockLayouts={[main]=true};main.hidden=false
+    R.RetryPostAuraLayouts(h)
+    eq(main.hidden,true,'first visible native assignment verifies cell ownership')
+    local mr,sr=main.reads,second.reads
+    s.combat=true;R.db.showDecimals=not R.db.showDecimals;R.ApplyPresentation('target')
+    eq(main.reads,mr,'no primary FontString lookup in combat')
+    eq(second.reads,sr,'no secondary FontString lookup in combat')
+    eq(main.formatter,base);eq(second.formatter,base)
+    s.combat=false;R.ApplyPresentation()
+    eq(main.hidden,true);eq(second.hidden,true)
+    GameFontNormalSmall=oldSmall
+end)
+
 test('combat and a failed peer restore defer a party takeover, then recover', function()
     local s=setup()
     local members={}
@@ -919,9 +996,9 @@ test('unchanged combat name and flag callbacks preserve clock styles and forced 
     end
     h.cooldowns[#h.cooldowns+1]=added
     fire('UNIT_NAME_UPDATE','target');s.deferred()
-    eq(writes,0);eq(newWrites,3,'newly registered clock receives current format')
+    eq(writes,0);eq(newWrites,2,'new clock installs swipe and suppresses uncapped numbers')
     R.db.showDecimals=not R.db.showDecimals;R.ApplyPresentation('target')
-    assert(writes>0 and newWrites>3,'changed preferences reach all clocks')
+    eq(writes,#h.cooldowns-1);eq(newWrites,3,'explicit refresh writes only the swipe on an already hidden uncapped clock')
     writes,newWrites=0,0
     added.SetDrawSwipe=function()newWrites=newWrites+1;return false end
     R.db.showSwipe=not R.db.showSwipe;fire('UNIT_NAME_UPDATE','target');s.deferred()
@@ -964,6 +1041,49 @@ test('native token changes revoke the aura anchor independently and require a fr
         end
     end
 end)
+test('combat exit preserves settled timer cells and retries visible deferred work',function()
+    local s=setup();local R=s.R;local h=s:build();local clock=h.cooldowns[1]
+    local shown,reads,verified,attempts=false,0,0,0
+    local label=s.original:CreateTexture()
+    label.SetJustifyH=function(self,v)self.h=v end;label.GetJustifyH=function(self)return self.h end
+    label.SetJustifyV=function(self,v)self.v=v end;label.GetJustifyV=function(self)return self.v end
+    label.SetTextColor=function(self,...)self.color={...}end
+    label.GetTextColor=function(self)return unpack(self.color)end
+    clock.GetCountdownFontString=function()reads=reads+1;return label end
+    clock.IsVisible=function()return shown end
+    local needsRetry=false;local recoveredEpoch
+    R.ApplyPortraitTimer=function(cd,source,verify)
+        if cd==clock and source then
+            attempts=attempts+1
+            if verify then verified=verified+1 end
+            if needsRetry then recoveredEpoch=R.countdownFormatterEpoch;needsRetry=false end
+        end
+        return true,"cells"
+    end
+    R.ApplyPresentation('target')
+    reads,verified,attempts=0,0,0
+    local forced=0
+    R.RefreshAll=function(force)if force then forced=forced+1 end end
+    R.UpdateObservedPetPortrait=function()end
+    local fire=installEvents(s)
+    local epoch=R.countdownFormatterEpoch
+    fire('PLAYER_REGEN_ENABLED')
+    eq(forced,1,'combat exit retains one forced eligibility reconciliation')
+    eq(R.countdownFormatterEpoch,epoch+1,'failed formatter builds get a new recovery opportunity')
+    eq(reads,0,'combat exit does not walk hidden settled timer labels')
+    eq(verified,0,'combat exit does not force healthy cell font and clock rewrites')
+    shown=true;needsRetry=true;label.v='TOP'
+    fire('PLAYER_REGEN_ENABLED')
+    eq(label.v,'MIDDLE','visible pending geometry recovers at combat exit')
+    eq(recoveredEpoch,epoch+2,'visible bridge or style retry observes the new safe epoch')
+    eq(verified,0,'visible recovery also avoids blanket cell verification')
+    shown=false;fire('PLAYER_REGEN_ENABLED')
+    label.v='TOP';shown=true;needsRetry=true
+    fire('UNIT_NAME_UPDATE','target');s.deferred()
+    eq(label.v,'MIDDLE','a clock first shown after combat exit still repairs its pending layout')
+    eq(needsRetry,false,'newly visible cells retain their ordinary preparation opportunity')
+end)
+
 test('settled OOC countdowns avoid all geometry writes and repair changed native receivers',function()
     local s=setup();local R=s.R;local h=s:build();local clock=h.cooldowns[1]
     local writes,geometryReads,receiverReads=0,0,0;local scale=1;local visible=true

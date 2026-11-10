@@ -2,7 +2,7 @@
 
 Native-styled priority aura portraits for **WoW: Forever**. A high-priority observed aura or state can replace the normal Blizzard portrait; a smaller circle may show the next distinct eligible effect. The addon respects the client's protected-aura boundaries and does not guess hidden spell IDs.
 
-**0.1.239 for WoW: Forever.** A landed school interrupt can supply the portrait and countdown. Target and Focus each use their current recipient. For a walkthrough from the game event to the painted icon, start with the [code map](docs/CODE_MAP.md).
+**0.1.247 for WoW: Forever.** Fixed-position timers retain the existing fonts, and native secondary construction resumes incomplete button initialization before showing the finished tree. Landed school interrupts can supply a portrait and countdown, with Target and Focus each following their current recipient. Start with the [code map](docs/CODE_MAP.md) for event paths and the [timer lifecycle](docs/TIMER_LIFECYCLE.md) for clock ownership and recovery.
 
 ## Install
 
@@ -37,7 +37,9 @@ The 30px full-size artwork matches a regular Blizzard buff icon; its Totem-style
 
 ### Countdown and priority examples
 
-Primary timers retain their per-frame calibration. Secondary timer text uses Blizzard's `GameFontNormalSmall`, centered and white. `/bp decimals` switches one decimal **strictly below 10 seconds**; at 10–60 seconds the formatter uses whole seconds, and above 60 it hides the text when the native formatter is available.
+Portrait countdowns retain fixed-position digits in the existing font: tenths below ten seconds when enabled, truncated whole seconds through thirty, and no number above thirty at the native formatter's supported precision. Native duration bindings drive the digits without Lua reading the current private countdown. If fixed cells cannot be used, the addon tries the same capped native formatter; if that cannot be installed, it hides the number while preserving the icon and swipe.
+
+Version .246 spreads native secondary construction across deferred out-of-combat callbacks and avoids rewriting unchanged timer bindings during target-layout checks. A partially built secondary stays hidden until its full native group tree can be bound to the current recipient. Version .247 retains failed button initialization and already-created artwork, masks and clocks for a safe retry; completion requires every initializer to finish. These source repairs retain the timer work. Their effect on live responsiveness and rendering still needs confirmation. [Timer ownership and lifecycle](docs/TIMER_LIFECYCLE.md)
 
 Numeric tiers indicate **portrait display priority**, not general spell strength. A few current classifications:
 
@@ -79,10 +81,12 @@ For a regression, run the read-only debug command **before** manually refreshing
 
 - [Code map](docs/CODE_MAP.md) — event paths, state owners and tests for specific symptoms.
 - [Architecture](ARCHITECTURE.md) — current module loading, main/secondary election, guards, native pooling and lifecycle.
+- [Timer lifecycle](docs/TIMER_LIFECYCLE.md) — exact-font cells, native duration bridge, deferred groups, initialization receipts and Target/Focus interrupt clocks.
 - [Known issues / verification status](KNOWN_ISSUES.md) — current open questions versus source-level repairs.
 - [Priority reference](docs/PRIORITIES.md) — numeric lane table from `Priority.lua`.
 - [Testing and debugging](docs/TESTING.md) — automated checks, in-game acceptance cases and release checks.
+- [0.1.247 verification record](docs/BUILD_VERIFICATION.md) — Lua engine results, package/source identity and limits of the offline evidence.
 - [Secondary portrait design history](docs/SECONDARY_PORTRAIT_PLAN.md) — chronological experiments, acceptance goals and source evidence.
 - [Historical README / release notes](docs/README_RELEASE_HISTORY.md), [legacy architecture](docs/ARCHITECTURE_HISTORY.md) and [earlier issue log](docs/KNOWN_ISSUES_HISTORY.md) — preserved provenance; **not current configuration guidance**.
 
-CI compiles the addon and executes its Lua regression scripts under **Lua 5.1 and 5.4**, then packages the 14 Lua files and two manifests into one installable folder. Passing CI verifies the modeled source behavior, **not** every in-game protected-aura or visual case. [CI workflow](.github/workflows/package-addon.yml).
+The current verification set contains **35 Lua regression scripts** and **15 runtime modules**. CI syntax-checks and runs the scripts under **Lua 5.1 and 5.4**, then packages the runtime modules and both manifests into one installable folder. Passing these checks verifies modeled source behavior; protected execution, final typography and frame time still require an in-game observation. [Verification commands](docs/TESTING.md) · [CI workflow](.github/workflows/package-addon.yml).
