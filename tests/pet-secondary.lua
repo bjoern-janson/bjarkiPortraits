@@ -124,6 +124,10 @@ local function frame(kind,parent)
             options=options,button=button}
         button:Hide() -- batch created, no current aura assigned
     end
+    function o:HasAuraGroup(key)
+        for _,group in ipairs(self.groups or {}) do if group.key==key then return true end end
+        return false
+    end
     return o
 end
 UIParent=frame("UIParent")
@@ -137,13 +141,42 @@ assert(loadfile("PetSecondary.lua"))("bjarkiPortraits",BP)
 
 local function host(unit)
     local h={unit=unit,portrait=frame("portrait"),
+        unitFrame={IsVisible=function() return true end},
         secondaryBadge=frame("secondary")}
     h.secondaryBadge:SetFrameLevel(48)
     return h
 end
 local h=host("target")
+-- A temporary allocation failure leaves this owner repairable. Do not
+-- allocate another root or lose references to the existing native lanes.
+local create=CreateFrame
+local allowGroups=false
+local postRegistrationFailure=true
+CreateFrame=function(kind,...)
+    if kind=="AuraContainer" and not allowGroups then error("temporarily unavailable") end
+    local f=create(kind,...)
+    if kind=="AuraContainer" then
+        local add=f.AddAuraGroup
+        function f:AddAuraGroup(...)
+            add(self,...)
+            if postRegistrationFailure then postRegistrationFailure=false; error("registered then interrupted") end
+        end
+    end
+    return f
+end
+R.UpdatePetSecondaryFallback(h,true)
+local attempt=assert(h._petSecondaryFallback)
+local originalRoot=assert(attempt.root)
+eq(originalRoot.shown,false,"partial setup cannot expose an unbound group")
+allowGroups=true
+R.UpdatePetSecondaryFallback(h,true)
+eq(attempt.root.shown,false,"interrupted group registration cannot publish its incomplete state")
 R.UpdatePetSecondaryFallback(h,true)
 local st=h._petSecondaryFallback
+eq(st,attempt,"healthy update repairs the same state")
+eq(st.root,originalRoot,"healthy update reuses the original root")
+eq(#st.containers[1].groups,1,"an existing declared native group is not registered twice")
+CreateFrame=create
 eq(st~=nil,true,"verified Target pet automatically constructs family gate")
 eq(st.ready,true,"both native aura groups constructed")
 eq(st.containers[1].enabled,true,
@@ -216,6 +249,24 @@ eq(st.containers[2].groups[1].button.shown,false,
 -- Reassignment to another pet family changes the art only at a safe
 -- out-of-combat boundary and retains the two native filters.
 actor.family,actor.familyID,actor.guid="Carrion Bird",7,"Pet-Second"
+local previousArt=st.art
+local image=st.textures[2]
+local setImage=image.SetTexture
+image.SetTexture=function() return false end
+R.UpdatePetSecondaryFallback(h,true)
+eq(st.root.shown,false,"false texture result hides the partially updated gate")
+eq(st.guid,nil,"failed transfer cannot claim the new or previous GUID")
+image.SetTexture=setImage
+actor.family,actor.familyID,actor.guid="Owl",26,"Pet-First"
+R.UpdatePetSecondaryFallback(h,true)
+eq(st.guid,"Pet-First","return to A positively restores identity")
+for _,tex in ipairs(st.textures) do eq(tex.texture,previousArt,"no B texture survives in A") end
+for _,c in ipairs(st.containers) do eq(c.enabled,true,"all native groups restored after failed transfer") end
+actor.family,actor.familyID,actor.guid="Carrion Bird",7,"Pet-Second"
+image.SetTexture=function() error("stopped mid-write") end
+R.UpdatePetSecondaryFallback(h,true)
+eq(st.root.shown,false,"throwing second texture is also recoverable")
+image.SetTexture=setImage
 R.UpdatePetSecondaryFallback(h,true)
 eq(st.guid,"Pet-Second","new target pet GUID replaces prior occupant")
 eq(st.art,920007,"new pet family icon replaces prior bird family")
@@ -273,7 +324,14 @@ eq(st.root.shown,false,"hidden/disabled Target frame cannot show pet art")
 R.UpdatePetSecondaryFallback(h,true)
 eq(st.root.shown,true,"verified live pet recovers on next enabled update")
 
-R.ReleasePetSecondaryFallback(h)
+local hide,alpha,disable=st.root.Hide,st.root.SetAlpha,st.containers[1].SetEnabled
+st.root.Hide=function() error("hide denied") end
+st.root.SetAlpha=function() error("alpha denied") end
+st.containers[1].SetEnabled=function() error("disable denied") end
+eq(R.ReleasePetSecondaryFallback(h),false,"unrevoked group is not released")
+eq(h._petSecondaryFallback,st,"rejected release keeps ownership for recovery")
+st.root.Hide,st.root.SetAlpha,st.containers[1].SetEnabled=hide,alpha,disable
+eq(R.ReleasePetSecondaryFallback(h),true,"a later safe release completes")
 eq(h._petSecondaryFallback,nil,"old host loses art ownership")
 eq(st.root.shown,false,"pooled state hidden on teardown")
 for _,c in ipairs(st.containers) do
@@ -297,6 +355,16 @@ eq(st.containers[1].groups[1].button.shown,false,
     "untagged/naked replacement pet has no previous aura picture")
 R.ReleasePetSecondaryFallback(sameToken)
 local focus=host("focus")
+local priorDisabled=st.containers[1].SetEnabled
+st.containers[1].SetEnabled=function(self,on)
+    if not on then error("still unavailable") end
+    return priorDisabled(self,on)
+end
+R.UpdatePetSecondaryFallback(focus,true)
+eq(focus._petSecondaryFallback,st,"a failed pooled disable retains its tracked root")
+eq(st.root.shown,false,"new owner cannot expose the previous binding")
+eq(st.guid,nil,"reuse cannot commit an identity before its old groups disable")
+st.containers[1].SetEnabled=priorDisabled
 R.UpdatePetSecondaryFallback(focus,true)
 eq(focus._petSecondaryFallback,st,
     "Focus reuses existing pooled native family gate")
@@ -304,6 +372,22 @@ eq(st.containers[1].unit,"focus","reused family gate follows Focus unit token")
 eq(st.root.points[3],"TOPLEFT","Focus pet-family uses shared upper-left corner")
 eq(st.root.points[4],10,"Focus pet-family uses shared inset")
 eq(st.root.points[5],12,"Focus pet-family uses shared lift")
+focus.unitFrame.IsVisible=function()return false end
+R.UpdatePetSecondaryFallback(focus,true)
+eq(st.root.shown,false,"native family root follows hidden native owner")
+focus.unitFrame.IsVisible=function()return true end
+R.UpdatePetSecondaryFallback(focus,true)
+eq(st.root.shown,true,"native family root recovers with its owner")
+R.hosts.focus=focus
+SlashCmdList={}
+-- The command delegates eligibility to AuraEngine.Refresh on enable.
+R.UpdatePetPortraits=function() end
+R.Refresh=function(unit) R.UpdatePetSecondaryFallback(R.hosts[unit], true) end
+assert(loadfile("Commands.lua"))("bjarkiPortraits",BP)
+SlashCmdList.BJARKIPORTRAITS('pets off')
+eq(st.root.shown,false,"pets off hides existing family overlays before any aura event")
+SlashCmdList.BJARKIPORTRAITS('pets on')
+eq(st.root.shown,true,"pets on restores the eligible family fallback")
 R.ReleasePetSecondaryFallback(focus)
 local notSupported=host("targettarget")
 R.UpdatePetSecondaryFallback(notSupported,true)

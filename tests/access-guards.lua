@@ -201,6 +201,28 @@ test("ReadAuraField rejects a field with unknown access", function()
     equal(readable, false)
 end)
 
+test("secondary visibility requires positive native or complete ancestor evidence", function()
+    issecretvalue=function(value) return value==SECRET end
+    canaccessvalue=function() return true end
+    local rootVisible=false
+    local root={IsShown=function() return rootVisible end, GetParent=function() return nil end}
+    local child={IsShown=function() return true end, GetParent=function() return root end}
+    local owner={unitFrame=child}
+    local visible, reason=R.SecondaryOwnerVisible(owner)
+    equal(visible,false); equal(reason,"native-frame-hidden")
+    rootVisible=true
+    equal(R.SecondaryOwnerVisible(owner),true)
+    child.IsVisible=function() return SECRET end
+    visible,reason=R.SecondaryOwnerVisible(owner)
+    equal(visible,false); equal(reason,"native-visibility-unreadable")
+    child.IsVisible=function() error("denied") end
+    equal(R.SecondaryOwnerVisible(owner),false)
+    child.IsVisible=nil
+    child.GetParent=function() return child end
+    equal(R.SecondaryOwnerVisible(owner),false)
+    equal(R.SecondaryOwnerVisible({}),false)
+end)
+
 issecretvalue, canaccessvalue = oldSecret, oldAccess
 print("bjarkiPortraits access guards: " .. passed .. " passed, " .. #failures .. " failed")
 assert(#failures == 0, table.concat(failures, "\n"))

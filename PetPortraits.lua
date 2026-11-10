@@ -320,44 +320,85 @@ function R.ResolveObservedPetSecondaryArt(unit)
     return texture, guid, "confirmed-pet-family"
 end
 
-local function createHostTexture(host)
-    local texture = host.layer:CreateTexture(nil, "ARTWORK", nil, 1)
-    -- Family/totem artwork must use the same rectangle and edge treatment as
-    -- the aura which can later cover it; do not keep a separate untrimmed path.
-    R.ApplyPortraitImageLayout(texture, host)
-    R.ApplyPortraitIconCrop(texture, host)
-    local mask = host.imageMask or host.portraitMask
-    if mask and texture.AddMaskTexture then
-        pcall(texture.AddMaskTexture, texture, mask)
+local function accepted(result)
+    return R.CanAccess(result) and result~=false
+end
+
+local function textureMethod(texture,method,...)
+    return texture[method](texture,...)
+end
+
+local function prepareFoundation(host)
+    local texture=observed[host]
+    if not texture then
+        texture=host.layer:CreateTexture(nil,"ARTWORK",nil,1)
+        if not R.CanAccess(texture) or not texture then return false end
+        observed[host]=texture -- retain the allocation before the first setter
+        host._foundationStage="hide"
     end
-    texture:Hide()
-    return texture
+    if host._foundationStage=="hide" then
+        if not accepted(texture:Hide()) then return false end
+        host._foundationStage="layout"
+    end
+    if host._foundationStage=="layout" then
+        if not accepted(R.ApplyPortraitImageLayout(texture,host)) then return false end
+        host._foundationStage="crop"
+    end
+    if host._foundationStage=="crop" then
+        local ok,result=R.ApplyPortraitIconCrop(texture, host)
+        if not ok or not accepted(result) then return false end
+        host._foundationStage="mask"
+    end
+    local mask=host.imageMask or host.portraitMask
+    if mask and texture.AddMaskTexture and not accepted(texture:AddMaskTexture(mask)) then return false end
+    host._foundationStage="ready"
+    return true
 end
 
 local function applyFoundationTexture(texture, icon)
     local state = "no-icon"
     if icon then
-        local ok, applied = pcall(texture.SetTexture, texture, icon)
+        local ok, applied = pcall(textureMethod,texture,"SetTexture",icon)
         if not ok then
             state = "texture-error"
         elseif not R.CanAccess(applied) or type(applied) ~= "boolean" then
             state = "texture-unknown"
         elseif not applied then
             state = "texture-rejected"
-        elseif pcall(texture.Show, texture) then
-            presentationState[texture] = "shown"
-            return
         else
+            local shown,result=pcall(textureMethod,texture,"Show")
+            if shown and accepted(result) then
+                presentationState[texture] = "shown"
+                return
+            end
             state = "show-error"
         end
     end
     -- A rejected texture may leave the previous unit's artwork in this widget.
     -- Retain only an operation outcome for diagnostics, never a unit identity.
     presentationState[texture] = state
-    texture:Hide()
+    pcall(textureMethod,texture,"Hide")
+end
+
+local function updateFoundation(host,icon)
+    if icon and host._foundationStage~="ready" then
+        local combat,known=R.SafeBool(InCombatLockdown)
+        if not known or combat then R.buildQueued=true;return end
+        local ok,ready=pcall(prepareFoundation,host)
+        if not ok or not ready then R.buildQueued=true;return end
+    end
+    local texture=observed[host]
+    if texture then applyFoundationTexture(texture,icon) end
 end
 
 local OBSERVED_UNITS = { "target", "focus", "targettarget", "focustarget" }
+
+function R.HidePetFoundation(host)
+    local texture = observed[host]
+    if not texture then return true end
+    local ok,result=pcall(textureMethod,texture,"Hide")
+    return ok and accepted(result)
+end
 
 function R.UpdateObservedPetPortrait(unit)
     local host = R.hosts[unit]
@@ -369,13 +410,18 @@ function R.UpdateObservedPetPortrait(unit)
         end
         return
     end
-
-    local texture = observed[host]
-    local icon = R.db and R.db.enabled and R.db.petPortraits and foundationTexture(unit) or nil
-    if icon then
-        if not texture then texture = createHostTexture(host); observed[host] = texture end
+    -- UNIT_NAME/PORTRAIT events may reach this path before the paired host
+    -- refresh. An old physical frame cannot display the replacement's pet.
+    if host._restorePending then return end
+    local current,known=R.IsCurrentPortraitHost(host)
+    if not current then
+        R.SuspendPortraitHost(host,known and "native-binding-changed" or "native-binding-unreadable")
+        return
     end
-    if texture then applyFoundationTexture(texture, icon) end
+    if host._staleBinding then return end -- regular refresh resumes all presenters together
+
+    local icon = R.db and R.db.enabled and R.db.petPortraits and foundationTexture(unit) or nil
+    updateFoundation(host,icon)
 end
 
 function R.UpdateObservedPetPortraits()
@@ -525,19 +571,13 @@ end
 function R.UpdateLocalPetPortrait()
     local host = R.hosts and R.hosts.pet
     if not host or not host._buildComplete or host._restorePending then return end
-    local texture = observed[host]
-    local binding = host.unitFrame and host.unitFrame.unit
-    local currentPortrait, currentMask, currentFrame = R.GetPortrait("pet")
-    local hostCurrent = host.portrait == currentPortrait
-        and host.portraitMask == currentMask and host.unitFrame == currentFrame
+    if host._staleBinding then return end
+    local binding,known = R.ReadAuraField(host.unitFrame,"unit")
+    local hostCurrent = R.IsCurrentPortraitHost(host)
     local eligible = R.db and R.db.enabled and R.db.petPortraits
-        and hostCurrent and R.CanAccess(binding) and binding == "pet"
+        and hostCurrent and known and binding == "pet"
     local icon = eligible and foundationTexture("pet") or nil
-    if icon and not texture then
-        texture = createHostTexture(host)
-        observed[host] = texture
-    end
-    if texture then applyFoundationTexture(texture, icon) end
+    updateFoundation(host,icon)
 end
 
 function R.UpdatePetPortraits()

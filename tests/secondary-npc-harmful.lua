@@ -5,6 +5,7 @@ local BP = {Runtime={}}
 assert(loadfile('Spells.lua'))('bjarkiPortraits', BP)
 assert(loadfile('Priority.lua'))('bjarkiPortraits', BP)
 local R=BP.Runtime
+R.SecondaryOwnerVisible = function() return true end -- Visible owner for this isolated election fixture.
 R.db={secondaryPortrait=true}
 R.CanAccess=function(value) return value ~= 'SECRET' end
 R.ReadAuraField=function(aura,key)
@@ -69,6 +70,7 @@ local function host(unit)
     for i,tier in ipairs(R.TIERS) do
         h.containers[i]={tier=tier, enabled=tier.filter:sub(1,7)=='HARMFUL'}
         h.containers[i].IsEnabled = function(self) return self.enabled end
+        h.containers[i].IsShown = function(self) return self.enabled end
     end
     return h
 end

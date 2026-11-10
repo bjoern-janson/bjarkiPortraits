@@ -26,6 +26,10 @@ local function readAura(_, index, filter)
     if scanErrorAt == index then error("modeled aura read failure") end
     return helpful[index]
 end
+local function ordinaryEffectsOnly(_, _, filter)
+    return filter:find("IMPORTANT",1,true) ~= nil or filter:find("DEFENSIVE",1,true) ~= nil
+        or filter:find("CROWD_CONTROL",1,true) ~= nil
+end
 C_UnitAuras = {
     GetAuraDataByIndex = readAura,
     GetUnitAuraBySpellID = function() return nil end,
@@ -104,6 +108,7 @@ local function run(name, body)
     helpful, harmful, scanErrorAt = {}, {}, nil
     friendly, controlled, exists = false, false, true
     C_UnitAuras.GetAuraDataByIndex = readAura
+    C_UnitAuras.IsAuraFilteredOutByInstanceID = nil
     R.db.enabled, R.db.target, R.testMode = true, true, false
     local ok, err = pcall(body)
     if not ok then failures[#failures + 1] = name .. ": unexpected error: " .. tostring(err) end
@@ -336,6 +341,7 @@ end)
 -- hostile helpful election nevertheless owns the primary, so the secondary
 -- public reader can verify the same first occurrence and choose Camp Benefits.
 run("hostile target complete main proof selects Camp Benefits second", function()
+    C_UnitAuras.IsAuraFilteredOutByInstanceID = ordinaryEffectsOnly
     friendly, controlled = false, false
     helpful = { aura(1229741, 17, 3600), aura(1283391, 19, 0),
         aura(1229739, 11, 60) }
@@ -415,6 +421,7 @@ end)
 -- two damaging debuffs. The complete combined public ranking can still
 -- establish a harmful main slot without falsely requiring zero helpful auras.
 run("real hostile NPC with lower helpful aura permits harmful second", function()
+    C_UnitAuras.IsAuraFilteredOutByInstanceID = ordinaryEffectsOnly
     local originalIsPlayer = UnitIsPlayer
     UnitIsPlayer = function() return false end
     local ok, err = pcall(function()

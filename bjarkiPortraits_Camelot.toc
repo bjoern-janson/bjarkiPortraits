@@ -2,11 +2,12 @@
 ## Title: bjarkiPortraits
 ## Notes: Portrait aura timers for WoW: Forever
 ## Author: Bjarki / OpenAI
-## Version: 0.1.224-hostile-helpful-combat-fallback-test
+## Version: 0.1.239
 ## SavedVariables: BjarkiPortraitsDB
 
 Spells.lua
 Core.lua
+Interrupts.lua
 StanceState.lua
 SharedEvidence.lua
 EvidencePublisher.lua

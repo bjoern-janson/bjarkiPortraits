@@ -7,6 +7,7 @@ local function eq(value, expected, message)
 end
 local BP={Runtime={}}
 local R=BP.Runtime
+R.SecondaryOwnerVisible = function() return true end -- Visible owner for this isolated election fixture.
 R.AURA_ANCHOR_TEMPLATE='DisableUntrustedLayoutScriptsTemplate'
 R.db={secondaryPortrait=true}
 R.CanAccess=function(v) return v ~= 'SECRET' end
@@ -56,7 +57,7 @@ local function mockRegion()
     function f:SetAtlas(atlas) self.atlas=atlas;return true end
     function f:SetTexCoord(...) self.coords={...} end
     function f:Clear() self.cleared=(self.cleared or 0)+1 end
-    function f:SetCooldown(start, dur) self.start=start; self.duration=dur end
+    function f:SetCooldown(start, dur, rate) self.start=start; self.duration=dur; self.rate=rate end
     return f
 end
 assert(loadfile('SecondaryPortrait.lua'))('bjarkiPortraits',BP)
@@ -89,7 +90,15 @@ setAuras('player',{aura(101,611),aura(101,612)})
 repeated,repeatReason=R.GetReadableSecondaryAura(host)
 eq(repeated,nil,'one spell with multiple instance IDs is not two effects')
 eq(repeatReason,'not-two-presentable','one distinct effect preserves fallback')
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryOnlyRepeatedSpell,101,'known repeat veto belongs to current public election')
+local previousIndex=C_UnitAuras.GetAuraDataByIndex
+C_UnitAuras.GetAuraDataByIndex=function() error('sealed') end
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryOnlyRepeatedSpell,nil,'sealed new pass restores best-effort eligibility')
+C_UnitAuras.GetAuraDataByIndex=previousIndex
 setAuras('player',{aura(101,10),aura(102,11),aura(103,12)})
+R.ReconcileSecondaryPortrait(host,true,true)
 -- Combat may seal the public aura list without changing an existing aura.
 -- A previously verified, timed secondary remains only until the first actual
 -- UNIT_AURA event, its observed expiration, or a different unit binding.
@@ -113,6 +122,13 @@ eq(#expiryCallbacks,1,'one expiry timer only when retention begins')
 eq(expiryCallbacks[1].delay,10,'expiry timer uses the actual aura clock')
 R.ReconcileSecondaryPortrait(host,true,true)
 eq(#expiryCallbacks,1,'no repeated retention timers on event bursts')
+host._formStateActive=true; host._formStateSpellID=768; host._formStateReason='unit-power'
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryMode,'race','new static form invalidates old combat ranking')
+host._formStateActive=false
+C_UnitAuras.GetAuraDataByIndex=readableIndex
+R.ReconcileSecondaryPortrait(host,true,true)
+C_UnitAuras.GetAuraDataByIndex=sealIndex
 R.NoteSecondaryAuraEvent('player')
 R.ReconcileSecondaryPortrait(host,true,true)
 eq(host._secondaryMode,'race','unreadable actual aura change revokes retained icon')
@@ -120,7 +136,7 @@ eq(host._secondaryAuraSpellID,nil,'revoked aura identity is cleared')
 -- The old timer must never clear an unrelated/new election.
 C_UnitAuras.GetAuraDataByIndex=readableIndex
 combat=false
-setAuras('player',{aura(101,61,106,6),aura(102,62,106,6)})
+setAuras('player',{aura(101,61,102,2),aura(102,62,106,6)})
 R.ReconcileSecondaryPortrait(host,true,true)
 eq(host._secondaryAuraSpellID,102,'new positive after previous aura event')
 expiryCallbacks[1].callback()
@@ -129,11 +145,12 @@ combat=true
 C_UnitAuras.GetAuraDataByIndex=sealIndex
 R.ReconcileSecondaryPortrait(host,true,true)
 eq(#expiryCallbacks,2,'new positive has one independent expiry timer')
+eq(expiryCallbacks[2].delay,2,'rank cannot be retained past expiry of its primary')
 R.Refresh=function(unit)
     eq(unit,'player','expiry timer refresh is scoped to player')
     R.ReconcileSecondaryPortrait(host,true,true)
 end
-clock=107
+clock=103
 expiryCallbacks[2].callback()
 eq(host._secondaryMode,'race','expired combat-held positive is not shown forever')
 eq(host._secondaryAuraSpellID,nil,'expired positive identity cleared')
@@ -166,9 +183,20 @@ local textureSetter = host.racePortrait.SetTexture
 host.racePortrait.SetTexture=function() error('modeled protected no-op texture write') end
 R.ReconcileSecondaryPortrait(host,true,true)
 eq(host._secondaryMode,'aura','unchanged combat second needs no texture rewrite')
-eq(host._secondaryElectionReason,'combat-positive-retained:unchanged-current-positive',
-   'same positive can retain its existing timer')
+eq(host._secondaryElectionReason,'verified-readable',
+   'a fresh public election can reuse the running timer')
 host.racePortrait.SetTexture=textureSetter
+-- Same pair, same earliest expiry. The secondary clock can still change.
+seen.player[2].duration,seen.player[2].expirationTime=90,200
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryPositiveExpiry,170,'primary still bounds retained election')
+eq(host.secondaryCooldown.duration,90,'refreshed second uses new duration')
+seen.player[2].expirationTime=210
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host.secondaryCooldown.start,120,'expiry-only change updates absolute start')
+seen.player[2].timeMod=2
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host.secondaryCooldown.rate,2,'rate-only change updates existing timer')
 -- A removal of the PRIMARY occurrence is significant even if the second
 -- instance survives: it may now be the first portrait, not the second.
 R.NoteSecondaryAuraEvent('player',{isFullUpdate=false,
@@ -260,7 +288,11 @@ setAuras('player',{aura(101,1),aura(102,2),aura(999,3,110,10,true)})
 local orig=C_UnitAuras.IsAuraFilteredOutByInstanceID
 C_UnitAuras.IsAuraFilteredOutByInstanceID=function() return 'SECRET' end
 R.ReconcileSecondaryPortrait(host,true,true)
-eq(host._secondaryMode,'race','secret semantic filter still rejects unproven runner-up')
+eq(host._secondaryAuraSpellID,102,'secret level-85 membership cannot displace verified level-210 second')
+setAuras('player',{aura(101,1),aura(103,2),aura(999,3,110,10,true)})
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryMode,'race','secret level-85 membership can displace the level-1 candidate')
+setAuras('player',{aura(101,1),aura(102,2),aura(999,3,110,10,true)})
 C_UnitAuras.IsAuraFilteredOutByInstanceID=orig
 -- No stale data on hostile or ineligible units.
 host._hostileUnit=true
@@ -350,4 +382,62 @@ eq(eventSource:find('R.SafeBool(UnitIsUnit, alias, "player")',1,true)~=nil,
     true,'player aura changes refresh only verified self aliases')
 eq(eventSource:find('R.NoteSecondaryAuraEvent(alias, updateInfo)',1,true)~=nil,
     true,'alias refresh invalidates stale second occurrence evidence')
+
+-- A positive election can survive sealed presentation fields. Only the
+-- elected unit/instance pair may be sent to Blizzard's native clock.
+do
+    local own=makeHost()
+    own.unit='focus'
+    UnitIsUnit=function(unit,other) return unit=='focus' and other=='player' end
+    local second=aura(102,802)
+    second.icon,second.duration,second.expirationTime,second.timeMod='SECRET','SECRET','SECRET','SECRET'
+    setAuras('player',{aura(101,801),second})
+    local bound, spellReads, nativeReads=0,0,0
+    local opaque=setmetatable({}, {__index=function() error('do not inspect native duration fields') end})
+    C_Spell={GetSpellTexture=function(id)
+        eq(id,102,'art is queried for the positively elected spell')
+        spellReads=spellReads+1
+        return 7102
+    end}
+    C_UnitAuras.GetAuraDuration=function(unit,id)
+        eq(unit,'player','native duration uses elected source token')
+        eq(id,802,'native duration uses elected occurrence')
+        nativeReads=nativeReads+1
+        return opaque
+    end
+    own.secondaryCooldown.SetCooldownFromDurationObject=function(_,object,clearIfZero)
+        eq(object,opaque,'duration is transported intact')
+        eq(clearIfZero,true,'zero object revokes the previous clock')
+        bound=bound+1
+    end
+    combat=false
+    R.ReconcileSecondaryPortrait(own,true,true)
+    eq(own._secondaryMode,'aura','sealed icon and clock use supported native presentation')
+    eq(own.racePortrait.texture,7102,'elected public spell artwork shown')
+    eq(spellReads,1,'one spell-art lookup')
+    eq(bound,1,'one native clock binding')
+    eq(own._secondaryPositiveExpiry,nil,'sealed lifetime cannot authorize retention')
+    C_UnitAuras.GetAuraDataByIndex=sealIndex
+    combat=true
+    R.ReconcileSecondaryPortrait(own,true,true)
+    eq(own._secondaryMode,'race','clock transport cannot sustain unproven combat election')
+    combat=false
+    C_UnitAuras.GetAuraDataByIndex=readableIndex
+    own.secondaryCooldown.SetCooldownFromDurationObject=function() return false end
+    R.ReconcileSecondaryPortrait(own,true,true)
+    eq(own._secondaryMode,'race','a rejected native setter cannot certify unknown duration')
+    C_UnitAuras.GetAuraDuration=function() error('invalid current occurrence') end
+    R.ReconcileSecondaryPortrait(own,true,true)
+    eq(own._secondaryMode,'race','unavailable occurrence does not reuse the previous clock')
+    local resolutions=0
+    UnitIsUnit=function()
+        resolutions=resolutions+1
+        return resolutions==1
+    end
+    local staleReads=0
+    C_UnitAuras.GetAuraDuration=function() staleReads=staleReads+1;return opaque end
+    R.ReconcileSecondaryPortrait(own,true,true)
+    eq(staleReads,0,'changed self alias never binds an occurrence from another unit')
+    eq(own._secondaryMode,'race','changed binding rejects the previous election')
+end
 print('secondary portrait readable top-two: '..checks..' assertions passed')

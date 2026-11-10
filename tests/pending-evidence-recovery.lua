@@ -16,6 +16,7 @@ local function setup()
         guids={targettarget="Player-1-A", focustarget="Player-1-B"},
         relations={}, players={}, playerRelation=true, clock=100, queries=0, queryLog={}, refreshes={}}
     GetTime = function() return s.clock end
+    UnitIsVisible = function() return true end
     UnitIsPlayer = function(unit) if s.players[unit] == "unknown" then return nil end return s.players[unit] ~= false end
     UnitCanAttack = function(_, unit) if s.relations[unit] == "unknown" then return nil end return s.playerRelation and s.relations[unit] ~= false end
     UnitGUID = function(unit) return s.guids[unit] or "Player-1-" .. unit end
@@ -51,9 +52,9 @@ local function setup()
     s.R.ApplyDefaults()
     -- A forwarding spy measures the event path without replacing its effects.
     local refresh = s.R.Refresh
-    s.R.Refresh = function(unit, force)
-        s.refreshes[#s.refreshes+1] = {unit=unit, force=force == true}
-        return refresh(unit, force)
+    s.R.Refresh = function(unit, force, bindingChanged)
+        s.refreshes[#s.refreshes+1] = {unit=unit, force=force == true, bindingChanged=bindingChanged == true}
+        return refresh(unit, force, bindingChanged)
     end
     loadAddon("Main", bp)
     assert(s.bus:Subscribe("regression", function(record)
@@ -221,7 +222,7 @@ test("relation bursts coalesce to nine queries per pending token", function()
         eq(s.queries, before, "no synchronous scans")
         s:drain()
         eq(s.queries-before, 18, "exactly nine queries per pending token")
-        eq(#s.received, burst*2, "independent positives survive partial reads")
+        eq(#s.received, 2, "already delivered positives survive partial reads")
     end
     s.failures = {}
     s:fire("UNIT_FLAGS", "player")
@@ -366,6 +367,61 @@ test("combat exit retries only the pending derived snapshot", function()
         s:drain()
         eq(s.queries, 18, "completed token stays idle")
     end
+end)
+test("a failing evidence bridge cannot interrupt unit visuals or consume a derived retry", function()
+    local s = setup()
+    local deliver = s.bus.Publish
+    s.bus.Publish = function() error("incompatible publisher implementation") end
+    s:fire("UNIT_AURA","target",{addedAuras={aura(112,12)}})
+    eq(s.refreshes[1].unit,"target","target visuals still reconciled")
+    s.auras.targettarget = {[22812]=aura(112,12)}
+    s:bind("targettarget")
+    s.bus.Publish = function() return false end
+    s:fire("PLAYER_REGEN_ENABLED")
+    s:drain()
+    s.bus.Publish = deliver
+    s:fire("PLAYER_REGEN_ENABLED")
+    s:drain()
+    eq(#s.received,1,"later external event delivers missed derived observation")
+    eq(s.received[1].newApplication,false,"retry stays a first sighting")
+end)
+test("only binding transitions invalidate target/focus identity", function()
+    local s = setup()
+    for _, token in ipairs({"target", "focus"}) do
+        s.refreshes = {}
+        s:fire(token == "target" and "PLAYER_TARGET_CHANGED" or "PLAYER_FOCUS_CHANGED")
+        eq(s.refreshes[1].unit, token, "current outer token")
+        eq(s.refreshes[1].bindingChanged, true, "retarget invalidates identity immediately")
+        s:drain()
+        s.refreshes = {}
+        s:fire("UNIT_NAME_UPDATE", token)
+        s:drain()
+        eq(s.refreshes[1].force, true, "name event still refreshes presentation")
+        eq(s.refreshes[1].bindingChanged, false, "routine refresh preserves identity")
+    end
+end)
+test("invisible and visibility-unknown derived units retain the bounded recovery", function()
+    local s=setup()
+    local visible=false
+    UnitIsVisible=function() return visible end
+    s.auras.targettarget={[22812]=aura(115,15,31)}
+    local get=C_UnitAuras.GetUnitAuraBySpellID
+    C_UnitAuras.GetUnitAuraBySpellID=function(...)
+        local positive=get(...)
+        if visible~=false then return positive end
+    end
+    s:bind("targettarget")
+    eq(s.queries,9,"unavailable unit cannot certify an empty snapshot")
+    eq(#s.received,0)
+    visible=nil; s:fire("UNIT_NAME_UPDATE","targettarget"); s:drain()
+    eq(s.queries,18,"unknown remains pending")
+    eq(#s.received,1,"readable positives survive unknown visibility")
+    visible=true; s:fire("UNIT_PORTRAIT_UPDATE","targettarget"); s:drain()
+    eq(s.queries,27,"readable visibility permits one complete scan")
+    eq(#s.received,1,"unchanged positive was already delivered")
+    eq(s.received[1].newApplication,false,"first observation is not a new application")
+    s:fire("UNIT_NAME_UPDATE","targettarget"); s:drain()
+    eq(s.queries,27,"completed work is not repeated")
 end)
 assert(#failures == 0, tostring(#failures) .. " pending recovery regression(s) failed:\n"
     .. table.concat(failures, "\n"))

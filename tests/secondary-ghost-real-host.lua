@@ -56,7 +56,7 @@ local function frame()
  return f
 end
 local function host()
- local h={unit='player',unitFrame={unit='player',IsShown=function()return true end},
+ local h={unit='player',unitFrame={unit='player',IsVisible=function()return true end,IsShown=function()return true end},
      _buildComplete=true,smallBaseLevel=40,containers={},cooldowns={}}
  for _,name in ipairs({'Hostile','Baseline','Healing','WelcomingCampfire',
   'NearbyHarmful','TrackingHarmful','BoostedRest','Roots','Control','Stun',
@@ -117,6 +117,13 @@ R.UpdateHost(h)
 eq(h._secondaryMode,'race','ghost only falls back to race')
 eq(h._secondaryAuraSpellID,nil,'removed Boosted Rest has no stale icon')
 -- No unit-state Ghost without current positive source: ordinary election resumes.
+helpful={{spellId=2584,auraInstanceID=22,icon=12584,duration=60,timeMod=1,
+    expirationTime=1060,isNameplateOnly=false}}
+R.UpdateHost(h)
+eq(h._secondaryMode,'ghost','Waiting outranks Ghost on the actual host')
+eq(h._secondaryAuraSpellID,8326,'Ghost artwork occupies the second portrait')
+eq(h.secondaryCooldown.shown,false,'static Ghost has no invented timer')
+helpful={}
 UnitIsGhost=function()return false end
 R.UpdateHost(h)
 eq(h._ghostActive,false,'live negative UnitIsGhost clears state')

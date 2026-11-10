@@ -37,6 +37,7 @@ local Bus = {
 }
 local pending = {}
 local draining = false
+local registrations = {}
 
 local function readable(value)
     if type(issecretvalue) == "function" then
@@ -125,7 +126,8 @@ local function send(record)
     for _, key in ipairs(Bus.listenerOrder) do destinations[#destinations+1] = key end
     for _, key in ipairs(destinations) do
         local callback = Bus.listeners[key]
-        if callback then
+        local registration = registrations[key]
+        if callback and registration and registration.replayed ~= record.sequence then
             local ok = pcall(callback,copy(record))
             if ok then Bus.stats.deliveries = Bus.stats.deliveries+1
             else Bus.stats.errors = Bus.stats.errors+1 end
@@ -165,6 +167,8 @@ function Bus:Subscribe(key, callback, now)
         self.listenerOrder[#self.listenerOrder+1] = key
     end
     self.listeners[key] = callback
+    local registration = {}
+    registrations[key] = registration
     self.stats.subscriptions = self.stats.subscriptions+1
     local stamp = finite(now,false)
     if stamp then
@@ -177,7 +181,10 @@ function Bus:Subscribe(key, callback, now)
             end
         end
         for _, record in ipairs(eligible) do
-            if self.listeners[key] ~= callback then break end
+            if registrations[key] ~= registration then break end
+            -- send() may still be walking the destinations of this sequence.
+            -- Its replacement subscriber has already received it via replay.
+            if draining and record.sequence == self.sequence then registration.replayed = record.sequence end
             local ok = pcall(callback,copy(record))
             if ok then self.stats.replayed = self.stats.replayed+1
             else self.stats.errors = self.stats.errors+1 end
@@ -189,6 +196,7 @@ end
 function Bus:Unsubscribe(key)
     if not readable(key) or type(key) ~= "string" or not self.listeners[key] then return false end
     self.listeners[key] = nil
+    registrations[key] = nil
     for i = #self.listenerOrder, 1, -1 do
         if self.listenerOrder[i] == key then table.remove(self.listenerOrder,i); break end
     end

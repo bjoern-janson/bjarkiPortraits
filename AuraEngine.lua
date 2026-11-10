@@ -30,51 +30,158 @@ local timerInkOffsets = {
     targettarget = { 0.25, 1 },
     focustarget = { 0.25, 1 },
 }
-local function timerOpticalOffset(text, unit)
-    local offset = timerInkOffsets[unit]
-    if not offset then return 0, 0 end
-    if not PixelUtil or type(PixelUtil.GetPixelToUIUnitFactor) ~= "function"
-        or type(text.GetEffectiveScale) ~= "function" then return 0, 0 end
-    local factorOK, factor = pcall(PixelUtil.GetPixelToUIUnitFactor)
-    local scaleOK, scale = pcall(text.GetEffectiveScale, text)
-    if not factorOK or not scaleOK or not R.CanAccess(factor) or not R.CanAccess(scale)
-        or type(factor) ~= "number" or type(scale) ~= "number"
-        or factor ~= factor or scale ~= scale or factor <= 0 or scale <= 0
-        or factor == math.huge or scale == math.huge then return 0, 0 end
-    return offset[1] * factor / scale, offset[2] * factor / scale
+local function currentPixelFactor()
+    if not PixelUtil then return 0 end
+    local getter,known=R.ReadAuraField(PixelUtil,"GetPixelToUIUnitFactor")
+    if not known then return false end
+    if type(getter)~="function" then return 0 end
+    local ok,factor=pcall(getter)
+    if ok and R.CanAccess(factor) and type(factor)=="number" and factor>0 and factor<math.huge then return factor end
+    return false
 end
 
-local function alignCountdown(cooldown, host)
+local function timerOpticalOffset(text, unit, factor)
+    local offset = timerInkOffsets[unit]
+    if factor==nil then factor=currentPixelFactor() end
+    if not offset or factor==0 then return 0,0,true end
+    if not factor then return 0,0,false end
+    local scaleGetter,known = R.ReadAuraField(text,"GetEffectiveScale")
+    if not known then return 0, 0, false end
+    if type(scaleGetter) ~= "function" then return 0, 0, true end
+    local scaleOK, scale = pcall(scaleGetter, text)
+    if not scaleOK or not R.CanAccess(scale) or type(scale) ~= "number"
+        or scale ~= scale or scale <= 0 or scale == math.huge then return 0, 0, false end
+    return offset[1] * factor / scale, offset[2] * factor / scale, true
+end
+
+local function matchesOffset(actual, requested)
+    return actual == requested or math.abs(actual - requested) <= math.max(2^-150, math.abs(requested)*2^-24)
+end
+
+-- Validate the requested corners even if an earlier post-write read was denied.
+-- Some clients omit these getters. Once a receiver exposes one, a temporary
+-- absence is unknown until the next safe verification.
+local function anchorsChanged(region, relativeTo, dx, dy, receipt, key)
+    local count, get = region.GetNumPoints, region.GetPoint
+    if not R.CanAccess(count) or not R.CanAccess(get) then return nil end
+    if type(count) ~= "function" or type(get) ~= "function" then
+        if receipt[key] then return nil end
+        return false
+    end
+    receipt[key] = true
+    local n = count(region)
+    if not R.CanAccess(n) or type(n) ~= "number" or n < 0 or n > 32 or n % 1 ~= 0 then return nil end
+    if n ~= 2 then return true end
+    local firstCorner
+    for i = 1, 2 do
+        local corner, ref, relativeCorner, x, y = get(region, i)
+        if not R.CanAccess(corner) or not R.CanAccess(ref) or not R.CanAccess(relativeCorner)
+            or not R.CanAccess(x) or not R.CanAccess(y) or type(corner) ~= "string"
+            or type(relativeCorner) ~= "string" or type(x) ~= "number" or type(y) ~= "number" then return nil end
+        if (corner ~= "TOPLEFT" and corner ~= "BOTTOMRIGHT") or corner == firstCorner or relativeCorner ~= corner then return true end
+        firstCorner = corner
+        if ref ~= relativeTo then
+            if ref ~= nil and relativeTo ~= nil then return true end
+            local parent = region:GetParent()
+            if not R.CanAccess(parent) then return nil end
+            if (ref or parent) ~= (relativeTo or parent) then return true end
+        end
+        -- Native anchors can round Lua offsets to binary32.
+        if not matchesOffset(x,dx) or not matchesOffset(y,dy) then return true end
+    end
+    return false
+end
+
+local function observedChange(check,...)
+    local ok,changed=pcall(check,...)
+    if ok then return changed end
+end
+
+local function labelPropertyChanged(text, method, wanted, receipt)
+    local getter = text[method]
+    if not R.CanAccess(getter) then return nil end
+    if type(getter) ~= "function" then
+        if receipt[method] then return nil end
+        return false
+    end
+    receipt[method] = true
+    if method == "GetTextColor" then
+        local r,g,b,a=getter(text)
+        if R.CanAccess(r) and R.CanAccess(g) and R.CanAccess(b) and R.CanAccess(a)
+            and type(r)=="number" and type(g)=="number" and type(b)=="number" and (a==nil or type(a)=="number") then
+            return r~=1 or g~=1 or b~=1 or (a~=nil and a~=1)
+        end
+    else
+        local value=getter(text)
+        if R.CanAccess(value) and type(value)=="string" then return value~=wanted end
+    end
+end
+
+local function setAlignmentState(cooldown,host,state)
+    cooldown._bjarkiAlignmentState=state
+    local pending=host._pendingClockLayouts
+    if state=="centered" then
+        if pending and pending[cooldown] then
+            pending[cooldown]=nil
+            if not next(pending) then host._pendingClockLayouts=nil end
+        end
+    else
+        if not pending then pending={};host._pendingClockLayouts=pending end
+        pending[cooldown]=true
+    end
+end
+
+local function alignmentChanged(cooldown, text, receipt)
+    local clock = observedChange(anchorsChanged, cooldown, receipt.anchor, 0, 0, receipt, "clockReadable")
+    local label = observedChange(anchorsChanged, text, cooldown, receipt.dx, receipt.dy, receipt, "labelReadable")
+    local h = observedChange(labelPropertyChanged, text, "GetJustifyH", "CENTER", receipt)
+    local v = observedChange(labelPropertyChanged, text, "GetJustifyV", "MIDDLE", receipt)
+    local color = observedChange(labelPropertyChanged, text, "GetTextColor", nil, receipt)
+    if clock or label or h or v or color then return true end
+    if clock ~= nil and label ~= nil and h ~= nil and v ~= nil and color ~= nil then return false end
+end
+
+local function acceptedLayout(result)
+    return R.CanAccess(result) and result~=false
+end
+
+local function alignCountdown(cooldown, host, routine, verifyLayout, pixelFactor)
     -- Operate only on the addon-created countdown, never read its text/time.
     -- Layout may be unavailable after secure initialization; retry at the next
     -- existing out-of-combat lifecycle boundary rather than attaching scripts
     -- to forbidden aura buttons or polling secret-valued geometry.
     local combat, readable = R.SafeBool(InCombatLockdown)
     if not readable or combat then
-        cooldown._bjarkiAlignmentState = "deferred"
+        if cooldown._bjarkiAlignmentState ~= "centered" then setAlignmentState(cooldown,host,"deferred") end
         return
     end
-    local ok, text = false, nil
-    if type(cooldown.GetCountdownFontString) == "function" then
-        ok, text = pcall(cooldown.GetCountdownFontString, cooldown)
-    end
+    local getter=R.ReadAuraField(cooldown,"GetCountdownFontString")
+    local ok,text=pcall(getter,cooldown)
     if not ok or not R.CanAccess(text) or not text then
-        cooldown._bjarkiAlignmentState = "label-unavailable"
+        setAlignmentState(cooldown,host,"label-unavailable")
         return
     end
 
-    if (R.SMALL_UNITS[host.unit] or host.unit == "pet" or R.PARTY_UNITS[host.unit]) and text.GetFont and text.SetFont then
-        local fontOK, file, size, flags = pcall(text.GetFont, text)
+    if R.SMALL_UNITS[host.unit] or host.unit == "pet" or R.PARTY_UNITS[host.unit] then
+        local getFont=R.ReadAuraField(text,"GetFont")
+        local setFont=R.ReadAuraField(text,"SetFont")
+        local fontOK, file, size, flags = pcall(getFont, text)
         if fontOK and R.CanAccess(file) and R.CanAccess(size) and R.CanAccess(flags)
             and type(file) == "string" and type(size) == "number"
             and size == size and size > 2 and size < 100 then
             local saved = cooldown._bjarkiCompactFont
-            if not saved or saved.text ~= text then
+            if not saved or saved.text ~= text or saved.file~=file or saved.flags~=(flags or "")
+                or (size~=saved.size and size~=saved.wanted and size~=saved.storedSize) then
                 saved = {text=text, file=file, size=size, wanted=math.max(1, size-2), flags=flags or ""}
                 cooldown._bjarkiCompactFont = saved
             end
-            if saved.file == file and (size == saved.size or size == saved.wanted) then
-                pcall(text.SetFont, text, saved.file, saved.wanted, saved.flags)
+            if setFont and size~=saved.wanted and size~=saved.storedSize then
+                local wrote,result=pcall(setFont,text,saved.file,saved.wanted,saved.flags)
+                if wrote and acceptedLayout(result) then
+                    local found,face,stored=pcall(getFont,text)
+                    if found and R.CanAccess(face) and face==file and R.CanAccess(stored)
+                        and type(stored)=="number" and stored~=saved.size then saved.storedSize=stored end
+                end
             end
         end
     end
@@ -82,24 +189,92 @@ local function alignCountdown(cooldown, host)
     -- Keep the cooldown/swipe on its prior native reference. Only the label
     -- gets this ink-centering correction; the image's separate clipping mask
     -- never changes countdown values, formatting or swipe geometry.
-    local dx, dy = timerOpticalOffset(text, host.unit)
-    local centered = pcall(function()
-        cooldown:ClearAllPoints()
-        cooldown:SetAllPoints(host.portraitMask or host.portrait)
-        text:ClearAllPoints()
-        if dx == 0 and dy == 0 then
-            text:SetAllPoints(cooldown)
-        else
-            text:SetPoint("TOPLEFT", cooldown, "TOPLEFT", dx, dy)
-            text:SetPoint("BOTTOMRIGHT", cooldown, "BOTTOMRIGHT", dx, dy)
+    local dx,dy,scaleKnown=timerOpticalOffset(text,host.unit,pixelFactor)
+    local anchor=host.portraitMask or host.portrait
+    local saved=cooldown._bjarkiAlignment
+    if not scaleKnown and saved and saved.text==text then dx,dy=saved.dx,saved.dy end
+    if routine and saved and saved.text==text and saved.anchor==anchor and saved.dx==dx and saved.dy==dy then
+        local changed = false
+        if verifyLayout ~= false then changed = alignmentChanged(cooldown, text, saved) end
+        if not changed then
+            if changed == nil then setAlignmentState(cooldown,host,"verification-pending")
+            else setAlignmentState(cooldown,host,scaleKnown and "centered" or "scale-unavailable") end
+            return
         end
-        text:SetJustifyH("CENTER")
-        text:SetJustifyV("MIDDLE")
+    end
+    local wrote,centered=pcall(function()
+        if not acceptedLayout(cooldown:ClearAllPoints()) or not acceptedLayout(cooldown:SetAllPoints(anchor))
+            or not acceptedLayout(text:ClearAllPoints()) then return false end
+        if dx == 0 and dy == 0 then
+            if not acceptedLayout(text:SetAllPoints(cooldown)) then return false end
+        else
+            if not acceptedLayout(text:SetPoint("TOPLEFT",cooldown,"TOPLEFT",dx,dy))
+                or not acceptedLayout(text:SetPoint("BOTTOMRIGHT",cooldown,"BOTTOMRIGHT",dx,dy)) then return false end
+        end
+        if not acceptedLayout(text:SetJustifyH("CENTER")) or not acceptedLayout(text:SetJustifyV("MIDDLE")) then return false end
         -- Preserve the separately calibrated primary font size; recolor
         -- only the addon-owned label to neutral white.
-        if text.SetTextColor then text:SetTextColor(1, 1, 1, 1) end
+        return not text.SetTextColor or acceptedLayout(text:SetTextColor(1,1,1,1))
     end)
-    cooldown._bjarkiAlignmentState = centered and "centered" or "layout-unavailable"
+    if wrote and centered then
+        if not saved or saved.text ~= text then saved = {text=text} end
+        saved.anchor, saved.dx, saved.dy = anchor, dx, dy
+        cooldown._bjarkiAlignment = saved
+        local changed = alignmentChanged(cooldown, text, saved)
+        if changed then
+            setAlignmentState(cooldown,host,"layout-unavailable")
+        elseif changed == nil then
+            setAlignmentState(cooldown,host,"verification-pending")
+        else
+            setAlignmentState(cooldown,host,scaleKnown and "centered" or "scale-unavailable")
+        end
+    else
+        setAlignmentState(cooldown,host,"layout-unavailable")
+    end
+end
+
+local function countdownVisibility(cooldown)
+    local getter,known=R.ReadAuraField(cooldown,"IsVisible")
+    if known and not getter then getter,known=R.ReadAuraField(cooldown,"IsShown") end
+    if known then return R.SafeBool(getter,cooldown) end
+    return nil,false
+end
+
+local function alignVisibleCountdown(cooldown,host,verifyLayout,pixelFactor)
+    -- Only visible out-of-combat clocks need physical alignment.
+    local shown,readable=countdownVisibility(cooldown)
+    if not readable or not shown then
+        setAlignmentState(cooldown,host,readable and "hidden" or "visibility-unavailable")
+        return
+    end
+    alignCountdown(cooldown,host,true,verifyLayout~=false or cooldown._bjarkiAlignmentState~="centered",pixelFactor)
+end
+
+local function applyClockFormat(cooldown, routine)
+    local decimals=R.db and R.db.showDecimals==true
+    local thresholdEpoch=cooldown._bjarkiThresholdEpoch
+    if routine and cooldown._bjarkiFormattedDecimals==decimals
+        and (not thresholdEpoch or thresholdEpoch==R.countdownFormatterEpoch) then return end
+    local ok,applied,backend=pcall(R.ApplyCountdownFormat,cooldown)
+    if ok and applied==true then
+        cooldown._bjarkiFormattedDecimals=decimals
+        cooldown._bjarkiThresholdEpoch=backend=="threshold" and R.countdownFormatterEpoch or nil
+    else
+        cooldown._bjarkiFormattedDecimals=nil
+    end
+end
+
+local function applyClockPreferences(cooldown,routine)
+    local swipe=R.db and R.db.showSwipe==true
+    if not routine or cooldown._bjarkiSwipe~=swipe then
+        local setter,known=R.ReadAuraField(cooldown,"SetDrawSwipe")
+        if known and setter then
+            local ok,result=pcall(setter,cooldown,swipe)
+            if ok and R.CanAccess(result) and result~=false then cooldown._bjarkiSwipe=swipe
+            else cooldown._bjarkiSwipe=nil end
+        end
+    end
+    applyClockFormat(cooldown,routine)
 end
 
 local function configureCooldown(cooldown, host)
@@ -109,8 +284,7 @@ local function configureCooldown(cooldown, host)
     if cooldown.SetReverse then cooldown:SetReverse(true) end
     if cooldown.SetDrawBling then cooldown:SetDrawBling(false) end
     if cooldown.SetDrawEdge then cooldown:SetDrawEdge(false) end
-    if cooldown.SetDrawSwipe then cooldown:SetDrawSwipe(R.db and R.db.showSwipe or false) end
-    R.ApplyCountdownFormat(cooldown)
+    applyClockPreferences(cooldown,false)
     if cooldown.SetSwipeTexture then cooldown:SetSwipeTexture(R.SWIPE_TEXTURE) end
     alignCountdown(cooldown, host)
 end
@@ -131,11 +305,7 @@ local function initializeButton(host, button, tier)
     alignCountdown(cooldown, host)
     button:EnableMouse(false)
     host.cooldowns[#host.cooldowns + 1] = cooldown
-end
-
-local function firstPoint(region)
-    if not region or not region.GetPoint then return nil end
-    return region:GetPoint(1)
+    return cooldown
 end
 
 local function placeAtPortrait(frame, host)
@@ -187,10 +357,8 @@ end
 local function readAuraStartTime(unit, aura, auraInstanceID)
     if C_UnitAuras and C_UnitAuras.GetAuraDuration and auraInstanceID then
         local ok, durationObject = pcall(C_UnitAuras.GetAuraDuration, unit, auraInstanceID)
-        if ok and R.CanAccess(durationObject) and durationObject ~= nil
-            and durationObject.GetStartTime
-        then
-            local startOK, startTime = pcall(durationObject.GetStartTime, durationObject)
+        if ok and R.CanAccess(durationObject) and durationObject ~= nil then
+            local startOK, startTime = pcall(function() return durationObject:GetStartTime() end)
             if startOK and R.CanAccess(startTime) and type(startTime) == "number" then
                 return startTime, true, "durationObject"
             end
@@ -230,6 +398,7 @@ local function electReadableCandidate(candidates, byApplicationTime)
     -- A single candidate needs identity evidence, but no ordering evidence.
     if #candidates == 1 then return candidates[1], true end
 
+    local original = candidates
     if byApplicationTime then
         local latest
         for _, candidate in ipairs(candidates) do
@@ -243,20 +412,53 @@ local function electReadableCandidate(candidates, byApplicationTime)
             if candidate.appliedAt == latest then newest[#newest + 1] = candidate end
         end
         candidates = newest
-        if #candidates == 1 then return candidates[1], true end
     end
 
     local best
     local unique = true
-    for _, candidate in ipairs(candidates) do
-        if type(candidate.auraInstanceID) ~= "number" then return nil, false end
-        if not best or candidate.auraInstanceID > best.auraInstanceID then
-            best, unique = candidate, true
-        elseif candidate.auraInstanceID == best.auraInstanceID then
-            unique = false
+    if #candidates == 1 then
+        -- A strictly later readable start requires no occurrence-ID tie break.
+        best = candidates[1]
+    else
+        for _, candidate in ipairs(candidates) do
+            if type(candidate.auraInstanceID) ~= "number" then return nil, false end
+            if not best or candidate.auraInstanceID > best.auraInstanceID then
+                best, unique = candidate, true
+            elseif candidate.auraInstanceID == best.auraInstanceID then
+                unique = false
+            end
         end
     end
     if byApplicationTime and not unique then return nil, false end
+    -- The native second ribbon sorts occurrences, even in lanes whose main
+    -- presenter sorts by application time. Record a positive disagreement
+    -- only from this election's readable candidates.
+    local first, second, distinctRunner, ordered = nil, nil, nil, true
+    for _, candidate in ipairs(original) do
+        local id = candidate.auraInstanceID
+        if candidate.tier ~= best.tier or type(id) ~= "number" then
+            ordered = false
+        elseif not first or id > first.auraInstanceID then
+            second, first = first, candidate
+        elseif id == first.auraInstanceID or (second and id == second.auraInstanceID) then
+            ordered = false
+        elseif not second or id > second.auraInstanceID then
+            second = candidate
+        end
+        if type(id) == "number" and candidate.spellID ~= best.spellID
+            and (not distinctRunner or (byApplicationTime and candidate.appliedAt > distinctRunner.appliedAt)
+                or ((not byApplicationTime or candidate.appliedAt == distinctRunner.appliedAt)
+                    and id > distinctRunner.auraInstanceID)) then
+            distinctRunner = candidate
+        end
+    end
+    if ordered and first and second then
+        best.nativeFirstMismatch = first.auraInstanceID ~= best.auraInstanceID
+        best.nativeOrderMismatch = byApplicationTime and distinctRunner and second.auraInstanceID ~= distinctRunner.auraInstanceID
+        best.nativeRepeatsWinner = second.spellID == best.spellID
+        best.runnerSpellID = distinctRunner and distinctRunner.spellID
+        best.runnerInstanceID = distinctRunner and distinctRunner.auraInstanceID
+    end
     return best, true
 end
 
@@ -350,7 +552,22 @@ local function getReadablePlayerAuraBySpellID(spellID)
     return aura, true, true
 end
 
-local function scanReadableHonorlessWinner(unit)
+-- The main helper and the secondary ranker use the same direct player
+-- occurrences even when the indexed list omits a Welcoming Campfire.
+function R.GetPlayerCampfireWitnesses(reads)
+    if reads and reads.playerCampfires then return reads.playerCampfires end
+    local found = {auras={}, available=false, readable=false}
+    for _, spellID in ipairs(WELCOMING_CAMPFIRE_DIRECT_IDS) do
+        local aura, readable, available = getReadablePlayerAuraBySpellID(spellID)
+        found.readable = found.readable or readable
+        found.available = found.available or available
+        if aura then found.auras[#found.auras+1] = {aura=aura, spellID=spellID} end
+    end
+    if reads then reads.playerCampfires = found end
+    return found
+end
+
+local function scanReadableHonorlessWinner(unit, reads)
     local tier = findTierByKey("HonorlessTarget")
     local meta = {
         welcomingDirect = false,
@@ -382,7 +599,9 @@ local function scanReadableHonorlessWinner(unit)
                 auraInstanceID = auraInstanceID,
                 tier = tier,
             }
-            seenInstances[auraInstanceID] = true
+            seenInstances[auraInstanceID] = spellID
+        elseif seenInstances[auraInstanceID] ~= spellID then
+            return false
         end
 
         if isWelcomingCampfireSpellID(spellID) then
@@ -435,11 +654,10 @@ local function scanReadableHonorlessWinner(unit)
     -- builds where the indexed stream was inconsistent. A positive direct
     -- witness joins the SAME HonorlessTarget election instead of short-circuiting it.
     if unit == "player" then
-        for _, spellID in ipairs(WELCOMING_CAMPFIRE_DIRECT_IDS) do
-            local aura, readable, directAvailable = getReadablePlayerAuraBySpellID(spellID)
-            meta.welcomingDirect = meta.welcomingDirect or directAvailable
-            meta.welcomingReadable = meta.welcomingReadable or readable
-            if aura and not addCandidate(aura, spellID, true) then
+        local direct = R.GetPlayerCampfireWitnesses(reads)
+        meta.welcomingDirect, meta.welcomingReadable = direct.available, direct.readable
+        for _, witness in ipairs(direct.auras) do
+            if not addCandidate(witness.aura, witness.spellID, true) then
                 return nil, false, meta
             end
         end
@@ -448,20 +666,15 @@ local function scanReadableHonorlessWinner(unit)
     meta.welcomingReadable = meta.welcomingReadable or complete
     if #candidates == 0 then return nil, true, meta end
 
-    local best = candidates[1]
-    for i = 2, #candidates do
-        if candidates[i].auraInstanceID > best.auraInstanceID then
-            best = candidates[i]
-        end
-    end
-
-    return best, true, meta
+    local best, ordered = electReadableCandidate(candidates, false)
+    return best, ordered, meta
 end
 
--- Share only a complete, guarded list within this host update. Each tier
--- still elects its own candidates and uses its own independent direct probes.
+-- Share one guarded attempt per filter for this update only. A false entry
+-- means unknown, including a failed read or exhaustion of the bounded scan.
 local function exactTierList(reads, filter)
-    if reads[filter] then return reads[filter] end
+    if reads[filter] ~= nil then return reads[filter] end
+    reads[filter] = false
     if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then return end
 
     local list = {auras={}, spellIDs={}}
@@ -493,49 +706,60 @@ local function scanLatestReadableExactTierAura(reads, tierKey, filter)
     return best, true, electionReadable
 end
 
-local function scanReadableHostileHelpful(unit)
+local function scanReadableHostileHelpful(unit, reads)
     if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then
         return nil, false, 0, false, false
     end
 
-    local candidates = {}
-    local count = 0
-    local allIdentitiesReadable = true
-    local complete = false
-
-    for index = 1, AURA_SCAN_LIMIT do
-        -- Include ordinary helpful auras plus otherwise omitted nameplate-only
-        -- auras. Drink and other ordinary recovery effects remain in this list.
-        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex,
-            unit, index, "HELPFUL|INCLUDE_NAME_PLATE_ONLY")
-        if not ok then
-            allIdentitiesReadable = false
-            break
-        end
-
-        -- Never compare/index an inaccessible aura object. Skip that slot and
-        -- keep looking for readable category witnesses; unreadability still
-        -- prevents this pass from suppressing the secure fallback lane.
-        if not R.CanAccess(aura) then
-            allIdentitiesReadable = false
-        else
-            if aura == nil then
-                complete = true
-                break
-            end
-            count = count + 1
-
-            local spellID, idReadable = R.ReadAuraField(aura, "spellId")
-            if not idReadable or type(spellID) ~= "number" then
-                allIdentitiesReadable = false
+    local candidates, needsPlain, seen = {}, {}, {}
+    local count, allIdentitiesReadable, complete = 0, true, true
+    local inclusiveFilter = "HELPFUL|INCLUDE_NAME_PLATE_ONLY"
+    local function scan(filter)
+        local inclusive = filter == inclusiveFilter
+        local list = {auras={},spellIDs={}}
+        local readable, ended = true, false
+        for index = 1, AURA_SCAN_LIMIT do
+            local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
+            if not ok then readable = false; break end
+            if not R.CanAccess(aura) then
+                readable = false
+            elseif aura == nil then
+                ended = true; break
             else
-                local tier = findHelpfulTierForSpell(spellID)
-                if tier then
-                    candidates[#candidates + 1] = readableCandidate(unit, aura, spellID, tier)
+                if inclusive then count = count + 1 end
+                local spellID = R.ReadAuraField(aura, "spellId")
+                if type(spellID) ~= "number" then
+                    readable = false
+                else
+                    list.auras[#list.auras+1], list.spellIDs[#list.spellIDs+1] = aura, spellID
+                    local tier = findHelpfulTierForSpell(spellID)
+                    local matches = tier and tier.filter == filter and (inclusive or needsPlain[spellID])
+                    if inclusive and tier and tier.filter == "HELPFUL" then
+                        local only = R.ReadAuraField(aura, "isNameplateOnly")
+                        if type(only) == "boolean" then
+                            matches = not only
+                        else
+                            needsPlain[spellID] = true
+                        end
+                    end
+                    if matches then
+                        local candidate = readableCandidate(unit, aura, spellID, tier)
+                        local occurrence = candidate.auraInstanceID or aura
+                        if not seen[occurrence] then
+                            candidates[#candidates+1] = candidate
+                            seen[occurrence] = true
+                        end
+                    end
                 end
             end
         end
+        -- A partial list can supply a positive, never an absence or authority.
+        reads[filter] = readable and ended and list or false
+        allIdentitiesReadable = allIdentitiesReadable and readable
+        complete = complete and ended
     end
+    scan(inclusiveFilter)
+    if next(needsPlain) then scan("HELPFUL") end
 
     local best
     local electionReadable = true
@@ -645,13 +869,26 @@ local function setReadableAuraCooldown(cooldown, unit, aura)
     return false
 end
 
+local function hideOwned(frame)
+    return frame:Hide()
+end
+
+local function clearFrameCooldown(frame)
+    clearReadableCooldown(frame.cooldown)
+end
+
+local function clearFrameIcon(frame)
+    if frame.icon then frame.icon:SetTexture(nil) end
+end
+
 local function hideReadableExact(frame)
     if not frame then return end
-    clearReadableCooldown(frame.cooldown)
-    if frame.icon and frame.icon.SetTexture then
-        pcall(frame.icon.SetTexture, frame.icon, nil)
-    end
-    if frame.Hide then pcall(frame.Hide, frame) end
+    -- These cleanups may involve restricted members. Each is independent of
+    -- revoking the helper itself, which is a sibling of the native anchor.
+    pcall(clearFrameCooldown,frame)
+    pcall(clearFrameIcon,frame)
+    local ok,result=pcall(hideOwned,frame)
+    return ok and R.CanAccess(result) and result~=false
 end
 
 local function setReadableSpellIcon(frame, spellID, aura)
@@ -707,6 +944,256 @@ local function showReadableAura(frame, aura, spellID, unit)
     return true
 end
 
+-- The two public LoC occurrences are independent of aura instances. Preserve a
+-- confirmed occurrence across native list reorders or fresh duration wrappers.
+local function sameInterrupt(old, record)
+    if not old or not record or old.spellID ~= record.spellID or old.icon ~= record.icon
+        or old.auraInstanceID ~= record.auraInstanceID or old.lockoutSchool ~= record.lockoutSchool
+        or old.startTime ~= record.startTime or old.requiresPlayer ~= record.requiresPlayer
+        or old.duration ~= record.duration or not R.SameInterruptDeadline(old.expires,record.expires)
+        or not R.SameSchoolInterruptGroup(old,record) then return false end
+    return old.startTime ~= nil or old.auraInstanceID ~= nil or old.expires ~= nil
+        or rawequal(old.durationObject, record.durationObject)
+end
+
+local function keepInterrupt(record, first, second)
+    local old
+    if sameInterrupt(first, record) then old = first
+    elseif sameInterrupt(second, record) then old = second end
+    if not old then return record, false end
+    local rebindClock = not rawequal(old.durationObject, record.durationObject)
+    old.durationObject = record.durationObject
+    old.ownUnit = record.ownUnit
+    old.bridgeWatch = record.bridgeWatch
+    return old, rebindClock
+end
+
+local function scheduleInterruptExpiry(host, first, second)
+    local expires = first.expires
+    if second and second.expires then expires = math.min(expires or second.expires, second.expires) end
+    if expires ~= host._schoolInterruptDeadline then
+        host._schoolInterruptDeadline, host._schoolInterruptWake = expires, nil
+        host._schoolInterruptEarlyWake = nil
+    end
+    if host._schoolInterruptWake then return end
+    if not expires or not C_Timer or type(C_Timer.After) ~= "function" then return end
+    local timed, now = pcall(GetTime)
+    if timed and R.CanAccess(now) and type(now) == "number" and now < expires then
+        local ticket, scheduling = {}, true
+        host._schoolInterruptWake = ticket
+        local ok, result = pcall(C_Timer.After, expires-now, function()
+            if R.hosts[host.unit] ~= host or host._schoolInterruptWake ~= ticket then return end
+            host._schoolInterruptWake = nil
+            -- An inline timer implementation cannot recursively schedule itself.
+            -- An ordinary early delivery rechecks and rearms the remaining time.
+            if scheduling then return end
+            local okTime, observed = pcall(GetTime)
+            if okTime and R.CanAccess(observed) and type(observed) == "number" and observed < expires then
+                if not host._schoolInterruptEarlyWake then
+                    host._schoolInterruptEarlyWake = true
+                    scheduleInterruptExpiry(host,host._schoolInterrupt,host._secondSchoolInterrupt)
+                end
+                return
+            end
+            host._schoolInterruptChecked = nil
+            R.Refresh(host.unit)
+        end)
+        scheduling = false
+        if (not ok or not R.CanAccess(result) or result == false) and host._schoolInterruptWake == ticket then
+            host._schoolInterruptWake = nil
+        end
+    end
+end
+
+local function discardInterruptWatches(host)
+    host._schoolInterruptAliasPending,host._schoolInterruptAliasOverflow,host._schoolInterruptAliasGUID=nil,nil,nil
+    host._schoolInterruptOverflowSweep=nil
+    host._schoolInterruptRetries=nil
+end
+
+function R.InterruptUsesPlayer(host)
+    return host and (host._schoolInterruptRankUsesPlayer or (host._schoolInterrupt and host._schoolInterrupt.requiresPlayer)
+        or (host._secondSchoolInterrupt and host._secondSchoolInterrupt.requiresPlayer))
+end
+
+function R.NoteUnresolvedInterruptAlias(host, sender)
+    local guid=R.SafeString(UnitGUID,host.unit)
+    if guid and guid~="" then
+        if host._schoolInterruptAliasGUID and guid~=host._schoolInterruptAliasGUID then discardInterruptWatches(host) end
+        host._schoolInterruptAliasGUID=guid
+    end
+    local aliases=host._schoolInterruptAliasPending or {}
+    for _,token in ipairs(aliases) do if token==sender then return end end
+    -- Keep this bounded in crowded nameplate scenes. Preserve the player
+    -- token, whose own LoC interface can add evidence after identity settles.
+    if #aliases==8 then
+        table.remove(aliases,aliases[1]=="player" and 2 or 1)
+        host._schoolInterruptAliasOverflow=true
+    end
+    aliases[#aliases+1]=sender
+    host._schoolInterruptAliasPending=aliases
+end
+
+local function updateSchoolInterrupt(host, enabled, refresh, change, bindingChanged)
+    local frame = host.schoolInterruptFrame
+    local bindingBarrier = bindingChanged or host._schoolInterruptSettling
+    host._schoolInterruptSettling = nil
+    if not frame then return false, bindingBarrier end
+    local previous, previousSecond = host._schoolInterrupt, host._secondSchoolInterrupt
+    local guid
+    local targetOrFocus = host.unit == "target" or host.unit == "focus"
+    if enabled and targetOrFocus then
+        local token, known = R.ReadAuraField(host.unitFrame,"unit")
+        enabled = known and token == host.unit
+    end
+    if enabled and (previous or host._schoolInterruptAliasPending) and host.unit ~= "player" then
+        guid = R.SafeString(UnitGUID, host.unit)
+        if guid == "" then guid = nil end
+        -- Target and Focus have explicit binding, settling, removal and native
+        -- frame barriers. A bounded timer between those events need not be
+        -- rediscovered on every unrelated aura update during GUID restrictions.
+        if previous and (guid ~= host._schoolInterruptGUID or (not guid and not targetOrFocus)) then refresh = true end
+        if guid and ((previous and host._schoolInterruptGUID and guid ~= host._schoolInterruptGUID)
+            or (host._schoolInterruptAliasGUID and guid ~= host._schoolInterruptAliasGUID)) then bindingBarrier=true end
+    end
+    local observed = change and change.host == host
+    if enabled and R.InterruptUsesPlayer(host) and not R.SafeBool(UnitIsUnit,host.unit,"player") then
+        bindingBarrier=true
+    end
+    if bindingBarrier then
+        discardInterruptWatches(host)
+        refresh=true
+    end
+    if observed and enabled then
+        if change.unresolvedSelf then R.NoteUnresolvedInterruptAlias(host,"player") end
+        if change.alias then R.NoteUnresolvedInterruptAlias(host,change.alias) end
+    end
+    local aliases = host._schoolInterruptAliasPending
+    if enabled and aliases and not observed then
+        -- After the bounded native retries, only recheck identity. Recovery
+        -- to a true alias warrants a fresh scan of this host's own recipient.
+        for index = #aliases, 1, -1 do
+            local same, known = R.SafeBool(UnitIsUnit,host.unit,aliases[index])
+            if known then
+                table.remove(aliases,index)
+                if same or host._schoolInterruptAliasOverflow then refresh = true end
+            end
+        end
+        if #aliases == 0 then
+            host._schoolInterruptAliasPending,host._schoolInterruptAliasGUID=nil,nil
+            host._schoolInterruptAliasOverflow,host._schoolInterruptOverflowSweep=nil,nil
+        end
+    end
+    local unbounded = (previous and not previous.expires) or (previousSecond and not previousSecond.expires)
+    if enabled and host._schoolInterruptDeadline and not (observed or refresh) then
+        local ok, now = pcall(GetTime)
+        refresh = ok and R.CanAccess(now) and type(now) == "number" and now >= host._schoolInterruptDeadline
+    end
+    local opportunity = refresh or observed or not host._schoolInterruptChecked
+    local retries = host._schoolInterruptRetries or 0
+    if enabled and not opportunity and retries == 0 and not unbounded then
+        local overflowChanged
+        if host._schoolInterruptAliasOverflow then
+            overflowChanged,host._schoolInterruptOverflowSweep=R.ProbeSchoolInterrupt(host.unit,
+                host._schoolInterruptOverflowSweep,previous,previousSecond)
+        end
+        if not overflowChanged then
+            if previous and host._schoolInterruptDeadline and not host._schoolInterruptWake then
+                scheduleInterruptExpiry(host,previous,previousSecond)
+            end
+            return false, bindingBarrier
+        end
+    end
+    host._schoolInterruptOverflowSweep=nil
+    host._schoolInterruptChecked = enabled or nil
+    local record, second, complete, rankUsesPlayer
+    if enabled then
+        if observed then record, second, complete, rankUsesPlayer = change.record, change.second, change.complete, change.rankUsesPlayer
+        else
+            local unresolvedSelf
+            record, second, complete, unresolvedSelf, rankUsesPlayer = R.GetSchoolInterrupt(host.unit)
+            if unresolvedSelf and (previous or record or retries>0 or bindingBarrier or host._schoolInterruptAliasPending) then
+                R.NoteUnresolvedInterruptAlias(host,"player")
+                complete = false
+            end
+        end
+    end
+    host._schoolInterruptRankUsesPlayer = rankUsesPlayer
+    local retryBudget = opportunity and 2 or math.max(0, retries - 1)
+    host._schoolInterruptRetries = enabled and (complete == false or host._schoolInterruptAliasPending)
+        and retryBudget or nil
+    if record then
+        if host.unit ~= "player" and not previous then
+            guid = R.SafeString(UnitGUID, host.unit)
+            if guid == "" then guid = nil end
+        end
+        local sameVictim = host.unit == "player" or (guid and guid ~= "" and guid == host._schoolInterruptGUID)
+        local changedObject, changedSecondObject
+        -- With an unreadable GUID the new observation belongs to the current
+        -- token. Reuse only a known cleared art-only receiver, identical
+        -- numeric output, or exactly the same bound native clock.
+        local sameSink = targetOrFocus and not guid and not host._schoolInterruptGUID and not bindingBarrier
+            and sameInterrupt(previous,record)
+            and ((host._schoolInterruptClockSource == "numeric" and record.expires)
+                or (host._schoolInterruptClockSource == "object" and record.durationObject
+                    and rawequal(host._schoolInterruptClockObject,record.durationObject))
+                or (not record.expires and not record.durationObject and not host._schoolInterruptClockPending
+                    and not host._schoolInterruptClockSource))
+        -- Both rows have been freshly read from the currently bound token.
+        -- In a sealed GUID window preserve identical public observations only
+        -- between binding barriers and with the same accepted clock output.
+        if (sameVictim or sameSink) and not bindingBarrier then
+            record, changedObject = keepInterrupt(record, previous, previousSecond)
+            second, changedSecondObject = keepInterrupt(second, previous, previousSecond)
+        end
+        local sameMain = not bindingBarrier and (record == previous or sameSink)
+        local retryClock = (host._schoolInterruptClockSource=="object"
+            and not rawequal(host._schoolInterruptClockObject,record.durationObject))
+            or (host._schoolInterruptClockPending and (opportunity or retries > 0))
+        local painted = sameMain
+        if not sameMain or retryClock then
+            painted = sameMain or setReadableSpellIcon(frame, record.spellID, record)
+            if painted then
+                local timed, source
+                painted, timed, source = R.SetSchoolInterruptClock(frame.cooldown, record)
+                host._schoolInterruptClockSource = painted and source or nil
+                host._schoolInterruptClockObject = painted and source == "object" and record.durationObject or nil
+                host._schoolInterruptClockPending = painted and not timed and (record.expires or record.durationObject) and true or nil
+                if host._schoolInterruptClockPending then host._schoolInterruptRetries = retryBudget end
+            end
+            if painted and not sameMain then
+                local ok, shown = pcall(frame.Show, frame)
+                painted = ok and R.CanAccess(shown) and shown ~= false
+            end
+        end
+        if painted then
+            host._schoolInterrupt, host._secondSchoolInterrupt = record, second
+            host._schoolInterruptGUID, host._schoolInterruptHidePending = guid, nil
+            scheduleInterruptExpiry(host, record, second)
+            local secondaryObjectChanged = host._secondaryInterruptClockSource=="object"
+                and ((changedObject and host._secondaryAuraSpellID==record.spellID)
+                    or (changedSecondObject and second and host._secondaryAuraSpellID==second.spellID))
+            return previous ~= record or previousSecond ~= second or retryClock or secondaryObjectChanged, bindingBarrier
+        end
+    end
+    host._schoolInterrupt, host._secondSchoolInterrupt, host._schoolInterruptGUID = nil, nil, nil
+    host._schoolInterruptDeadline, host._schoolInterruptWake, host._schoolInterruptClockPending = nil, nil, nil
+    host._schoolInterruptClockSource, host._schoolInterruptClockObject, host._schoolInterruptEarlyWake = nil, nil, nil
+    if previous or record or host._schoolInterruptHidePending then
+        host._schoolInterruptHidePending = not hideReadableExact(frame) or nil
+        if record or host._schoolInterruptHidePending then host._schoolInterruptChecked = nil end
+        return true, bindingBarrier
+    end
+    return false, bindingBarrier
+end
+
+function R.RecheckSchoolInterruptLinks(host,current,auraUnit)
+    local first,second,complete,unresolved,playerRank=R.GetSchoolInterrupt(host.unit,current,auraUnit)
+    updateSchoolInterrupt(host,true,false,{host=host,record=first,second=second,complete=complete,
+        unresolvedSelf=unresolved,rankUsesPlayer=playerRank})
+    return true
+end
+
 local function showStaticSpell(frame, spellID, aura)
     if not setReadableSpellIcon(frame, spellID, aura) then return false end
     if not clearReadableCooldown(frame.cooldown) then
@@ -734,6 +1221,12 @@ local function showReadableTier(host, frameKey, candidate, complete)
     host._readableTierOwners[candidate.tier.key] = {
         frame = frame, frameKey = frameKey, cooldown = frame.cooldown,
         complete = complete and true or false,
+        spellID = candidate.spellID,
+        auraInstanceID = candidate.auraInstanceID,
+        runnerSpellID = candidate.runnerSpellID, runnerInstanceID = candidate.runnerInstanceID,
+        nativeFirstMismatch = candidate.nativeFirstMismatch == true,
+        nativeOrderMismatch = candidate.nativeOrderMismatch == true,
+        nativeRepeatsWinner = candidate.nativeRepeatsWinner == true,
     }
     return true
 end
@@ -951,14 +1444,14 @@ local function clearReadableHostile(host)
     host._hostileAuraInstanceID = nil
 end
 
-local function updateReadableHostile(host, baseEnabled)
+local function updateReadableHostile(host, baseEnabled, reads)
     if not host or not baseEnabled or R.testMode then
         clearReadableHostile(host)
         return nil
     end
 
     local best, authoritative, count, auraListComplete, electionReadable =
-        scanReadableHostileHelpful(host.unit)
+        scanReadableHostileHelpful(host.unit, reads)
     host._hostileReadable = authoritative
     host._hostileElectionReadable = electionReadable
     host._hostileAuraListComplete = auraListComplete
@@ -1052,7 +1545,7 @@ local function updateReadableRecency(host, baseEnabled, tierKey, frameKey, prefi
     end
 
     local best, complete, electionReadable = scanLatestReadableExactTierAura(
-        exactReads, tierKey, "HELPFUL|INCLUDE_NAME_PLATE_ONLY"
+        exactReads, tierKey, tier.filter
     )
     host[prefix .. "Readable"] = complete
     host[prefix .. "ElectionReadable"] = electionReadable
@@ -1076,6 +1569,8 @@ local function clearReadableWelcomingCampfire(host)
     if host then
         host._honorlessReadable = false
         host._honorlessWinnerSpellID = nil
+        host._honorlessWinnerInstanceID = nil
+        host._honorlessRunnerSpellID, host._honorlessRunnerInstanceID = nil, nil
         host._welcomingCampfireReadable = false
         host._welcomingCampfireActive = false
         host._welcomingCampfireDirect = false
@@ -1086,15 +1581,18 @@ local function clearReadableWelcomingCampfire(host)
     end
 end
 
-local function updateReadableWelcomingCampfire(host, baseEnabled)
+local function updateReadableWelcomingCampfire(host, baseEnabled, reads)
     if not host or not baseEnabled or R.testMode or host._readableTierOwners.HonorlessTarget then
         clearReadableWelcomingCampfire(host)
         return
     end
 
-    local best, readable, meta = scanReadableHonorlessWinner(host.unit)
+    local best, readable, meta = scanReadableHonorlessWinner(host.unit, reads)
     host._honorlessReadable = readable
     host._honorlessWinnerSpellID = best and best.spellID or nil
+    host._honorlessWinnerInstanceID = best and best.auraInstanceID or nil
+    host._honorlessRunnerSpellID = best and best.runnerSpellID or nil
+    host._honorlessRunnerInstanceID = best and best.runnerInstanceID or nil
     host._welcomingCampfireReadable = meta and meta.welcomingReadable or false
     host._welcomingCampfireDirect = meta and meta.welcomingDirect or false
     host._welcomingCampfireDirectFound = meta and meta.welcomingDirectFound or false
@@ -1140,103 +1638,259 @@ end
 -- Main portrait falls back directly to Blizzard's native class/model artwork.
 
 local function hostStillCurrent(host)
-    if not host or host._buildComplete ~= true or host._restorePending then return false end
-    local portrait, mask, unitFrame = R.GetPortrait(host.unit)
-    return portrait == host.portrait and mask == host.portraitMask and unitFrame == host.unitFrame
+    if not host or host._buildComplete ~= true or host._restorePending then return false,true end
+    local portrait, mask, unitFrame, known = R.GetPortrait(host.unit)
+    if not known then return false,false end
+    return portrait == host.portrait and mask == host.portraitMask and unitFrame == host.unitFrame,true
 end
+R.IsCurrentPortraitHost = hostStillCurrent
 
-local function hostHasSupportedBinding(host)
+local function nativeUnitTokenMatches(host)
     if host.unit ~= "player" and host.unit ~= "pet" and not R.PARTY_UNITS[host.unit] then
         return true
     end
     -- Native Player/Pet/Party frames may temporarily bind a vehicle, or the
     -- party Edit Mode preview may bind "player" to an unoccupied party slot.
     -- Only show a slot's real unit. No stale aura from an earlier party member.
-    local binding = host.unitFrame and host.unitFrame.unit
-    if not R.CanAccess(binding) or binding ~= host.unit then return false end
-    if R.PARTY_UNITS[host.unit] and host.unitFrame.IsShown then
-        local visible, readable = R.SafeBool(host.unitFrame.IsShown, host.unitFrame)
-        return readable and visible
+    local binding,known = R.ReadAuraField(host.unitFrame,"unit")
+    return known and binding == host.unit
+end
+
+local function hostHasSupportedBinding(host, tokenMatches)
+    if tokenMatches == nil then tokenMatches = nativeUnitTokenMatches(host) end
+    if not tokenMatches then return false end
+    if R.PARTY_UNITS[host.unit] then
+        local getter,available=R.ReadAuraField(host.unitFrame,"IsShown")
+        if not available then return false end
+        if getter then
+            local visible, readable = R.SafeBool(getter, host.unitFrame)
+            return readable and visible
+        end
     end
     return true
+end
+
+local function turnOff(container, method)
+    return container[method](container, false)
 end
 
 local function disableContainers(host)
-    for _, container in ipairs(host.containers or {}) do
-        pcall(container.SetEnabled, container, false)
-        pcall(container.SetShown, container, false)
+    local pending = host._pendingContainerCleanup
+    if not pending then
+        pending = {}
+        for _,container in ipairs(host.containers or {}) do
+            pending[container] = {SetEnabled=true, SetShown=true}
+        end
+        host._pendingContainerCleanup = pending
     end
+    for container,methods in pairs(pending) do
+        for method in pairs(methods) do
+            local ok,result = pcall(turnOff, container, method)
+            if ok and R.CanAccess(result) and result~=false then methods[method]=nil end
+        end
+        if not next(methods) then pending[container]=nil end
+    end
+    return not next(pending)
 end
 
 
-local function restorePortrait(host)
+local function sameAnchors(a,b,prefix)
+    if not a or not b or #a>#b or (not prefix and #a~=#b) then return false end
+    for i,point in ipairs(a) do
+        for j=1,5 do if point[j]~=b[i][j] then return false end end
+    end
+    return true
+end
+
+local function finishRestore(host)
+    host.reparented=false
+    host._portraitRestore=nil
+    return true
+end
+
+local function rememberFailedWrite(state,portrait)
+    local ok,points=pcall(R.CapturePoints,portrait)
+    state.observed=ok and points or nil
+    return false
+end
+
+local function restoreNativePoints(host)
     if not host or not host.reparented then return true end
     local portrait = host.portrait
-    if not portrait or not portrait.SetParent or not host.originalParent
-        or not portrait.ClearAllPoints or not portrait.SetPoint then return false end
-    local parentOK = pcall(portrait.SetParent, portrait, host.originalParent)
-    if not parentOK then return false end
-    local pointsOK = pcall(R.RestorePoints, portrait, host.originalPoints)
-    if not pointsOK then return false end
-    host.reparented = false
-    return true
+    local currentParent=portrait:GetParent()
+    if not R.CanAccess(currentParent) then return false end
+    local state,restored=host._portraitRestore,nil
+    if currentParent~=host.layer then
+        if currentParent~=host.originalParent or not state then
+            return finishRestore(host) -- the physical owner has already changed
+        end
+        local current=R.CapturePoints(portrait)
+        if not current then return false end
+        if state.observed and not sameAnchors(current,state.observed) then
+            return finishRestore(host) -- an external writer has superseded our interrupted replay
+        end
+        -- A failing point setter may have written its own point. Accept only
+        -- the exact acknowledged prefix or that prefix plus the attempted
+        -- point. A parent/clear write can retain its input or clear it.
+        if state.point then
+            if (#current~=state.point and #current~=state.point-1)
+                or not sameAnchors(current,state.target,true) then return finishRestore(host) end
+            restored=#current
+        elseif sameAnchors(current,state.target) then
+            return finishRestore(host)
+        elseif #current==0 then
+            restored=0
+        elseif not sameAnchors(current,state.before) then
+            return finishRestore(host)
+        end
+    else
+        local before=R.CapturePoints(portrait)
+        if not before then return false end
+        local desired=host.originalPoints
+        if host._portraitLayoutComplete then
+            desired={}
+            for i,existing in ipairs(before) do
+                local point={unpack(existing,1,5)}
+                if point[2]==host.layer then point[2]=host.originalParent end
+                desired[i]=point
+            end
+        end
+        state={before=before,target=desired}
+        host._portraitRestore=state
+        local ok,applied=pcall(portrait.SetParent,portrait,host.originalParent)
+        if not ok or not R.CanAccess(applied) or applied==false then
+            return rememberFailedWrite(state,portrait)
+        end
+    end
+    local ok,applied=pcall(R.RestorePoints,portrait,state.target,state,restored)
+    if not ok or applied==false then
+        return rememberFailedWrite(state,portrait)
+    end
+    return finishRestore(host)
+end
+
+local function restorePortrait(host)
+    local ok,restored=pcall(restoreNativePoints,host)
+    return ok and restored==true
+end
+
+local ownedPresentations={
+    "testFrame", "readableHostileFrame", "readableBaselineFrame",
+    "readableHealingFrame", "readableSlowsFrame", "readableDoTsFrame",
+    "readableDazedFrame", "readableForbearanceFrame", "readableStatusEffectsFrame",
+    "readableResurrectionSicknessFrame", "readableDemoralizingFrame", "readablePassiveDebuffFrame",
+    "readableBaselineHarmfulFrame", "readableNearbyHarmfulFrame", "readableBoostedRestFrame",
+    "readableTrackingHarmfulFrame", "readableRootsFrame", "readableControlFrame",
+    "readableStunFrame", "readableInterruptSilenceFrame", "schoolInterruptFrame", "readableWoundsFrame",
+    "readableOffensiveHarmfulFrame", "readableWaitingToResurrectFrame", "readableDivineProtectionFrame",
+    "readableGhostFrame", "readableFormStateFrame", "readableWelcomingCampfireFrame"
+}
+
+local function clearHostPresentation(host,reason,keepFoundation)
+    host._schoolInterrupt, host._schoolInterruptGUID, host._schoolInterruptDeadline = nil, nil, nil
+    host._secondSchoolInterrupt, host._schoolInterruptChecked = nil, nil
+    host._schoolInterruptRankUsesPlayer=nil
+    host._schoolInterruptRetries, host._schoolInterruptClockPending = nil, nil
+    host._schoolInterruptWake, host._schoolInterruptAliasPending = nil, nil
+    host._schoolInterruptAliasGUID, host._schoolInterruptAliasOverflow = nil, nil
+    host._schoolInterruptOverflowSweep = nil
+    host._schoolInterruptClockSource, host._schoolInterruptClockObject, host._schoolInterruptEarlyWake = nil, nil, nil
+    host._schoolInterruptSettling = nil
+    local done=host._revokedPresentation or {}
+    host._revokedPresentation=done
+    local function revoke(key,fn,object)
+        if not key or not fn then return true end
+        if not done[key] then
+            local ok,result=pcall(fn,object,reason)
+            done[key]=ok and R.CanAccess(result) and result~=false
+        end
+        return done[key]
+    end
+    -- The anchor owns the native groups; hiding it does not touch their
+    -- unit, enabled state, or the separately parented native portrait.
+    revoke(host.anchor,hideOwned,host.anchor)
+    for key,owner in pairs(host._readableTierOwners or {}) do
+        if revoke(owner.frame,hideReadableExact,owner.frame) then host._readableTierOwners[key]=nil end
+    end
+    for _,key in ipairs(ownedPresentations) do
+        local frame=host[key]
+        local hidden=revoke(frame,hideReadableExact,frame)
+        if frame and frame==host.schoolInterruptFrame then host._schoolInterruptHidePending=not hidden or nil end
+    end
+    revoke("public",R.HideSecondaryPortrait,host)
+    revoke("native",R.HideNativeSecondProbe,host)
+    revoke("pet",R.HidePetSecondaryFallback,host)
+    if not keepFoundation then revoke("foundation",R.HidePetFoundation,host) end
+end
+
+local function suspendHost(host,reason,forceRefresh,bindingChanged)
+    host._staleBinding=true
+    host._suspendedRefresh=host._suspendedRefresh or forceRefresh
+    host._suspendedBindingChange=host._suspendedBindingChange or bindingChanged
+    R.buildQueued=true
+    clearHostPresentation(host,reason)
+end
+R.SuspendPortraitHost=suspendHost
+
+local function presentationWrite(fn,object)
+    if not fn then return true end
+    local ok,result=pcall(fn,object)
+    return ok and R.CanAccess(result) and result~=false
 end
 
 function R.DestroyHost(unit)
     local host = R.hosts[unit]
     if not host then return true end
     host._restorePending = true
-    disableContainers(host)
-    for _, owner in pairs(host._readableTierOwners or {}) do hideReadableExact(owner.frame) end
-    host._readableTierOwners = {}
-    if host.testFrame then host.testFrame:Hide() end
-    if R.HideSecondaryPortrait then R.HideSecondaryPortrait(host, "host-destroy") end
-    if R.HideNativeSecondProbe then R.HideNativeSecondProbe(host, "host-destroy") end
-    if R.HidePetSecondaryFallback then R.HidePetSecondaryFallback(host, "host-destroy") end
-    if host.readableHostileFrame then host.readableHostileFrame:Hide() end
-    if host.readableBaselineFrame then host.readableBaselineFrame:Hide() end
-    if host.readableHealingFrame then hideReadableExact(host.readableHealingFrame) end
-    if host.readableSlowsFrame then host.readableSlowsFrame:Hide() end
-    if host.readableDoTsFrame then hideReadableExact(host.readableDoTsFrame) end
-    if host.readableDazedFrame then hideReadableExact(host.readableDazedFrame) end
-    if host.readableForbearanceFrame then hideReadableExact(host.readableForbearanceFrame) end
-    if host.readableStatusEffectsFrame then hideReadableExact(host.readableStatusEffectsFrame) end
-    if host.readableResurrectionSicknessFrame then hideReadableExact(host.readableResurrectionSicknessFrame) end
-    if host.readableDemoralizingFrame then hideReadableExact(host.readableDemoralizingFrame) end
-    if host.readablePassiveDebuffFrame then hideReadableExact(host.readablePassiveDebuffFrame) end
-    if host.readableBaselineHarmfulFrame then hideReadableExact(host.readableBaselineHarmfulFrame) end
-    if host.readableNearbyHarmfulFrame then hideReadableExact(host.readableNearbyHarmfulFrame) end
-    if host.readableBoostedRestFrame then hideReadableExact(host.readableBoostedRestFrame) end
-    if host.readableTrackingHarmfulFrame then hideReadableExact(host.readableTrackingHarmfulFrame) end
-    if host.readableRootsFrame then hideReadableExact(host.readableRootsFrame) end
-    if host.readableControlFrame then hideReadableExact(host.readableControlFrame) end
-    if host.readableStunFrame then hideReadableExact(host.readableStunFrame) end
-    if host.readableInterruptSilenceFrame then hideReadableExact(host.readableInterruptSilenceFrame) end
-    if host.readableWoundsFrame then hideReadableExact(host.readableWoundsFrame) end
-    if host.readableOffensiveHarmfulFrame then hideReadableExact(host.readableOffensiveHarmfulFrame) end
-    if host.readableWaitingToResurrectFrame then hideReadableExact(host.readableWaitingToResurrectFrame) end
-    if host.readableDivineProtectionFrame then hideReadableExact(host.readableDivineProtectionFrame) end
-    if host.readableGhostFrame then host.readableGhostFrame:Hide() end
-    if host.readableFormStateFrame then host.readableFormStateFrame:Hide() end
-    if host.readableWelcomingCampfireFrame then host.readableWelcomingCampfireFrame:Hide() end
-    if InCombatLockdown and InCombatLockdown() then
+    clearHostPresentation(host, "host-destroy")
+    local combat,known=R.SafeBool(InCombatLockdown)
+    if not known or combat then
         R.buildQueued = true
         return false
     end
+    local containersReleased = disableContainers(host)
     if not restorePortrait(host) then
         R.buildQueued = true
         return false
     end
-    if R.ReleaseSecondaryPortrait then R.ReleaseSecondaryPortrait(host) end
-    if R.ReleaseNativeSecondProbe then R.ReleaseNativeSecondProbe(host) end
-    if R.ReleasePetSecondaryFallback then R.ReleasePetSecondaryFallback(host) end
-    if host.ownsLayer and host.layer then host.layer:Hide() end
+    if host.secondaryBadge and host._revokedPresentation.public==false then
+        R.buildQueued=true
+        return false
+    end
+    if not presentationWrite(R.ReleaseSecondaryPortrait,host)
+        or not presentationWrite(R.ReleaseNativeSecondProbe,host)
+        or not presentationWrite(R.ReleasePetSecondaryFallback,host) then
+        R.buildQueued = true
+        return false
+    end
+    if host.ownsLayer and host.layer then
+        if not presentationWrite(hideOwned,host.layer) then
+            local getter=R.ReadAuraField(host.layer,"IsShown")
+            local shown,known=R.SafeBool(getter,host.layer)
+            if not known or shown then
+                R.buildQueued=true
+                return false
+            end
+        end
+        host.ownsLayer=false
+    end
+    if not containersReleased then
+        R.buildQueued=true
+        return false
+    end
     R.hosts[unit] = nil
     return true
 end
 
 function R.DestroyAll()
-    if InCombatLockdown and InCombatLockdown() then
+    local combat,known=R.SafeBool(InCombatLockdown)
+    if not known or combat then
+        if not R.db or not R.db.enabled then
+            for _,host in pairs(R.hosts) do
+                host._restorePending=true
+                clearHostPresentation(host,"host-destroy")
+            end
+        end
         R.forceRebuildQueued = true
         R.buildQueued = true
         return false
@@ -1253,11 +1907,60 @@ end
 -- frame trees or spam errors. An explicit BuildAll (e.g. /bp on) retries.
 local hostBuildFailures, hostBuildInProgress = {}, {}
 
+local visibilityHooks = setmetatable({}, {__mode="k"})
+local function observeSecondaryOwner(frame)
+    local ok, hook = pcall(function() return frame.HookScript end)
+    if not ok or not R.CanAccess(hook) or type(hook) ~= "function" then return end
+    local state = visibilityHooks[frame]
+    if not state then state = {}; visibilityHooks[frame] = state end
+    local function currentHost(owner)
+        for _, host in pairs(R.hosts) do
+            if host.unitFrame == owner and host._buildComplete and not host._restorePending then
+                return host
+            end
+        end
+    end
+    if not state.hide then
+        state.hide = pcall(hook, frame, "OnHide", function(owner)
+            state.pendingHost = nil
+            local host = currentHost(owner)
+            if not host then return end
+            if host._staleBinding then
+                clearHostPresentation(host,"native-frame-hidden")
+                return
+            end
+            if R.HideSecondaryPortrait then R.HideSecondaryPortrait(host, "native-frame-hidden") end
+            if R.HideNativeSecondProbe then R.HideNativeSecondProbe(host, "native-frame-hidden") end
+            if R.HidePetSecondaryFallback then R.HidePetSecondaryFallback(host, "native-frame-hidden") end
+        end)
+    end
+    if not state.show then
+        state.show = pcall(hook, frame, "OnShow", function(owner)
+            state.pendingHost = currentHost(owner)
+            if not state.pendingHost or state.queued or not C_Timer or type(C_Timer.After) ~= "function" then return end
+            state.queued = true
+            local scheduled = pcall(C_Timer.After, 0, function()
+                local host = state.pendingHost
+                state.pendingHost, state.queued = nil, false
+                if host and currentHost(owner) == host and R.SecondaryOwnerVisible(host) then
+                    R.Refresh(host.unit,false,nil,true)
+                    R.ApplyPresentation(host.unit,true,true)
+                end
+            end)
+            if not scheduled then state.pendingHost, state.queued = nil, false end
+        end)
+    end
+end
+
 local function buildHost(unit, host)
     -- Events and commands can reach this boundary without going through BuildAll.
     if not R.db or not R.db.enabled then return nil end
     local existing = R.hosts[unit]
-    if existing and hostStillCurrent(existing) then return existing end
+    if existing then
+        local current,known=hostStillCurrent(existing)
+        if not known then suspendHost(existing,"native-binding-unreadable");return nil end
+        if current then return existing end
+    end
     local combat, combatReadable = R.SafeBool(InCombatLockdown)
     if not combatReadable or combat then
         R.buildQueued = true
@@ -1272,13 +1975,24 @@ local function buildHost(unit, host)
         local exists, readable = R.UnitExistsState(unit)
         if not readable or not exists then return nil end
     end
-    local portrait, portraitMask, unitFrame = R.GetPortrait(unit)
-    if not portrait or not portrait.GetParent or not unitFrame then return nil end
-    local originalParent = portrait:GetParent()
-    if not originalParent then return nil end
-    local originalPoints = R.CapturePoints(portrait)
-    local point, relativeTo, relativePoint, x, y = firstPoint(portrait)
-    if not point then return nil end
+    local portrait, portraitMask, unitFrame, known = R.GetPortrait(unit)
+    if not known then R.buildQueued=true;return nil end
+    if not portrait or not unitFrame then return nil end
+    if R.PARTY_UNITS[unit] then
+        -- Blizzard reassigns pooled member frames to indices. Restore the
+        -- previous owner's native parent before capturing this slot's baseline.
+        for other in pairs(R.PARTY_UNITS) do
+            local previous = R.hosts[other]
+            if other ~= unit and previous and previous.portrait == portrait then
+                local current,known=hostStillCurrent(previous)
+                if not known or current or not R.DestroyHost(other) then return nil end
+            end
+        end
+    end
+    local parentOK,originalParent=pcall(function() return portrait:GetParent() end)
+    if not parentOK or not R.CanAccess(originalParent) or not originalParent then return nil end
+    local captured,originalPoints=pcall(R.CapturePoints,portrait)
+    if not captured or not originalPoints or #originalPoints==0 then return nil end
 
     local layer, strata, anchor
     local smallBaseLevel = 0
@@ -1295,8 +2009,10 @@ local function buildHost(unit, host)
     -- the native frame artwork.  The native ring/chrome therefore frames both
     -- naturally.  Small-frame offsets tune only aura placement, not ownership.
     local parentStrata = "MEDIUM"
-    if originalParent.GetFrameStrata then
-        local ok, value = pcall(originalParent.GetFrameStrata, originalParent)
+    local strataGetter,knownStrata=R.ReadAuraField(originalParent,"GetFrameStrata")
+    if not knownStrata then return nil end
+    if strataGetter then
+        local ok, value = pcall(strataGetter, originalParent)
         -- Native frame strata can be secret. Wait for a readable value before
         -- constructing or moving anything; an existing refresh can retry.
         if not ok or not R.CanAccess(value) or type(value) ~= "string" then return nil end
@@ -1313,9 +2029,10 @@ local function buildHost(unit, host)
 
     host._buildStage = "portrait-parent"
     host.reparented = true
-    portrait:SetParent(layer)
-    portrait:ClearAllPoints()
-    portrait:SetPoint(point, relativeTo or layer, relativePoint or point, x or 0, y or 0)
+    local parentWrite=portrait:SetParent(layer)
+    if not R.CanAccess(parentWrite) or parentWrite==false then error("portrait parent unavailable") end
+    assert(R.RestorePoints(portrait, originalPoints),"portrait anchors unavailable")
+    host._portraitLayoutComplete=true
 
     host._buildStage = "anchor"
     anchor = CreateFrame("Frame", nil, layer, R.AURA_ANCHOR_TEMPLATE)
@@ -1350,7 +2067,9 @@ local function buildHost(unit, host)
             sortMethod = R.SORT_METHOD,
             sortDirection = R.SORT_DIRECTION,
             candidateFilters = R.CandidateFilters(tier),
-            initializeFrame = function(button) initializeButton(host, button, tier) end,
+            initializeFrame = function(button)
+                host.slotClocks[container] = initializeButton(host, button, tier)
+            end,
         })
     end
 
@@ -1390,8 +2109,12 @@ local function buildHost(unit, host)
         host[spec[2]] = createReadableExactFrame(host, tier and tier.level or spec[3])
     end
 
-    -- Same-tier status recency applies on every portrait host. These use
-    -- the existing portrait placement helper; no native frame geometry changes.
+    -- The independent lockout wins a tie with its silence aura and remains below CC.
+    if R.GetSchoolInterrupt then
+        local interrupts = findTierByKey("InterruptSilence")
+        host.schoolInterruptFrame = createReadableExactFrame(host, (interrupts and interrupts.level or 306) + 1)
+    end
+    -- Same-tier status recency applies on every portrait host.
     local statusEffectsTier = findTierByKey("StatusEffects")
     host.readableStatusEffectsFrame = createReadableExactFrame(
         host, statusEffectsTier and statusEffectsTier.level or 253
@@ -1460,6 +2183,7 @@ local function buildHost(unit, host)
     -- Publish only after every native slot and required helper exists.
     host._buildStage, host._buildComplete = "ready", true
     R.hosts[unit] = host
+    if unit ~= "pet" and not R.SMALL_UNITS[unit] then observeSecondaryOwner(unitFrame) end
     return host
 end
 
@@ -1470,13 +2194,34 @@ local function abandonHost(host)
     return R.DestroyHost(host.unit)
 end
 
+local function needsHost(unit)
+    -- The pet foundation also uses the four observed target/focus frames
+    -- and PetFrame when their independent aura switches are off.
+    return R.db and R.db.enabled and (R.IsUnitEnabled(unit)
+        or (R.db.petPortraits and unit ~= "player" and not R.PARTY_UNITS[unit]))
+end
+
+local function updateHostFoundation(unit)
+    if unit == "pet" and R.UpdateLocalPetPortrait then
+        R.UpdateLocalPetPortrait()
+    elseif unit ~= "player" and not R.PARTY_UNITS[unit] and R.UpdateObservedPetPortrait then
+        R.UpdateObservedPetPortrait(unit)
+    end
+end
+
 function R.CreateHost(unit)
-    if not R.db or not R.db.enabled or hostBuildInProgress[unit]
-        or hostBuildFailures[unit] then return nil end
-    local pending = { unit = unit, containers = {}, cooldowns = {}, _buildStage = "preflight" }
+    if not needsHost(unit) or hostBuildInProgress[unit] or hostBuildFailures[unit] then return nil end
+    local pending = { unit = unit, containers = {}, cooldowns = {}, slotClocks = {}, _buildStage = "preflight" }
     hostBuildInProgress[unit] = true
     local ok, host = pcall(buildHost, unit, pending)
     if not ok then
+        -- Constructor preflight may be retiring a different physical owner.
+        -- Keep its cleanup record, and retry before taking any new ownership.
+        if (R.hosts[unit] and R.hosts[unit]~=pending) or pending._buildStage=="preflight" then
+            hostBuildInProgress[unit]=nil
+            R.buildQueued=true
+            return nil
+        end
         local cleanOK, restored = pcall(abandonHost, pending)
         local message = R.CanAccess(host) and type(host) == "string" and host or "unreadable construction error"
         -- Keep the exact readable failure locally for /bp layout; never inspect
@@ -1495,13 +2240,17 @@ function R.CreateHost(unit)
     -- Family art is an independent foundation, not a separate aura
     -- presenter. Every tracked unit, including PetFrame, uses these hosts.
     if host == pending then
-        if unit == "pet" and R.UpdateLocalPetPortrait then
-            R.UpdateLocalPetPortrait()
-        elseif unit ~= "player" and not R.PARTY_UNITS[unit] and R.UpdateObservedPetPortrait then
-            R.UpdateObservedPetPortrait(unit)
-        end
+        updateHostFoundation(unit)
     end
     return host
+end
+
+local function callSlot(container, method, ...)
+    local fn,readable=R.ReadAuraField(container,method)
+    if not readable then return false end
+    if not fn and method=="UpdateAllAuras" then return true end
+    local ok,result=pcall(fn,container,...)
+    return ok and R.CanAccess(result) and result~=false
 end
 
 local function setContainer(container, shown, forceRefresh)
@@ -1513,38 +2262,119 @@ local function setContainer(container, shown, forceRefresh)
     -- adds protected frame writes without changing their intended state.
     -- The last *successfully applied* state is enough to avoid those writes.
     -- Real transitions and explicitly forced aura refreshes still execute.
-    if container._bjarkiAppliedShown == shown then
-        if forceRefresh and shown and container.UpdateAllAuras then
-            return pcall(container.UpdateAllAuras, container)
+    local refresh = shown and (forceRefresh or container._bjarkiRefreshPending)
+    if container._bjarkiAppliedShown == shown and not refresh then return true end
+    if container._bjarkiAppliedShown ~= shown then
+        if refresh and not container._bjarkiRefreshPending then
+            -- Enabling a positively disabled group already refreshes it.
+            -- An unknown state cannot confirm that a rebind will be serviced.
+            local getter=R.ReadAuraField(container,"IsEnabled")
+            local enabled,known=R.SafeBool(getter,container)
+            refresh=not known or enabled
         end
-        return true
+        -- Either setter may take effect even when the other rejects the write.
+        -- The old committed pair cannot authorize an A/B/A shortcut.
+        container._bjarkiAppliedShown=nil
+        local enabledOK=callSlot(container,"SetEnabled",shown)
+        local shownOK=callSlot(container,"SetShown",shown)
+        if not enabledOK or not shownOK then
+            container._bjarkiRefreshPending=refresh or nil
+            return false
+        end
+        container._bjarkiAppliedShown=shown
     end
-
-    local wasEnabled
-    if forceRefresh and shown and container.IsEnabled then
-        local ok, value = pcall(container.IsEnabled, container)
-        if ok and R.CanAccess(value) and type(value) == "boolean" then wasEnabled = value end
+    if refresh and not callSlot(container,"UpdateAllAuras") then
+        container._bjarkiRefreshPending=true
+        return false
     end
-
-    local enabledOK = pcall(container.SetEnabled, container, shown)
-    local shownOK = pcall(container.SetShown, container, shown)
-    local refreshedOK = true
-
-    -- SetEnabled and Show/Hide already refresh when state changes. Only force a
-    -- full refresh when the unit token's referent/relation changed underneath an
-    -- already-enabled container (target/focus/derived-token lifecycle events).
-    if forceRefresh and shown and wasEnabled == true and container.UpdateAllAuras then
-        refreshedOK = pcall(container.UpdateAllAuras, container)
-    end
-    local successful = enabledOK and shownOK and refreshedOK
-    -- A failed write is never recorded as applied. Retry on a future refresh
-    -- and keep the secondary election's native-update failure guard intact.
-    if successful then container._bjarkiAppliedShown = shown end
-    return successful
+    container._bjarkiRefreshPending=nil
+    return true
 end
 
-function R.UpdateHost(host, forceContainerRefresh)
-    if not host or host._buildComplete ~= true or host._restorePending then return end
+local function retryClockLayouts(host)
+    local pending=host._pendingClockLayouts
+    if not pending then return end
+    local factor=currentPixelFactor()
+    for cooldown in pairs(pending) do alignVisibleCountdown(cooldown,host,true,factor) end
+end
+
+-- The native assignment can expose a clock one frame after UNIT_AURA, even
+-- if the addon last observed it centered. Check only enabled native slots
+-- before that assignment, without reading their aura or label geometry.
+function R.NoteAuraClockVisibility(host)
+    for container,clock in pairs(host.slotClocks or {}) do
+        if container._bjarkiAppliedShown == true and clock._bjarkiAlignmentState == "centered" then
+            local shown,known=countdownVisibility(clock)
+            if not known or not shown then
+                setAlignmentState(clock,host,known and "hidden" or "visibility-unavailable")
+            end
+        end
+    end
+end
+
+function R.RetryPostAuraLayouts(host)
+    if R.hosts[host.unit]~=host or not host._pendingClockLayouts or host._restorePending or host._staleBinding
+        or host._unitAuraSuppressed or not R.IsUnitEnabled(host.unit) then return end
+    local combat,known=R.SafeBool(InCombatLockdown)
+    if known and not combat and hostStillCurrent(host) and nativeUnitTokenMatches(host) then
+        retryClockLayouts(host)
+    end
+end
+
+function R.UpdateHost(host, forceContainerRefresh, bindingChanged, presentationFollows, interruptChange)
+    if not host or host._buildComplete ~= true or host._restorePending or host._staleBinding then return end
+    local tokenMatches=nativeUnitTokenMatches(host)
+    if tokenMatches and host._unitTokenUnverified then
+        host._unitTokenUnverified=nil
+        if host._revokedPresentation then host._revokedPresentation.foundation=nil end
+        if host.unit=="pet" then updateHostFoundation(host.unit) end
+    end
+    local unitDisabled=not R.IsUnitEnabled(host.unit)
+    local suppressAura=unitDisabled or not tokenMatches
+    local deferDisable=false
+    if suppressAura then
+        -- The aura anchor and its sibling presenters can be concealed while
+        -- the independent native portrait and family texture remain visible.
+        local alreadySuppressed=host._unitAuraSuppressed
+        host._unitAuraSuppressed=true
+        if not tokenMatches then host._unitTokenUnverified=true end
+        clearHostPresentation(host,tokenMatches and "unit-disabled" or "native-unit-mismatch",tokenMatches)
+        local combat,known=R.SafeBool(InCombatLockdown)
+        deferDisable=not known or combat
+        if alreadySuppressed then
+            if not deferDisable then
+                host._containerWriteFailures=0
+                for _,container in ipairs(host.containers or {}) do
+                    if not setContainer(container,false) then host._containerWriteFailures=host._containerWriteFailures+1 end
+                end
+            end
+            return
+        end
+        -- On the transition, discard the previous aura election and activity
+        -- flags through the normal disabled update. Its native writes can wait.
+    elseif host._unitAuraSuppressed then
+        local combat,known=R.SafeBool(InCombatLockdown)
+        if not known or combat then
+            clearHostPresentation(host,"unit-enable-deferred",true)
+            R.buildQueued=true
+            return
+        end
+        -- A token may have changed while disabled. Refresh each current slot
+        -- before exposing the independent anchor or any secondary presenter.
+        forceContainerRefresh,bindingChanged=true,true
+        host._revokedPresentation=nil
+    end
+    local unitExists, existsReadable = R.UnitExistsState(host.unit)
+    local present = not UnitExists or (existsReadable and unitExists)
+    local base = R.IsUnitEnabled(host.unit) and not R.testMode and present
+        and (not R.PARTY_UNITS[host.unit] or hostStillCurrent(host))
+        and hostHasSupportedBinding(host,tokenMatches)
+    host._unitExists = present and true or false
+    host._unitExistsReadable = existsReadable
+    local interruptChanged, bindingBarrier = updateSchoolInterrupt(host, base, bindingChanged or forceContainerRefresh, interruptChange, bindingChanged)
+    if interruptChange and interruptChange.host == host and base and not interruptChanged
+        and not bindingBarrier and not forceContainerRefresh and not host._unitAuraSuppressed
+        and not host._secondaryInterruptClockPending then return end
     local owners = host._readableTierOwners or {}
     for key, owner in pairs(owners) do
         -- A missing/replaced addon frame must revoke its previous presentation.
@@ -1555,13 +2385,6 @@ function R.UpdateHost(host, forceContainerRefresh)
         owners[key] = nil
     end
     host._readableTierOwners = owners
-    local unitExists, existsReadable = R.UnitExistsState(host.unit)
-    local present = not UnitExists or (existsReadable and unitExists)
-    local base = R.IsUnitEnabled(host.unit) and not R.testMode and present
-        and (not R.PARTY_UNITS[host.unit] or hostStillCurrent(host))
-        and hostHasSupportedBinding(host)
-    host._unitExists = present and true or false
-    host._unitExistsReadable = existsReadable
     local hostileUnit, hostileRelationReadable = R.HostileUnitState(host.unit)
     local isPlayer, playerReadable = R.PlayerUnitState(host.unit)
     local hostilePlayer = hostileUnit and playerReadable and isPlayer or false
@@ -1584,17 +2407,18 @@ function R.UpdateHost(host, forceContainerRefresh)
     host._assistReadable = assistReadable
 
     local presentedHostileTier
+    local exactReads = {unit=host.unit, bindingBarrier=bindingBarrier or nil, interruptRefresh=(bindingBarrier or forceContainerRefresh
+        or (interruptChange and interruptChange.host == host)) and true or nil}
     if hostileUnit then
         -- Readable exact hostile helpful auras are useful for both players and
         -- NPCs. The broad secure fallback below also covers hostile NPCs such
         -- as totems when this client hides their aura identities from Lua.
-        presentedHostileTier = updateReadableHostile(host, base)
+        presentedHostileTier = updateReadableHostile(host, base, exactReads)
     else
         clearReadableHostile(host)
     end
     updateFormState(host, base, hostilePlayer, presentedHostileTier)
 
-    local exactReads = {unit=host.unit}
     local divineProtectionTier = findTierByKey("Immunity")
     local divineProtectionSecureAllowed = divineProtectionTier and R.ExactFilterAllowed(
         host.unit, true, divineProtectionTier.spellIDs, divineProtectionTier.allowNeverSecret
@@ -1675,7 +2499,7 @@ function R.UpdateHost(host, forceContainerRefresh)
 
     -- Welcoming Campfire shares the 257 Honorless/Flag tier; a complete
     -- readable election determines its winner rather than guessing priority.
-    updateReadableWelcomingCampfire(host, base)
+    updateReadableWelcomingCampfire(host, base, exactReads)
 
     local exactHarmfulAllowed = R.ExactFilterAllowed(host.unit, false, nil, false)
     host._exactHarmfulAllowed = exactHarmfulAllowed
@@ -1691,6 +2515,7 @@ function R.UpdateHost(host, forceContainerRefresh)
             -- must leave higher, unclassified helpful auras eligible.
             local replacesGeneric = presentedHostileTier and presentedHostileTier.level >= tier.level
             enabled = enabled and hostileUnit and not replacesGeneric
+            host._hostileHelpfulEnabled = enabled and true or false
         elseif tier.key == "SmallFriendlyHarmful" then
             -- Preserve a low-priority, identity-blind native harmful stream for
             -- hostile units too. Exact-ID filtering may be permitted on the
@@ -1719,32 +2544,36 @@ function R.UpdateHost(host, forceContainerRefresh)
             end
         end
 
-        if not setContainer(host.containers[index], enabled, forceContainerRefresh) then
+        if not deferDisable and not setContainer(host.containers[index], enabled, forceContainerRefresh) then
             host._containerWriteFailures = host._containerWriteFailures + 1
         end
+    end
+    if suppressAura then return end
+    if host._unitAuraSuppressed then
+        if host._containerWriteFailures~=0 or
+            (host.anchor and not presentationWrite(function(frame) return frame:Show() end,host.anchor)) then
+            clearHostPresentation(host,"unit-enable-pending",true)
+            return
+        end
+        host._unitAuraSuppressed=nil
     end
     -- Native cooldowns may create labels after initial construction.
     -- Recover unresolved alignment only on an existing safe OOC host
     -- update, never with an OnUpdate script or hidden aura inspection.
     local inCombat, combatReadable = R.SafeBool(InCombatLockdown)
-    if combatReadable and not inCombat then
-        for _, cooldown in ipairs(host.cooldowns or {}) do
-            if cooldown._bjarkiAlignmentState ~= "centered" then
-                local shown, readable = R.SafeBool(cooldown.IsShown, cooldown)
-                if readable and shown then alignCountdown(cooldown, host) end
-            end
-        end
+    if combatReadable and not inCombat and not presentationFollows then
+        retryClockLayouts(host)
     end
     -- Only a *complete, readable* public election can project a real second
     -- aura onto the badge. The native tier stack remains the main presenter.
     if R.ReconcileSecondaryPortrait then
-        R.ReconcileSecondaryPortrait(host, base, playerReadable and isPlayer)
+        R.ReconcileSecondaryPortrait(host, base, playerReadable and isPlayer, exactReads)
     elseif R.UpdateSecondaryPortrait then
         R.UpdateSecondaryPortrait(host, base and playerReadable and isPlayer)
     end
     if R.UpdateNativeSecondProbe then
         R.UpdateNativeSecondProbe(host, base, hostileUnit, playerReadable, isPlayer,
-            forceContainerRefresh)
+            forceContainerRefresh, bindingChanged, exactReads)
     end
     -- The pet-family fallback uses native HELPFUL/HARMFUL presence groups,
     -- not private aura enumeration. It stays behind genuine second-aura art.
@@ -1754,7 +2583,7 @@ function R.UpdateHost(host, forceContainerRefresh)
 end
 
 local function showTest(host)
-    if not host or not host.testFrame then return end
+    if not host or not host.testFrame or host._unitAuraSuppressed then return end
     local texture = "Interface\\Icons\\Spell_Holy_SealOfWisdom"
     if C_Spell and C_Spell.GetSpellTexture then
         local ok, value = pcall(C_Spell.GetSpellTexture, 19742)
@@ -1771,50 +2600,96 @@ local function showTest(host)
     if R.PreviewSecondaryPortrait then R.PreviewSecondaryPortrait(host) end
 end
 
-function R.Refresh(unit, forceContainerRefresh)
+-- A completed native rebind/name/portrait callback can precede the queued
+-- presenter update. Revoke the old token immediately even during lockdown.
+function R.CheckNativeUnitBinding(unit)
+    local host=R.hosts[unit]
+    if host and not nativeUnitTokenMatches(host) then R.Refresh(unit) end
+end
+
+function R.CheckOutgoingPartyFrame(frame,incoming)
+    if not R.CanAccess(frame) or not frame then return end
+    for unit in pairs(R.PARTY_UNITS) do
+        local host=R.hosts[unit]
+        if host and host.unitFrame==frame then
+            if (incoming and incoming~=unit) or not hostStillCurrent(host) then
+                suspendHost(host,"native-party-binding-changed",true,true)
+            elseif not nativeUnitTokenMatches(host) then
+                R.Refresh(unit,true,true)
+            end
+            return unit
+        end
+    end
+end
+
+function R.Refresh(unit, forceContainerRefresh, bindingChanged, presentationFollows, interruptChange)
     local host = R.hosts[unit]
-    if not R.IsUnitEnabled(unit) then
+    if not needsHost(unit) then
         -- A stale host may still await combat-safe restoration. Hide its
         -- disabled presentation before any replacement/construction path.
         if host then
-            if host.testFrame then host.testFrame:Hide() end
-            R.UpdateHost(host)
-            if host._restorePending then R.DestroyHost(unit) end
+            if host._restorePending or not R.db or not R.db.enabled then
+                R.DestroyHost(unit)
+            else
+                R.UpdateHost(host)
+            end
         end
         return
     end
-    if host and not hostStillCurrent(host) then
-        if InCombatLockdown and InCombatLockdown() then
-            -- Old pooled party frame may now represent another member. Revoke
-            -- its auras immediately; structural restoration waits for combat.
-            if R.PARTY_UNITS[unit] then R.UpdateHost(host) end
-            R.buildQueued = true
+    if host then
+        local current,known=hostStillCurrent(host)
+        if not known then
+            suspendHost(host,"native-binding-unreadable",forceContainerRefresh,bindingChanged)
             return
+        elseif not current then
+            local combat,combatKnown=R.SafeBool(InCombatLockdown)
+            if not combatKnown or combat then
+                suspendHost(host,"native-binding-changed",forceContainerRefresh,bindingChanged)
+                return
+            end
+            if not R.DestroyHost(unit) then return end
+            host=nil
+        elseif host._staleBinding then
+            -- The same physical owner returned after an unreadable snapshot.
+            local combat,combatKnown=R.SafeBool(InCombatLockdown)
+            if not combatKnown or combat then
+                suspendHost(host,"native-binding-deferred",forceContainerRefresh,bindingChanged)
+                return
+            end
+            if host.anchor and not host._unitAuraSuppressed and R.IsUnitEnabled(unit) and nativeUnitTokenMatches(host) then
+                local shown,result=pcall(function() return host.anchor:Show() end)
+                if not shown or not R.CanAccess(result) or result==false then return end
+            end
+            forceContainerRefresh=forceContainerRefresh or host._suspendedRefresh
+            bindingChanged=bindingChanged or host._suspendedBindingChange
+            host._staleBinding,host._revokedPresentation=nil,nil
+            host._suspendedRefresh,host._suspendedBindingChange=nil,nil
+            updateHostFoundation(unit)
         end
-        if not R.DestroyHost(unit) then return end
-        host = nil
     end
     host = host or R.CreateHost(unit)
     if not host then return end
 
     if R.testMode and R.IsUnitEnabled(unit) and hostHasSupportedBinding(host) then
-        R.UpdateHost(host, forceContainerRefresh)
+        R.UpdateHost(host, forceContainerRefresh, bindingChanged, presentationFollows, interruptChange)
         showTest(host)
     else
-        if host.testFrame then host.testFrame:Hide() end
-        R.UpdateHost(host, forceContainerRefresh)
+        if R.IsUnitEnabled(unit) and host.testFrame then presentationWrite(hideOwned,host.testFrame) end
+        R.UpdateHost(host, forceContainerRefresh, bindingChanged, presentationFollows, interruptChange)
     end
+    if host._presentationDeferred and not host._unitAuraSuppressed then R.ApplyPresentation(unit) end
 end
 
-function R.RefreshAll(forceContainerRefresh)
-    for _, unit in ipairs(R.TRACKED_UNITS) do R.Refresh(unit, forceContainerRefresh) end
+function R.RefreshAll(forceContainerRefresh, presentationFollows)
+    for _, unit in ipairs(R.TRACKED_UNITS) do R.Refresh(unit, forceContainerRefresh,nil,presentationFollows) end
 end
 
-function R.BuildAll()
-    if InCombatLockdown and InCombatLockdown() then
+function R.BuildAll(deferRefresh)
+    local combat,known=R.SafeBool(InCombatLockdown)
+    if not known or combat then
         R.buildQueued = true
         -- Existing hosts can reconcile presentation while structural work waits.
-        R.RefreshAll()
+        if not deferRefresh then R.RefreshAll() end
         return
     end
     if not R.db or not R.db.enabled then
@@ -1830,20 +2705,31 @@ function R.BuildAll()
         if failure and not R.hosts[unit] then hostBuildFailures[unit] = nil end
         R.CreateHost(unit)
     end
-    R.RefreshAll()
+    -- Combat exit refreshes once with force after the pet foundations are ready.
+    if not deferRefresh then R.RefreshAll() end
 end
 
-function R.ApplyPresentation(unit)
+function R.ApplyPresentation(unit,routine,verifyLayout)
+    local combat,known=R.SafeBool(InCombatLockdown)
+    local pixelFactor
+    if known and not combat then pixelFactor=currentPixelFactor() end
     for token, host in pairs(R.hosts) do
-        if not unit or token == unit then
+        local selected=not unit or token==unit
+        if selected and (host._staleBinding or host._restorePending or host._unitAuraSuppressed) then
+            host._presentationDeferred=true
+        elseif selected then
+            host._presentationDeferred=nil
             for _, cooldown in ipairs(host.cooldowns or {}) do
-                if cooldown.SetDrawSwipe then pcall(cooldown.SetDrawSwipe, cooldown, R.db.showSwipe) end
-                R.ApplyCountdownFormat(cooldown)
-                alignCountdown(cooldown, host)
+                applyClockPreferences(cooldown,routine)
+                if known and not combat then
+                    if routine then alignVisibleCountdown(cooldown,host,verifyLayout,pixelFactor)
+                    else alignCountdown(cooldown,host,false,true,pixelFactor) end
+                end
             end
             if host.secondaryCooldown then
-                R.ApplyCountdownFormat(host.secondaryCooldown)
+                applyClockFormat(host.secondaryCooldown,routine)
             end
+            if R.ApplyNativeSecondPresentation then R.ApplyNativeSecondPresentation(host) end
         end
     end
 end

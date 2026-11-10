@@ -4,6 +4,7 @@ local BP={Runtime={}}
 assert(loadfile('Spells.lua'))('bjarkiPortraits',BP)
 assert(loadfile('Priority.lua'))('bjarkiPortraits',BP)
 local R=BP.Runtime
+R.SecondaryOwnerVisible = function() return true end -- Visible owner for this isolated election fixture.
 R.AURA_ANCHOR_TEMPLATE='DisableUntrustedLayoutScriptsTemplate'
 R.db={secondaryPortrait=true}
 R.CanAccess=function(v) return v ~= 'SECRET' end

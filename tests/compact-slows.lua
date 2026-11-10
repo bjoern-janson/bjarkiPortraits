@@ -126,20 +126,21 @@ TargetFrame = {unit='target', TargetFrameContainer={Portrait=compactUnitFrame('t
 FocusFrame = {unit='focus', TargetFrameContainer={Portrait=compactUnitFrame('focus').Portrait}}
 UnitIsGhost = function() return false end
 local target, focus = assert(R.CreateHost('target')), assert(R.CreateHost('focus'))
-local H, HNP, BNP = 'HARMFUL', 'HARMFUL|INCLUDE_NAME_PLATE_ONLY', 'HELPFUL|INCLUDE_NAME_PLATE_ONLY'
+local H, HNP, B, BNP = 'HARMFUL', 'HARMFUL|INCLUDE_NAME_PLATE_ONLY', 'HELPFUL', 'HELPFUL|INCLUDE_NAME_PLATE_ONLY'
 local calls, perUnit = {}, {target={}, focus={}}
 local function aura(id, instance)
     return {spellId=id, auraInstanceID=instance, duration=8, expirationTime=108, icon=id}
 end
-for _, filter in ipairs({H, HNP, BNP}) do
+for _, filter in ipairs({H, HNP, B, BNP}) do
     local list = {}
     for i=1,20 do list[i] = aura(800000+i, i) end
     perUnit.target[filter] = list
 end
 perUnit.target[H][2] = aura(118, 2)       -- Control only on the plain harmful stream.
 perUnit.target[HNP][3] = aura(116, 3)     -- Slows only on the nameplate-inclusive stream.
-perUnit.target[BNP][2] = aura(6673, 2)    -- BaselineClass and Healing elect independently.
-perUnit.target[BNP][3] = aura(139, 3)
+perUnit.target[B][2] = aura(6673, 2)      -- Plain BaselineClass and Healing share this stream.
+perUnit.target[B][3] = aura(139, 3)
+perUnit.target[BNP][2],perUnit.target[BNP][3] = perUnit.target[B][2],perUnit.target[B][3]
 perUnit.focus[HNP] = {aura(116, 20)}
 local nested, fault
 local secret = {}
@@ -165,6 +166,7 @@ for _, payload in ipairs({{isFullUpdate=true}, {updatedAuraInstanceIDs={3}}}) do
         and target._healingSpellID == 139 and target._baselineSpellID == 6673,
         'independent filters and elections must retain their own winners')
     assert(calls[H] == 21, 'twenty plain harmful records should be indexed once per event, got '..calls[H])
+    assert(calls[B] == 21, 'plain helpful recency tiers should share one complete scan')
     assert(calls[HNP] <= 23 and calls[BNP] <= 42,
         'nameplate-inclusive exact tiers should share one enumeration per filter')
 end
@@ -181,7 +183,9 @@ C_UnitAuras.GetUnitAuraBySpellID = function(unit, id)
 end
 for _, failure in ipairs({'secret', 'secretID', 'error'}) do
     fault = failure
+    calls = {}
     dispatch('target', {isFullUpdate=true})
+    assert(calls[HNP] <= 6, 'restricted exact tiers must share failure for one update: '..calls[HNP])
     assert(not target._slowsActive and nativeContainer(target, 'SmallFriendlyHarmful').enabled,
         'a partial stream cannot establish a slow winner or suppress the generic fallback')
     assert(target._resurrectionSicknessDirectWitness and not target._resurrectionSicknessReadable,
@@ -192,7 +196,9 @@ local normalList = perUnit.target[HNP]
 local capped = {aura(116, 3)}
 for i=2,80 do capped[i] = aura(800000+i, i) end
 perUnit.target[HNP] = capped
+calls = {}
 dispatch('target', {isFullUpdate=true})
+assert(calls[HNP] <= 82, 'unterminated exact streams must be enumerated only once: '..calls[HNP])
 assert(not target._slowsActive and target._resurrectionSicknessDirectWitness
     and not target._resurrectionSicknessReadable, 'a capped list has no proof of completeness')
 perUnit.target[HNP] = normalList

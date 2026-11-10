@@ -57,7 +57,7 @@ local function ghostHost(unit)
         _containerWriteFailures=0,_readableTierOwners={},
         _ghostActive=true,_ghostReadable=true,_ghostSource='unit-state',
         secondaryBadge=region(),racePortrait=region(),secondaryCooldown=region(),
-        unitFrame={IsShown=function()return true end}}
+        unitFrame={IsVisible=function()return true end,IsShown=function()return true end}}
 end
 local boost=aura(1229451,16)
 local ghostAura=aura(8326,15)
@@ -86,13 +86,12 @@ byUnit.player.harmful={boost}
 second,why=R.GetReadableSecondaryAura(h)
 eq(why,'verified-ghost-then-aura','Ghost state remains first without a Ghost debuff entry')
 eq(second and second.spellID,1229451,'single public Boosted Rest is second to the state')
--- Waiting to Resurrect sits at the same visible frame level as the Ghost
--- presenter. A tie is unknown, not permission to replace the main portrait.
+-- Waiting's native button is drawn one level above its tier's container.
 local waiting=aura(2584,51,{duration=60,expirationTime=1060})
 byUnit.player.helpful={waiting}
 second,why=R.GetReadableSecondaryAura(h)
-eq(second,nil,'Ghost / Waiting equal-level ordering remains unproven')
-eq(why,'ghost-rank-tie','equal primary priority fails closed')
+eq(second and second.spellID,8326,'Ghost takes second below Waiting')
+eq(why,'verified-aura-then-ghost','Waiting button outranks static Ghost')
 byUnit.player.helpful={}
 byUnit.player.harmful={ghostAura,ghostVariant}
 second,why=R.GetReadableSecondaryAura(h)

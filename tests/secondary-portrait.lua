@@ -7,6 +7,7 @@ local function eq(a,b,label)
 end
 local function fakeRegion(kind)
     local r = {kind=kind, points={}, shown=false, textSetterCount=0}
+    function r:IsVisible() return self.kind == "native-unit" or self.shown end
     function r:Hide() self.shown=false; self.hides=(self.hides or 0)+1 end
     function r:Show() self.shown=true; self.shows=(self.shows or 0)+1 end
     function r:SetSize(x,y) self.width=x; self.height=y end

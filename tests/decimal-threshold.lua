@@ -89,19 +89,51 @@ local function makeCooldown(nativeSuccess)
 end
 
 local working = makeCooldown(true)
-R.ApplyCountdownFormat(working)
+do
+    local constructor=C_StringUtil.CreateNumericRuleFormatter
+    R._formatter=nil
+    for _,failure in ipairs({'constructor','setup'}) do
+        R.RetryCountdownFormatter()
+        local attempts=0
+        C_StringUtil.CreateNumericRuleFormatter=function()
+            attempts=attempts+1
+            if failure=='constructor' then error('denied object') end
+            return {SetBreakpoints=function()error('denied rules') end}
+        end
+        local cd=makeCooldown(true)
+        equal(R.ApplyCountdownFormat(cd),true,'failed '..failure..' reaches native threshold')
+        equal(cd.fallback,10,'decimal fallback survives '..failure)
+        equal(R._formatter,nil,'failed build never cached')
+        for _=1,120 do equal(R.ApplyCountdownFormat(cd),true,'reuse working threshold in failed batch') end
+        equal(attempts,1,'one failed formatter allocation per opportunity')
+    end
+    C_StringUtil.CreateNumericRuleFormatter=constructor
+    local attemptsBefore=constructors
+    local validEnum=Enum
+    Enum=nil;R.RetryCountdownFormatter()
+    equal(R.GetCountdownFormatter(),nil,'missing rounding enum is safe')
+    equal(constructors,attemptsBefore,'missing enum skips allocation')
+    Enum=validEnum;R.RetryCountdownFormatter()
+    enabled=assert(R.GetCountdownFormatter())
+end
+equal(R.ApplyCountdownFormat(working), true, "native presenter confirms the preference")
 equal(working.hidden, false, "native numbers kept visible")
 check(working.formatter == enabled, "enabled rule applied to existing Cooldown")
 equal(working.applyCount, 1, "formatter applied once")
 equal(working.fallbackCount, 0, "compatibility threshold not used on native success")
 local fallback = makeCooldown(false)
-R.ApplyCountdownFormat(fallback)
+equal(R.ApplyCountdownFormat(fallback), true, "compatibility presenter confirms the preference")
+equal(R.ApplyCountdownFormat({
+    SetCountdownFormatter=function() return false end,
+    SetCountdownMillisecondsThreshold=function() error("layout locked") end,
+}), false, "rejected native and compatibility paths remain retryable")
 equal(fallback.fallback, 10, "unsupported native formatter uses 10-second fallback")
 equal(fallback.fallbackCount, 1, "native fallback called exactly once")
 
 R.db.showDecimals = false
+local beforeToggle=constructors
 local disabled = assert(R.GetCountdownFormatter())
-equal(constructors, 2, "toggle obtains independent formatter")
+equal(constructors, beforeToggle+1, "toggle obtains independent formatter")
 check(disabled ~= enabled, "decimal-off mode has its own formatter")
 equal(#disabled.rules, 2, "decimal-off rule count unchanged")
 equal(disabled.rules[1].threshold, 0, "decimal-off whole seconds from zero")

@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.224-hostile-helpful-combat-fallback-test"
+R.VERSION = "0.1.239"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 -- Four native Blizzard party portraits share the same aura engine as player/pet.
 -- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
@@ -124,62 +124,105 @@ function R.IsUnitEnabled(unit)
     return R.db and R.db.enabled and R.db[unit] ~= false
 end
 
-function R.GetSmallFrame(unit)
-    if unit == "targettarget" then
-        return (_G.TargetFrame and _G.TargetFrame.totFrame) or _G.TargetFrameToT
-    elseif unit == "focustarget" then
-        return (_G.FocusFrame and _G.FocusFrame.totFrame) or _G.FocusFrameToT
+-- The secondary renderers are UIParent siblings. IsShown only tests a
+-- widget's own flag; a locally shown frame can still have a hidden ancestor.
+function R.SecondaryOwnerVisible(host)
+    local owner = host and host.unitFrame
+    for _ = 1, 32 do
+        if not R.CanAccess(owner) or not owner then break end
+        local ok, visible = pcall(function() return owner.IsVisible end)
+        if not ok or not R.CanAccess(visible) then break end
+        if type(visible) == "function" then
+            local shown, known = R.SafeBool(visible, owner)
+            if known then
+                if shown then return true end
+                return false, "native-frame-hidden"
+            end
+            break
+        end
+        local methodsOK, isShown, getParent = pcall(function() return owner.IsShown, owner.GetParent end)
+        if not methodsOK or not R.CanAccess(isShown) or not R.CanAccess(getParent) then break end
+        local shown, known = R.SafeBool(isShown, owner)
+        if not known then break end
+        if not shown then return false, "native-frame-hidden" end
+        if type(getParent) ~= "function" then break end
+        local parentOK, parent = pcall(getParent, owner)
+        if not parentOK or not R.CanAccess(parent) then break end
+        if parent == nil then return true end
+        owner = parent
     end
+    return false, "native-visibility-unreadable"
+end
+
+-- Read physical ownership as a single observation. A denied intermediate
+-- must not be confused with a readable, absent native frame.
+local function accessibleMember(owner,key)
+    if not owner then return nil end
+    local value=owner[key]
+    if not R.CanAccess(value) then error("native frame member unavailable") end
+    return value
+end
+
+local function smallFrame(unit)
+    local name=unit=="targettarget" and "TargetFrame" or unit=="focustarget" and "FocusFrame"
+    if name then return accessibleMember(accessibleMember(_G,name),"totFrame") or accessibleMember(_G,name.."ToT") end
+end
+
+local function partyMember(index)
+    local frame=accessibleMember(_G,"PartyFrame")
+    if not frame or type(index)~="number" or index<1 or index>4 then return nil end
+    local get=accessibleMember(frame,"GetPartyMemberFrame")
+    if type(get)=="function" then
+        local result=get(frame,index)
+        if not R.CanAccess(result) then error("native party frame unavailable") end
+        return result
+    end
+    return accessibleMember(frame,"MemberFrame"..index)
+end
+
+function R.GetSmallFrame(unit)
+    local ok,frame=pcall(smallFrame,unit)
+    if ok then return frame end
 end
 
 function R.GetPartyMemberFrame(index)
-    local frame = _G.PartyFrame
-    if not frame or type(index) ~= "number" or index < 1 or index > 4 then return nil end
-    -- Native PartyFrame recycles its members using a frame pool. Query the
-    -- active pool; never retain a global PartyMemberFrameN pointer as identity.
-    if type(frame.GetPartyMemberFrame) == "function" then
-        local ok, member = pcall(frame.GetPartyMemberFrame, frame, index)
-        if ok and R.CanAccess(member) then return member end
-        return nil
+    local ok,frame=pcall(partyMember,index)
+    if ok then return frame end
+end
+
+local function resolvePortrait(unit)
+    if unit=="player" then
+        local frame=accessibleMember(_G,"PlayerFrame")
+        local art=accessibleMember(frame,"PlayerFrameContainer")
+        return accessibleMember(art,"PlayerPortrait") or accessibleMember(_G,"PlayerPortrait")
+            or accessibleMember(_G,"PlayerFramePortrait"),accessibleMember(art,"PlayerPortraitMask"),frame
+    elseif unit=="pet" then
+        local frame=accessibleMember(_G,"PetFrame")
+        return accessibleMember(_G,"PetPortrait") or accessibleMember(frame,"Portrait"),
+            accessibleMember(frame,"PortraitMask") or accessibleMember(frame,"portraitMask"),frame
+    elseif R.PARTY_UNITS[unit] then
+        local frame=partyMember(tonumber(unit:match("^party([1-4])$")))
+        return accessibleMember(frame,"Portrait"),accessibleMember(frame,"PortraitMask"),frame
+    elseif unit=="target" or unit=="focus" then
+        local name=unit=="target" and "Target" or "Focus"
+        local frame=accessibleMember(_G,name.."Frame")
+        local art=accessibleMember(frame,"TargetFrameContainer")
+        return accessibleMember(art,"Portrait") or accessibleMember(_G,name.."FramePortrait")
+            or accessibleMember(_G,name.."Portrait"),accessibleMember(art,"PortraitMask"),frame
+    elseif R.SMALL_UNITS[unit] then
+        local frame=smallFrame(unit)
+        if not frame then return nil end
+        local name=unit=="targettarget" and "TargetFrameToT" or "FocusFrameToT"
+        return accessibleMember(frame,"Portrait") or accessibleMember(_G,name.."Portrait")
+            or accessibleMember(_G,name.."PortraitTexture"),
+            accessibleMember(frame,"PortraitMask") or accessibleMember(_G,name.."PortraitMask"),frame
     end
-    return frame["MemberFrame" .. index]
 end
 
 function R.GetPortrait(unit)
-    if unit == "player" then
-        local frame = _G.PlayerFrame
-        local container = frame and frame.PlayerFrameContainer
-        return (container and container.PlayerPortrait) or _G.PlayerPortrait or _G.PlayerFramePortrait,
-            (container and container.PlayerPortraitMask), frame
-    elseif unit == "pet" then
-        local frame = _G.PetFrame
-        return _G.PetPortrait or (frame and frame.Portrait),
-            frame and (frame.PortraitMask or frame.portraitMask), frame
-    elseif R.PARTY_UNITS[unit] then
-        local index = tonumber(unit:match("^party([1-4])$"))
-        local frame = R.GetPartyMemberFrame(index)
-        return frame and frame.Portrait, frame and frame.PortraitMask, frame
-    elseif unit == "target" then
-        local frame = _G.TargetFrame
-        local container = frame and frame.TargetFrameContainer
-        return (container and container.Portrait) or _G.TargetFramePortrait or _G.TargetPortrait,
-            (container and container.PortraitMask), frame
-    elseif unit == "focus" then
-        local frame = _G.FocusFrame
-        local container = frame and frame.TargetFrameContainer
-        return (container and container.Portrait) or _G.FocusFramePortrait or _G.FocusPortrait,
-            (container and container.PortraitMask), frame
-    elseif R.SMALL_UNITS[unit] then
-        local frame = R.GetSmallFrame(unit)
-        if not frame then return nil, nil, nil end
-        local portrait = frame.Portrait
-            or (unit == "targettarget" and (_G.TargetFrameToTPortrait or _G.TargetFrameToTPortraitTexture))
-            or (unit == "focustarget" and (_G.FocusFrameToTPortrait or _G.FocusFrameToTPortraitTexture))
-        local mask = frame.PortraitMask
-            or (unit == "targettarget" and _G.TargetFrameToTPortraitMask)
-            or (unit == "focustarget" and _G.FocusFrameToTPortraitMask)
-        return portrait, mask, frame
-    end
+    local ok,portrait,mask,frame=pcall(resolvePortrait,unit)
+    if ok then return portrait,mask,frame,true end
+    return nil,nil,nil,false
 end
 
 -- Classic character-create sprite sheet: EIGHT columns, four gender/race rows.
@@ -330,17 +373,19 @@ local function applyPortraitLayout(region, host, aperture)
     local reference = ((host.unit == "target" or host.unit == "focus")
         and host.portraitMask) or host.portrait
     local dx, dy = portraitLayoutOffset(region, host.unit, aperture)
-    region:ClearAllPoints()
+    local cleared=region:ClearAllPoints()
+    if not R.CanAccess(cleared) or cleared==false then return false end
     if dx == 0 and dy == 0 then
-        region:SetAllPoints(reference)
+        return region:SetAllPoints(reference)
     else
-        region:SetPoint("TOPLEFT", reference, "TOPLEFT", dx, dy)
-        region:SetPoint("BOTTOMRIGHT", reference, "BOTTOMRIGHT", dx, dy)
+        local first=region:SetPoint("TOPLEFT", reference, "TOPLEFT", dx, dy)
+        if not R.CanAccess(first) or first==false then return false end
+        return region:SetPoint("BOTTOMRIGHT", reference, "BOTTOMRIGHT", dx, dy)
     end
 end
 
 function R.ApplyPortraitImageLayout(region, host)
-    applyPortraitLayout(region, host, false)
+    return applyPortraitLayout(region, host, false)
 end
 
 function R.CreatePortraitImageMask(host)
@@ -364,16 +409,36 @@ end
 
 function R.CapturePoints(region)
     local points = {}
-    if not region or not region.GetNumPoints or not region.GetPoint then return points end
-    local count = region:GetNumPoints() or 0
-    for i = 1, count do points[#points + 1] = { region:GetPoint(i) } end
+    if not region or type(region.GetNumPoints)~="function" or type(region.GetPoint)~="function" then return nil end
+    local count = region:GetNumPoints()
+    if not R.CanAccess(count) or type(count)~="number" or count<0 or count>32 or count%1~=0 then return nil end
+    for i = 1, count do
+        local point={region:GetPoint(i)}
+        for j=1,5 do if not R.CanAccess(point[j]) then return nil end end
+        if type(point[1])~="string" or type(point[3])~="string"
+            or type(point[4])~="number" or type(point[5])~="number" then return nil end
+        if point[2]~=nil and type(point[2])~="table" and type(point[2])~="userdata" then return nil end
+        if point[4]~=point[4] or point[5]~=point[5]
+            or math.abs(point[4])==math.huge or math.abs(point[5])==math.huge then return nil end
+        points[i]=point
+    end
     return points
 end
 
-function R.RestorePoints(region, points)
-    if not region or not region.ClearAllPoints or not region.SetPoint then return end
-    region:ClearAllPoints()
-    for _, point in ipairs(points or {}) do region:SetPoint(unpack(point)) end
+function R.RestorePoints(region, points, progress, restored)
+    if not region or not region.ClearAllPoints or not region.SetPoint then return false end
+    points=points or {}
+    if not restored then
+        if progress then progress.point=nil end
+        local result=region:ClearAllPoints()
+        if not R.CanAccess(result) or result==false then return false end
+    end
+    for i=(restored or 0)+1,#points do
+        if progress then progress.point=i end
+        local result=region:SetPoint(unpack(points[i],1,5))
+        if not R.CanAccess(result) or result==false then return false end
+    end
+    return true
 end
 
 local neverSecret = {}
@@ -500,29 +565,52 @@ function R.ReadAuraField(aura, key)
     return value, true
 end
 
-function R.GetCountdownFormatter()
-    local key = R.db and R.db.showDecimals and 1 or 0
-    if R._formatter and R._formatterKey == key then return R._formatter end
-    if not C_StringUtil or not C_StringUtil.CreateNumericRuleFormatter then return nil end
+local function buildCountdownFormatter(key)
+    local rounding=Enum and Enum.NumericRuleFormatRounding
+    local down=rounding and rounding.Down
+    if not R.CanAccess(down) or type(down)~="number" then return nil end
+    if not C_StringUtil or type(C_StringUtil.CreateNumericRuleFormatter)~="function" then return nil end
     local formatter = C_StringUtil.CreateNumericRuleFormatter()
-    if not formatter or not formatter.SetBreakpoints then return nil end
+    if not R.CanAccess(formatter) or not formatter or type(formatter.SetBreakpoints)~="function" then return nil end
 
     -- Match native aura whole seconds by truncating, not rounding to nearest.
     -- Show decimals strictly below 10 seconds; preserve the native whole-second
     -- rounding and 60-second hide boundary.
+    local accepted
     if key == 1 then
-        formatter:SetBreakpoints({
+        accepted=formatter:SetBreakpoints({
             { threshold = 0, format = "%.1f" },
-            { threshold = 10, step = 1, rounding = Enum.NumericRuleFormatRounding.Down, format = "%.0f" },
+            { threshold = 10, step = 1, rounding = down, format = "%.0f" },
             { threshold = 60.000001, format = "" },
         })
     else
-        formatter:SetBreakpoints({
-            { threshold = 0, step = 1, rounding = Enum.NumericRuleFormatRounding.Down, format = "%.0f" },
+        accepted=formatter:SetBreakpoints({
+            { threshold = 0, step = 1, rounding = down, format = "%.0f" },
             { threshold = 60.000001, format = "" },
         })
     end
 
+    if not R.CanAccess(accepted) or accepted==false then return nil end
+    return formatter
+end
+
+local failedFormatterKey
+R.countdownFormatterEpoch=0
+function R.RetryCountdownFormatter()
+    failedFormatterKey=nil
+    R.countdownFormatterEpoch=R.countdownFormatterEpoch+1
+end
+
+function R.GetCountdownFormatter()
+    local key=R.db and R.db.showDecimals and 1 or 0
+    if R._formatter and R._formatterKey==key then return R._formatter end
+    if failedFormatterKey==key then return nil end
+    local ok,formatter=pcall(buildCountdownFormatter,key)
+    if not ok or not R.CanAccess(formatter) or not formatter then
+        failedFormatterKey=key -- share the failure across this round of native button creation
+        return nil
+    end
+    failedFormatterKey=nil
     R._formatter, R._formatterKey = formatter, key
     return formatter
 end
@@ -575,19 +663,21 @@ function R.ApplyCountdownFormat(cooldown)
     end
 
     local formatter = R.GetCountdownFormatter()
-    local applied = false
     if formatter and cooldown.SetCountdownFormatter then
-        applied = pcall(cooldown.SetCountdownFormatter, cooldown, formatter)
+        local ok, result = pcall(cooldown.SetCountdownFormatter, cooldown, formatter)
+        if ok and R.CanAccess(result) and result ~= false then return true,"formatter" end
     end
 
     -- Compatibility fallback: if this client does not accept the formatter,
     -- retain the user's decimal preference through the native millisecond
     -- threshold. The 60s cutoff is guaranteed by the formatter path.
-    if not applied and cooldown.SetCountdownMillisecondsThreshold then
-        pcall(
+    if cooldown.SetCountdownMillisecondsThreshold then
+        local ok, result = pcall(
             cooldown.SetCountdownMillisecondsThreshold,
             cooldown,
             R.db and R.db.showDecimals and 10 or 0
         )
+        return ok and R.CanAccess(result) and result ~= false,"threshold"
     end
+    return false
 end

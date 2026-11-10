@@ -207,7 +207,7 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
         R.db.enabled = false
         -- In combat, hide presentation now and let the queued cleanup restore
         -- native ownership after combat. Disabled refresh cannot create hosts.
-        if not R.DestroyAll() then R.RefreshAll() end
+        R.DestroyAll()
         R.UpdatePetPortraits()
         R.Print("off")
     elseif command == "player" or command == "pet" or command == "target" or command == "focus"
@@ -260,13 +260,20 @@ SlashCmdList.BJARKIPORTRAITS = function(message)
             end
         elseif option == "status" then
             R.Print("pet family art " .. tostring(R.db.petPortraits))
-        elseif option == "on" or option == "off" then
-            R.db.petPortraits = option == "on"
-            R.UpdatePetPortraits()
-            R.Print("pet family art " .. tostring(R.db.petPortraits))
         else
-            R.db.petPortraits = not R.db.petPortraits
+            if option == "on" or option == "off" then
+                R.db.petPortraits = option == "on"
+            else
+                R.db.petPortraits = not R.db.petPortraits
+            end
             R.UpdatePetPortraits()
+            for _, token in ipairs({"target", "focus"}) do
+                local host = R.hosts[token]
+                if host then
+                    if R.db.petPortraits then R.Refresh(token)
+                    else R.HidePetSecondaryFallback(host, "pet-family-disabled") end
+                end
+            end
             R.Print("pet family art " .. tostring(R.db.petPortraits))
         end
     elseif command == "geometry" then

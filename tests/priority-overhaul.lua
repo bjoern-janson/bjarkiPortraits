@@ -186,9 +186,21 @@ for _,id in ipairs({9007,9824,9826}) do
     unique(id,"DoTs")
     check(not owns("Stun",id),"long Pounce bleed never gets stun priority")
 end
-for _,id in ipairs({15487,18425,18469,24259,1330,
-                    2139,1766,6552,19647}) do
+for _,id in ipairs({15487,18425,18469,18498,24259,19821,27559,427719,1302715}) do
+    check(contains("silences",id) and not contains("interrupts",id),"applied silence kept separate: "..id)
     unique(id,"InterruptSilence")
+end
+for _,id in ipairs({72,1671,1672,1766,1767,1768,1769,6552,6554,2139,19244,19647,
+                    8042,8044,8045,8046,10412,10413,10414,29443,414621,425609,1241057,1293714}) do
+    check(contains("interrupts",id) and not contains("silences",id),"direct interrupt kept separate: "..id)
+    unique(id,"InterruptSilence")
+end
+unique(15752,"Control") -- Linken's Boomerang disarms.
+unique(19675,"Roots") -- Bear charge's victim aura is a root even on a non-casting target.
+for _,id in ipairs({1330,16979,1238122,414924,410176,12311,13754,27561,1302716,
+                    408681,408683,408685,408687,408688,408689,408690,
+                    1220744,1220746,1220747,1220748,1220749,1220750,1220751}) do
+    check(not owns("InterruptSilence",id),"no interrupt inferred from parent, proc enabler, taunt or unrelated ID "..id)
 end
 check(not tier("Control").spellIDs[15487],
     "Silence excluded from generic CC exact lane")

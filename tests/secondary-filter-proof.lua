@@ -5,6 +5,7 @@ local BP={Runtime={}}
 assert(loadfile('Spells.lua'))('bjarkiPortraits',BP)
 assert(loadfile('Priority.lua'))('bjarkiPortraits',BP)
 local R=BP.Runtime
+R.SecondaryOwnerVisible = function() return true end -- Visible owner for this isolated election fixture.
 local checks=0
 local function eq(a,b,label)
   assert(a==b,(label or 'value')..': got '..tostring(a)..', expected '..tostring(b));checks=checks+1
@@ -132,6 +133,12 @@ lists.target={HELPFUL={inclusive={nearby},plain={nearby}},
  HARMFUL={inclusive={hamstring,rend},plain={hamstring,rend}}}
 local npc=host('target','hostile')
 npc._hostileCount=1;npc._hostileActive=false
+second,reason=R.GetReadableSecondaryAura(npc)
+eq(second,nil,'unknown semantic membership could promote the restricted nearby effect')
+C_UnitAuras.IsAuraFilteredOutByInstanceID=function(_,_,filter)
+    if filter:find('DEFENSIVE',1,true) or filter:find('IMPORTANT',1,true) then return true end
+    error('plain instance filter unavailable')
+end
 second,reason=R.GetReadableSecondaryAura(npc)
 eq(reason,'npc-readable-harmful-projection','low helpful aura does not veto harmful NPC main')
 eq(second and second.spellID,772,'Rend is second below Hamstring')
