@@ -31,6 +31,13 @@ local function queueRefresh(unit, reason, requestSnapshot, snapshotOnly)
     if not request then request = {}; queued[unit] = request end
     -- Visual work can upgrade a snapshot-only request, never be cancelled by it.
     request.refresh = request.refresh or not snapshotOnly
+    -- UNIT_FLAGS is a relation/flag notification, NOT an aura occurrence
+    -- change. Even the deferred pass must avoid native UpdateAllAuras.
+    -- Coalescing a later binding/aura event upgrades to a forced refresh;
+    -- a subsequent harmless flag can never downgrade that existing work.
+    if not snapshotOnly then
+        request.forceNative = request.forceNative == true or reason ~= "unit-flags"
+    end
     if not snapshotOnly or not request.reason then request.reason = reason or "unit-event" end
     if reason == "native-binding" or reason == "world-entry" then request.bindingChanged = true end
     if reason == "settling-binding" then request.settlingBinding = true end
@@ -53,7 +60,7 @@ local function queueRefresh(unit, reason, requestSnapshot, snapshotOnly)
                 if request.settlingBinding and host then
                     host._verifySettledBinding, host._schoolInterruptSettling=true,true
                 end
-                R.Refresh(token,true,request.bindingChanged==true,true)
+                R.Refresh(token,request.forceNative == true,request.bindingChanged==true,true)
             end
             if request.publishDerivedSnapshot and R.PublishDerivedSnapshot then
                 publishDerivedSnapshot(token)
@@ -266,9 +273,12 @@ events:SetScript("OnEvent", function(_, event, arg1)
             R.BuildAll(true)
             R.UpdatePetPortraits()
         end
-        -- Existing hosts also need fresh eligibility after restrictions lift;
-        -- a host build request is not required for a stale disabled aura lane.
-        R.RefreshAll(true)
+        -- Re-evaluate every host after combat secrecy lifts, but do not
+        -- force 62 native UpdateAllAuras calls on every unchanged host.
+        -- Changed SetEnabled state and _bjarkiRefreshPending already trigger
+        -- native reprocessing; stale bindings carry their own deferred force.
+        -- The native client continues to own aura changes during combat.
+        R.RefreshAll(false,true)
         -- Reuse settled cells. Visible/pending layout and failed formatters
         -- still recover through the ordinary pass and the new safe epoch.
         R.ApplyPresentation(nil,true,nil,true)
@@ -431,8 +441,11 @@ local function installUnitStateEvents(unitA, unitB)
             -- occurrences. Avoid forcing a full native aura rebuild on
             -- each flag; genuine faction, connection, and binding events
             -- retain the original force path.
-            R.Refresh(unit,event~="UNIT_FLAGS",nil,true)
-            if not queueRefresh(unit,nil,snapshotNeeded[unit]) then R.ApplyPresentation(unit,true,false) end
+            local flagOnly = event=="UNIT_FLAGS"
+            R.Refresh(unit,not flagOnly,nil,true)
+            if not queueRefresh(unit,flagOnly and "unit-flags" or nil,snapshotNeeded[unit]) then
+                R.ApplyPresentation(unit,true,false)
+            end
         end
         -- Aura changes do not change pet identity/family. Reclassify only on
         -- relation/state changes, and only for the unit that actually changed.
