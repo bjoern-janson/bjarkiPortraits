@@ -301,6 +301,14 @@ do
     proxy.receipt=nil
     ok,backend=R.ApplyCountdownFormat(proxy,label,true)
     check(ok and backend=="hidden" and proxy.hidden,"a substituted stock rule stays hidden")
+    -- Native-second backing clocks bypass the heavy fixed-cell path
+    -- while continuing to use this verified 60-second native cap.
+    permit=true
+    local light=makeCooldown(true)
+    light._bjarkiLightNativeSecond=true
+    local lightOK,lightBackend=R.ApplyCountdownFormat(light,label,true)
+    check(lightOK and lightBackend=="formatter" and light.formatter==base,
+        "light native second never requests a six-cell renderer")
     R.ApplyPortraitTimer,R.GetCountdownFormatter=oldCells,oldBase
 end
 BjarkiPortraitsDB = oldGlobals.db

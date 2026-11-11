@@ -246,7 +246,8 @@ R.UpdateNativeSecondProbe(host,true,true,true,false)
 eq(host._nativeSecondProbe~=nil,true,"eligible NPC builds automatically without commands")
 local p=host._nativeSecondProbe
 eq(p.ready,true,"native container initialized")
-eq(p.cooldowns[1].nativeClockButton~=nil,true,"native secondary attaches its opaque aura clock")
+eq(p.cooldowns[1].nativeClockButton,nil,"native second avoids the extra duration-bar bridge")
+eq(p.cooldowns[1]._bjarkiLightNativeSecond,true,"native second receiver uses capped lightweight path")
 eq(p.clip.clips,true,"fixed clipping viewport")
 eq(p.clip.width,50,"entire native secondary viewport actually enlarged")
 eq(p.clip.points[3],"TOPLEFT","native Target runner-up avoids right-hand combo points")
@@ -509,25 +510,18 @@ do
 end
 
 do
+    -- Production low-overhead path: no native duration bridge or six-cell
+    -- renderer on the many preallocated secondary buttons. A capped native
+    -- formatter remains installed, including on reuse.
     local oldFormat,oldFont,oldCells=R.ApplyCountdownFormat,R.ApplySecondaryCountdownFont,R.ApplyPortraitTimer
-    local cells,base={},{}
-    local attempts,writes=0,0
-    R.ApplySecondaryCountdownFont=function(cd)
-        oldFont(cd)
-        return true,cd
+    local formatter,attemptedCells={},0
+    R.ApplyPortraitTimer=function()
+        attemptedCells=attemptedCells+1
+        error("native second must not allocate fixed glyphs")
     end
-    R.ApplyPortraitTimer=function(cd,label,verify)
-        assert(not combat)
-        attempts=attempts+1
-        eq(label,cd,"native strip prepares cells using its styled source label")
-        if cd.denyCells or not cd.nativeClockButton then return false end
-        if cd.formatter~=cells then cd.formatter=cells;writes=writes+1 end
-        return true,"cells"
-    end
-    R.ApplyCountdownFormat=function(cd,label,verify)
-        local ready,backend=R.ApplyPortraitTimer(cd,label or cd,verify)
-        if ready then return true,backend end
-        cd.formatter=base
+    R.ApplyCountdownFormat=function(cd)
+        cd.formatter=formatter
+        cd.formatCalls=(cd.formatCalls or 0)+1
         return true,"formatter"
     end
     local function owner(unit)
@@ -535,32 +529,26 @@ do
     end
     local other=owner("focus")
     assert(R.CreateNativeSecondProbe(other))
-    local clocks=other._nativeSecondProbe.cooldowns
-    local count=#clocks
-    eq(writes,count,"each native button acquires cells from its own aura clock")
+    local probe=other._nativeSecondProbe
+    local clocks=probe.cooldowns
+    eq(#clocks>50,true,"native runner-up groups still constructed")
+    eq(#probe.fallbackClocks,0,"intentional capped native clocks have no glyph retry queue")
     for _,cd in ipairs(clocks) do
-        eq(cd.nativeClockButton.cooldown,cd,"native timer transport remains attached to its own button")
-        eq(cd.attachCalls,1,"successful native transport is attached only once")
+        eq(cd._bjarkiLightNativeSecond,true,"secondary preallocation selects cheap countdown")
+        eq(cd.nativeClockButton,nil,"no extra status-bar bridge")
+        eq(cd.attachCalls,nil,"no additional duration-bar attachment")
+        eq(cd.formatter,formatter,"native second retains its number formatter")
     end
-    local initialAttempts=attempts
-    R.RetryCountdownFormatter();R.ApplyNativeSecondPresentation(other)
-    R.UpdateNativeSecondProbe(other,true,true,true,false,true,true)
-    eq(attempts,initialAttempts,"formatter epoch and unit rebind do not revisit successful preallocated native labels")
-    clocks[1].denyCells=true
-    R.ApplyNativeSecondPresentation(other,true)
-    eq(clocks[1].formatter,base,"explicit strip presentation falls back if one style cannot be verified")
-    local observed=attempts
-    clocks[1].denyCells=false;R.RetryCountdownFormatter();R.ApplyNativeSecondPresentation(other)
-    eq(attempts,observed+1,"next safe epoch retries only the unverified native button")
-    eq(clocks[1].formatter,cells,"native button upgrades after recovery")
-    clocks[1].formatter=base
+    eq(attemptedCells,0,"no six-cell processing")
+    local calls=clocks[1].formatCalls
+    R.RetryCountdownFormatter()
+    R.ApplyNativeSecondPresentation(other)
+    eq(clocks[1].formatCalls,calls,"formatter epoch does not retry successful lightweight clocks")
     assert(R.ReleaseNativeSecondProbe(other))
     local rebound=owner("target")
     assert(R.CreateNativeSecondProbe(rebound))
-    eq(rebound._nativeSecondProbe.cooldowns,clocks,"test exercises genuine pooled receiver")
-    eq(clocks[1].formatter,cells,"pooled reattachment repairs a replaced native renderer")
-    eq(attempts,observed+1+count,"a pooled tree verifies each of its actual recipients")
-    for _,cd in ipairs(clocks) do eq(cd.attachCalls,1,"pooled reuse preserves its native clock attachment") end
+    eq(rebound._nativeSecondProbe.cooldowns,clocks,"same cheap receiver pool is reused")
+    eq(attemptedCells,0,"pooled reuse adds no text bindings")
     R.ApplyCountdownFormat,R.ApplySecondaryCountdownFont,R.ApplyPortraitTimer=oldFormat,oldFont,oldCells
 end
 
@@ -1236,7 +1224,7 @@ do
         local seen={}
         for _,clock in ipairs(p.cooldowns)do assert(not seen[clock]);seen[clock]=true end
         for _,button in ipairs(buttons)do assert(button.cooldown,"every allocated button has its native receiver")end
-        eq(failedClock.attachCalls,1,"recovery attaches the native clock bridge once")
+        eq(failedClock.attachCalls,nil,"initializer recovery does not add a duration bridge")
         CreateFrame=originalCreate
     end
 end

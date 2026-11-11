@@ -55,7 +55,10 @@ local function anchorClip(clip, host)
     end
 end
 
-local function needsFormatterRecovery(backend)
+local function needsFormatterRecovery(backend,cooldown)
+    if cooldown and cooldown._bjarkiLightNativeSecond then
+        return backend=="hidden" -- capped formatter is intentional here
+    end
     return backend=="hidden" or (R.ApplyPortraitTimer and backend~="cells")
 end
 
@@ -93,6 +96,10 @@ local function makeButton(parts, probe)
     local cooldown = parts.cooldown or CreateFrame("Cooldown", nil, button,
         "CooldownFrameTemplate," .. R.AURA_ANCHOR_TEMPLATE)
     parts.cooldown = cooldown
+    -- This native-second button is one of ten preallocated per tier.
+    -- Preserve native cooldown and 60s digits but skip SIX addon-owned
+    -- continually updating bindings and an extra duration bar per button.
+    cooldown._bjarkiLightNativeSecond = true
     cooldown:SetAllPoints(icon)
     if cooldown.SetDrawBling then cooldown:SetDrawBling(false) end
     if cooldown.SetDrawEdge then cooldown:SetDrawEdge(false) end
@@ -104,16 +111,13 @@ local function makeButton(parts, probe)
         parts.clockListed = true
     end
     button:SetDurationCooldown(cooldown)
+    -- Blizzard itself updates the native Cooldown with protected duration.
+    -- Only its (capped) stock formatter is needed; never mirror the clock
+    -- into a second, always-updating glyph system for hidden button slots.
     local ok,applied,backend=pcall(R.ApplySecondaryCountdownPresentation,cooldown)
-    if R.AttachPortraitAuraClock then
-        -- The native button owns a stable opaque duration. Attach only after
-        -- its source label has the final font and placement used by the cells.
-        pcall(R.AttachPortraitAuraClock,button,cooldown)
-        ok,applied,backend=pcall(R.ApplyCountdownFormat,cooldown)
-    end
     if not ok or applied~=true then
         probe.formatRetries[#probe.formatRetries+1] = cooldown
-    elseif needsFormatterRecovery(backend) then
+    elseif needsFormatterRecovery(backend,cooldown) then
         probe.fallbackClocks[#probe.fallbackClocks+1]=cooldown
     end
     parts.button = nil
@@ -150,7 +154,7 @@ function R.ApplyNativeSecondPresentation(host,verifyFonts)
             ok,applied,backend=pcall(R.ApplyCountdownFormat,cooldown,nil,reselect)
         end
         if not ok or applied~=true then retries[#retries+1]=cooldown
-        elseif needsFormatterRecovery(backend) then fallback[#fallback+1]=cooldown end
+        elseif needsFormatterRecovery(backend,cooldown) then fallback[#fallback+1]=cooldown end
     end
     probe.decimals,probe.formatRetries,probe.fallbackClocks=decimals,retries,fallback
     probe.formatterEpoch=R.countdownFormatterEpoch

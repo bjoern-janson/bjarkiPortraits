@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.248"
+R.VERSION = "0.1.249-performance-recovery"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 -- Four native Blizzard party portraits share the same aura engine as player/pet.
 -- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
@@ -729,7 +729,12 @@ end
 -- feed the same cells. Fall back only after the cell owner has disabled them.
 function R.ApplyCountdownFormat(cooldown,label,verify)
     local decimals=R.db and R.db.showDecimals==true or false
-    if R.ApplyPortraitTimer and R.ApplyPortraitTimer(cooldown,label,verify) then
+    -- A native second ribbon preallocates ten buttons per tier, even when
+    -- hidden. Its 6-cell / 0.1s binding would run thousands of times.
+    -- Native second buttons use Blizzard's own CAPPED formatter instead.
+    -- Preserve fixed glyphs on primary and publicly rendered secondary art.
+    if not cooldown._bjarkiLightNativeSecond
+        and R.ApplyPortraitTimer and R.ApplyPortraitTimer(cooldown,label,verify) then
         cooldown._bjarkiTimerBackend="cells"
         cooldown._bjarkiTimerDecimals=decimals
         cooldown._bjarkiTimerSpacingReason="fixed-cells"
