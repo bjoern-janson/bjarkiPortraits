@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This recovery branch describes **0.1.249**, derived from 0.1.248; the untouched main branch remains separately available. For event paths and their regression tests, start with the [code map](docs/CODE_MAP.md); for countdown and deferred native construction details, use the [timer lifecycle](docs/TIMER_LIFECYCLE.md). Earlier architecture decisions are preserved in the [history](docs/ARCHITECTURE_HISTORY.md).
+This recovery branch describes **0.1.250**, derived from 0.1.248; the untouched main branch remains separately available. For event paths and their regression tests, start with the [code map](docs/CODE_MAP.md); for countdown and deferred native construction details, use the [timer lifecycle](docs/TIMER_LIFECYCLE.md). Earlier architecture decisions are preserved in the [history](docs/ARCHITECTURE_HISTORY.md).
 
 ## Module loading
 
@@ -87,11 +87,11 @@ All three secondary renderers share that policy. A 2/64 symmetric source crop on
 
 ## Countdown and layout
 
-**0.1.249 lightweight native-secondary clock path:** A native second fallback frame owns its existing Blizzard Cooldown and receives the same bounded 60-second numeric formatter without the extra addon fixed-cell bridge. Its `_bjarkiLightNativeSecond` marker is assigned at native button construction, before calling Core formatting. `R.ApplyCountdownFormat` bypasses `R.ApplyPortraitTimer` for those specific backing receivers only, and `NativeSecondProbe.needsFormatterRecovery` does not requeue intentionally formatted native seconds as failed fixed cells. Primary and readable secondary clocks still use the fixed cells. The native aura selection and protected countdown ownership are not modified.
+**0.1.249 lightweight native-secondary clock path:** A native second fallback frame owns its existing Blizzard Cooldown and receives the same bounded 90-second numeric formatter without the extra addon fixed-cell bridge. Its `_bjarkiLightNativeSecond` marker is assigned at native button construction, before calling Core formatting. `R.ApplyCountdownFormat` bypasses `R.ApplyPortraitTimer` for those specific backing receivers only, and `NativeSecondProbe.needsFormatterRecovery` does not requeue intentionally formatted native seconds as failed fixed cells. Primary and readable secondary clocks still use the fixed cells. The native aura selection and protected countdown ownership are not modified.
 
 
 
-`Core.GetCountdownFormatter` gives one decimal strictly below 10 seconds when enabled, truncated whole seconds through **60**, and empty text strictly above 60 at supported native numeric precision. The public 60-second cutoff uses the first representable increment at 60 (binary64 `2^-47` or binary32 `2^-18`); the former 30-second increments would round back to exactly 60 and incorrectly hide the boundary. Native decimal rounding can produce `10.0` immediately below the ten-second transition; the fixed cells preserve that result. `/bp decimals` and `/bp swipe` retain their separate number/swipe preferences.
+`Core.GetCountdownFormatter` gives one decimal strictly below 10 seconds when enabled, truncated whole seconds through **90 inclusive**, and empty text strictly above 90 at supported native precision. The 90-second cutoff uses the first representable increment at 90 (binary64 `2^-46`, binary32 `2^-17`); using smaller increments would round the threshold back to 90 and incorrectly hide the boundary. Native decimal rounding can produce `10.0` immediately below the ten-second transition; the fixed cells preserve that result. `/bp decimals` and `/bp swipe` retain their separate number/swipe preferences.
 
 `PortraitTimerSpacing.lua` copies the final label's actual font, size, flags, scale, color and shadow into six fixed-position glyph cells. Each cell has a native `DurationTextBinding`; Lua builds its rules from public sample constants and does not read the live countdown. Native aura buttons supply their stable opaque duration through `SetDurationBar` and an addon-owned hidden StatusBar's `GetTimerDuration`. Readable projections and school interrupts instead reach the same cells through public cooldown setters. These are different clock acquisition paths, not interchangeable sources of aura identity.
 

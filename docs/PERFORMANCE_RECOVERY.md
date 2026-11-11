@@ -1,4 +1,4 @@
-# Performance recovery — bjarkiPortraits 0.1.249
+# Performance recovery — bjarkiPortraits 0.1.250 (from 0.1.249)
 
 **Branch:** `rescue/low-overhead-0.1.249` · **Base:** 0.1.248 on main · **Scope:** reduce source-demonstrated excess timer allocations without feature rollback or changes to main.
 
@@ -9,12 +9,16 @@ Blizzard's Forever `CustomAuraContainer` frame provider preallocates **10 button
 ## Surgery, not rewrite
 
 - Set `cooldown._bjarkiLightNativeSecond = true` only on native-second group button cooldowns, before formatting.
-- `Core.ApplyCountdownFormat` uses Blizzard's same 60s-capped native numeric formatter for these receivers and does not construct fixed glyph cells.
+- `Core.ApplyCountdownFormat` uses Blizzard's same 90s-capped native numeric formatter for these receivers and does not construct fixed glyph cells.
 - Remove `R.AttachPortraitAuraClock` on this specific path: native cooldowns already receive client-owned, possibly protected durations.
 - `needsFormatterRecovery` treats the deliberate `formatter` backend as success, avoiding 620 pointless fixed-cell retries per host on a formatter-epoch change.
-- Leave **primary** and **readable secondary** fixed-position glyphs untouched, along with the tier map, icon/rim geometry, combat authorization, target identity, pool state, school interrupts, and 60-second/decimal formatting.
+- Leave **primary** and **readable secondary** fixed-position glyphs untouched, along with the tier map, icon/rim geometry, combat authorization, target identity, pool state, school interrupts, and 90-second/decimal formatting.
 
 Tradeoff: Native fallback seconds use one numeric label and may not retain perfectly fixed per-digit optical placement. This is limited to the native fallback; it does not alter the large portrait or positively readable secondary countdowns.
+
+## 0.1.250 follow-up
+
+The only behavioral change from the 0.1.249 low-overhead build is the user-requested inclusive 90-second countdown. At 90s, binary64 and binary32 have different next-ULP steps (`2^-46` and `2^-17`). The 90-second cutoff is shared across primary fixed-digit cells, positively readable secondary cells and lightweight native-secondary capped formatter. The extra per-button bindings remain disabled.
 
 ## Automated verification
 

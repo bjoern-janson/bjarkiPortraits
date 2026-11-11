@@ -1,6 +1,6 @@
 # Testing and debugging bjarkiPortraits
 
-The **0.1.249 recovery** source checkpoint has **35 Lua regression scripts**, **15 runtime modules**, and two manifests with the same load order. Each script loads the modules it exercises; a script can contain many assertions or ordering cases, so script count is not an assertion count.
+The **0.1.250 recovery** source checkpoint has **35 Lua regression scripts**, **15 runtime modules**, and two manifests with the same load order. Each script loads the modules it exercises; a script can contain many assertions or ordering cases, so script count is not an assertion count.
 
 ## Verify and package
 
@@ -8,7 +8,7 @@ Run the portable [verification tool](../tools/verify.py) from the repository roo
 
 ```text
 python tools/verify.py
-python tools/verify.py --output ../bjarkiPortraits-0.1.248-COMPLETE.zip
+python tools/verify.py --output ../bjarkiPortraits-0.1.250-COMPLETE.zip
 ```
 
 The optional ZIP path must be a new file outside the repository, with an existing parent directory. Packaging occurs only after validation succeeds. The tool checks runtime/manifests, syntax and every discovered `tests/*.lua` script, then packages the runtime modules and both manifests under one `bjarkiPortraits/` directory. It does not package documentation or tests as addon runtime. The [historical 0.1.247 verification record](BUILD_VERIFICATION.md) pins the previous run's source and package identity. For 0.1.248 use the exact matching [main-branch CI run](https://github.com/bjoern-janson/bjarkiPortraits/actions/workflows/package-addon.yml?query=branch%3Amain).
@@ -66,8 +66,8 @@ Tests use modeled native/client interfaces and cannot prove exact protected-fram
 | Two visible buffs: Water Shield and 30-minute Water Breathing potion on friendly Target/Focus | Water Shield's SelfState 150 outranks the potion-applied aura 7178 at TravelUtility 50; the second should show Water Breathing rather than race whenever current evidence permits |
 | Vigilant on an NPC with no higher eligible aura | The actual applied 1326064 buff belongs to helpful BottomHelpful 0, never Warrior Vigilance or a higher helpful semantic tier |
 | Race icon restored after a timed aura | Atlas/tile coordinates preserved exactly—no generic aura-edge crop on race art |
-| Primary and secondary countdowns at 9.9s, 10s, 30s, 59.99s, 60s, 60+ULP and 48 minutes | With decimals enabled, one decimal below 10 and truncated whole seconds through **60 inclusive**; no number strictly above 60 at native precision. Decimal rounding can show `10.0` immediately before 10. Rejected formatter paths keep the number hidden until a capped formatter can be installed. Also toggle decimals and swipe independently. |
-| .247 fixed timers and deferred secondary setup | Retest first Target/Focus selection and combat exit for responsiveness. The native second icon can appear after deferred construction; test retargeting, combat entry, hidden owners and disabling during that interval. Retain exact fonts, fixed positions and the current 60-second cap. Swallowed initializer failure/retry is covered by an injected offline fixture; no such live failure has been established. |
+| Primary and secondary countdowns at 9.9s, 10s, 30s, 60s, 61s, 89.99s, 90s, 90+ULP and 48 minutes | With decimals enabled, one decimal below 10 and truncated whole seconds through **90 inclusive**; no number strictly above 90 at native precision. Decimal rounding can show `10.0` immediately before 10. Rejected formatter paths keep the number hidden until a capped formatter can be installed. Also toggle decimals and swipe independently. |
+| .247 fixed timers and deferred secondary setup | Retest first Target/Focus selection and combat exit for responsiveness. The native second icon can appear after deferred construction; test retargeting, combat entry, hidden owners and disabling during that interval. Retain exact fonts, fixed positions and the current 90-second cap. Swallowed initializer failure/retry is covered by an injected offline fixture; no such live failure has been established. |
 | Target and Focus with separate or overlapping landed lockouts | Each recipient owns its elected effect and clock. Swap either token while a lockout runs, then let the first effect expire in combat and check the survivor. Include player aliases and an unrelated aura removal; identical icons do not prove identical occurrences. |
 | Repeated combat exits with unchanged and newly visible clocks | Capture version, reproducible trigger and observed timing. Verify layout/number recovery and whether the reported hitch persists; setter-count reductions alone do not measure frame time. |
 | PetFrame/ToT/ToF | Full primary priority engine; **no secondary circles** |
