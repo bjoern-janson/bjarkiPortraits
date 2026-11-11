@@ -1,6 +1,6 @@
 # bjarkiPortraits code map
 
-This recovery branch follows version 0.1.250. The two manifests load the same Lua files in order. `Core.lua` creates `BP.Runtime`, usually called `R` inside a module, and `Main.lua` registers the events. [Standard manifest](../bjarkiPortraits.toc) · [Camelot manifest](../bjarkiPortraits_Camelot.toc)
+This recovery branch follows version 0.1.252. The two manifests load the same Lua files in order. `Core.lua` creates `BP.Runtime`, usually called `R` inside a module, and `Main.lua` registers the events. [Standard manifest](../bjarkiPortraits.toc) · [Camelot manifest](../bjarkiPortraits_Camelot.toc)
 
 Use this file as the entry index for a source or AI-assisted review. Resolve exact symbols with `rg -n -g '*.lua' "symbol" .`; file names and function names are more stable than copied line numbers. Current behavior lives in the Lua modules and tests. The [0.1.224 read-only audit](CODEX_READONLY_AUDIT.md) and dated design/release logs are historical snapshots, not the current task's permissions or runtime specification.
 
@@ -34,7 +34,7 @@ Use this file as the entry index for a source or AI-assisted review. Resolve exa
 | `PLAYER_TARGET_CHANGED`, `PLAYER_FOCUS_CHANGED` | Immediate forced refresh with binding invalidation for that token; then one deferred settling pass. Refresh the associated ToT/ToF independently. |
 | `LOSS_OF_CONTROL_ADDED`, `LOSS_OF_CONTROL_UPDATE` | Read the current recipient of each matching host with `R.GetSchoolInterrupt`; hand that observation into `R.Refresh`. Never borrow Target's result for Focus. |
 | Native `UnitFrame_SetUnit`, Focus portrait update, party pool/layout hooks | Observe completed native operations and queue reconciliation. Recycled frames must pass ownership checks before displaying saved work. |
-| `PLAYER_REGEN_ENABLED` | Retry formatter epoch, complete queued host work, force current evidence refresh and recover timer presentation without rewriting every unchanged hidden clock. |
+| `PLAYER_REGEN_ENABLED` | Retry formatter epoch and queued work; reconcile current eligibility while avoiding forced refresh of unchanged aura slots; recover timer presentation without rewriting hidden clocks. |
 | `UI_SCALE_CHANGED`, `DISPLAY_SIZE_CHANGED` | Explicit presentation verification, including hidden preallocated labels. |
 
 Other unit-state, form, pet and roster events remain scoped to supported hosts; follow their registration and handler in `Main.lua`. The queue re-reads the current token and does not poll continuously.

@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This recovery branch describes **0.1.250**, derived from 0.1.248; the untouched main branch remains separately available. For event paths and their regression tests, start with the [code map](docs/CODE_MAP.md); for countdown and deferred native construction details, use the [timer lifecycle](docs/TIMER_LIFECYCLE.md). Earlier architecture decisions are preserved in the [history](docs/ARCHITECTURE_HISTORY.md).
+This recovery branch describes **0.1.252**, derived from 0.1.248; the untouched main branch remains separately available. For event paths and their regression tests, start with the [code map](docs/CODE_MAP.md); for countdown and deferred native construction details, use the [timer lifecycle](docs/TIMER_LIFECYCLE.md). Earlier architecture decisions are preserved in the [history](docs/ARCHITECTURE_HISTORY.md).
 
 ## Module loading
 
@@ -98,6 +98,10 @@ All three secondary renderers share that policy. A 2/64 symmetric source crop on
 `R.ApplyCountdownFormat` first attempts the fixed cells, then the same capped native formatter. If neither can be installed, it hides numbers rather than exposing an uncapped stock countdown; the aura icon and native swipe keep their own clock. Failed cell groups are deactivated before fallback, and unchanged bindings are reused. See [timer lifecycle](docs/TIMER_LIFECYCLE.md) for recovery and the .246–.247 construction contract.
 
 `Core.ApplySecondaryCountdownFont` applies Blizzard's `GameFontNormalSmall` to the addon-owned secondary cooldown label, centers it on the icon and paints it white. This is separate from the larger per-unit primary countdown alignment in `AuraEngine.lua`. The pet-family fallback has no synthetic countdown. Avoid polling or arithmetic on secret countdown values.
+
+## Combat-event work reduction (0.1.252)
+
+`Main.lua` treats `UNIT_FLAGS` as a relation/state change, not proof of changed aura instances. A queued flag-only check remains non-forcing; a coalesced faction/binding event upgrades it to a forced refresh and cannot be downgraded. `PLAYER_REGEN_ENABLED` still checks all current unit hosts, restores pending native writes and reapplies presentation, but avoids an unconditional full `UpdateAllAuras` across every unchanged tier. Host GUID safety, interrupted native writes, deferred builds, and the native group's own UNIT_AURA event processing remain unchanged. In-client timing is still unmeasured.
 
 ## Events, security, diagnostics
 

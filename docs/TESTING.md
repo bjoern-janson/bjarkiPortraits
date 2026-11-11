@@ -1,6 +1,6 @@
 # Testing and debugging bjarkiPortraits
 
-The **0.1.250 recovery** source checkpoint has **35 Lua regression scripts**, **15 runtime modules**, and two manifests with the same load order. Each script loads the modules it exercises; a script can contain many assertions or ordering cases, so script count is not an assertion count.
+The **0.1.252 recovery** source checkpoint has **36 Lua regression scripts**, **15 runtime modules**, and two manifests with the same load order. Each script loads the modules it exercises; a script can contain many assertions or ordering cases, so script count is not an assertion count.
 
 ## Verify and package
 
@@ -69,6 +69,7 @@ Tests use modeled native/client interfaces and cannot prove exact protected-fram
 | Primary and secondary countdowns at 9.9s, 10s, 30s, 60s, 61s, 89.99s, 90s, 90+ULP and 48 minutes | With decimals enabled, one decimal below 10 and truncated whole seconds through **90 inclusive**; no number strictly above 90 at native precision. Decimal rounding can show `10.0` immediately before 10. Rejected formatter paths keep the number hidden until a capped formatter can be installed. Also toggle decimals and swipe independently. |
 | .247 fixed timers and deferred secondary setup | Retest first Target/Focus selection and combat exit for responsiveness. The native second icon can appear after deferred construction; test retargeting, combat entry, hidden owners and disabling during that interval. Retain exact fonts, fixed positions and the current 90-second cap. Swallowed initializer failure/retry is covered by an injected offline fixture; no such live failure has been established. |
 | Target and Focus with separate or overlapping landed lockouts | Each recipient owns its elected effect and clock. Swap either token while a lockout runs, then let the first effect expire in combat and check the survivor. Include player aliases and an unrelated aura removal; identical icons do not prove identical occurrences. |
+| Combat-entry flags / combat-exit eligibility | Actual `Main.lua` event regression verifies that player/target flags never force unchanged native groups (including deferred queue), faction/binding still force, and combat exit retains an unforced global eligibility pass. `tests/combat-transition-fastpath.lua` |
 | Repeated combat exits with unchanged and newly visible clocks | Capture version, reproducible trigger and observed timing. Verify layout/number recovery and whether the reported hitch persists; setter-count reductions alone do not measure frame time. |
 | PetFrame/ToT/ToF | Full primary priority engine; **no secondary circles** |
 | Verified Hunter/Warlock pet on Target/Focus | Actual pet-family artwork only when positive pet identity and native aura presence are established |

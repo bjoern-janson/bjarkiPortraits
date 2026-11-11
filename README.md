@@ -2,7 +2,7 @@
 
 Native-styled priority aura portraits for **WoW: Forever**. A high-priority observed aura or state can replace the normal Blizzard portrait; a smaller circle may show the next distinct eligible effect. The addon respects the client's protected-aura boundaries and does not guess hidden spell IDs.
 
-**0.1.250 low-overhead recovery build for WoW: Forever.** Fixed-position timers retain the existing fonts, and native secondary construction resumes incomplete button initialization before showing the finished tree. Landed school interrupts can supply a portrait and countdown, with Target and Focus each following their current recipient. Start with the [code map](docs/CODE_MAP.md) for event paths and the [timer lifecycle](docs/TIMER_LIFECYCLE.md) for clock ownership and recovery.
+**0.1.252 combat-transition recovery for WoW: Forever.** Fixed-position timers retain the existing fonts, and native secondary construction resumes incomplete button initialization before showing the finished tree. Landed school interrupts can supply a portrait and countdown, with Target and Focus each following their current recipient. Start with the [code map](docs/CODE_MAP.md) for event paths and the [timer lifecycle](docs/TIMER_LIFECYCLE.md) for clock ownership and recovery.
 
 ## Install
 
@@ -34,6 +34,10 @@ The remaining in-game checks include swapping Target and Focus during a lockout 
 | Target, Focus | `TOPLEFT (+10, +12)` | 50px | 41px | **30px** |
 
 The 30px full-size artwork matches a regular Blizzard buff icon; its Totem-style rim scales around the artwork rather than cropping it tightly. Version 0.1.223 additionally applies a slight 2/64 source-image inset to actual spell/form and confirmed secondary pet-family art to hide thin square icon edges. The local PetFrame retains its prior 3/64 crop; registered race atlases and race sprite-sheet tile coordinates are left untouched. `R.SecondaryCirclePlacement` and `R.SecondaryCircleGeometry` are the two layout authorities for readable icons, native second-aura clips and pet-family fallbacks. Native Blizzard spell artwork is retained. The masks and cooldowns follow the icon, not a larger invisible rectangle.
+
+### Combat-transition recovery (0.1.252)
+
+Blizzard's `UNIT_FLAGS` can fire whenever combat state changes. Previously the addon could force-reparse native aura groups for multiple unrelated hosts, then force-reparse a flagged Target/Focus again in a queued check. The 0.1.252 path uses non-forcing state reconciliation for flags, upgrades queued work only when an actual faction/binding/other event requires it, and continues to revisit all hosts on combat exit **without** forcing every unchanged native group to reparse. Native `SetEnabled` state changes and recorded failed writes still trigger required recovery. These are source-level reductions; live frame-time impact has not been measured.
 
 ### Performance recovery
 

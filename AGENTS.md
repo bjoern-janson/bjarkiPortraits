@@ -2,7 +2,7 @@
 
 Start with the symptom in the [code map](docs/CODE_MAP.md). It connects event names, Lua entry points and regression tests. The two TOCs define load order. The package workflow runs the current test suite from the repository root. [Manifest](bjarkiPortraits.toc) · [Test workflow](.github/workflows/package-addon.yml)
 
-The recovery-branch runtime checkpoint is **0.1.250**, with main preserved at 0.1.248: 15 modules, 35 regression scripts. Read [timer ownership and lifecycle](docs/TIMER_LIFECYCLE.md) before changing countdowns, native button construction or Target/Focus interrupt recovery. `PortraitTimerSpacing.lua` is a required runtime module, not a disposable visual experiment.
+The recovery-branch runtime checkpoint is **0.1.252**, with main preserved at 0.1.248: 15 modules, 35 regression scripts. Read [timer ownership and lifecycle](docs/TIMER_LIFECYCLE.md) before changing countdowns, native button construction or Target/Focus interrupt recovery. `PortraitTimerSpacing.lua` is a required runtime module, not a disposable visual experiment.
 
 - For a priority change, verify the applied spell ID, polarity and lane in `Spells.lua` and `Priority.lua`. The school interrupt reader also accepts landed loss-of-control records. A spell ID, an aura instance ID and a unit token establish different facts.
 - For Target or Focus changes, follow the old recipient through invalidation, the new recipient through election, and the clock through its native setter. A restricted field is unknown. Preserve the best-effort native second icon when public Lua cannot rank the pair.

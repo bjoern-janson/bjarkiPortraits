@@ -1,6 +1,8 @@
 # Known issues & verification status
 
-**Recovery branch source: 0.1.250; the separate main branch remains at 0.1.248.** The verification set contains 35 regression scripts run under Lua 5.1 and 5.4; the package contains 15 runtime modules and both manifests. These checks exercise source behavior and distribution contents. They do not certify all live client behavior or establish that the addon is free of bugs. [Verification commands](docs/TESTING.md) · [Timer ownership and lifecycle](docs/TIMER_LIFECYCLE.md)
+**Recovery branch source: 0.1.252; the separate main branch remains at 0.1.248.** The verification set contains 35 regression scripts run under Lua 5.1 and 5.4; the package contains 15 runtime modules and both manifests. These checks exercise source behavior and distribution contents. They do not certify all live client behavior or establish that the addon is free of bugs. [Verification commands](docs/TESTING.md) · [Timer ownership and lifecycle](docs/TIMER_LIFECYCLE.md)
+
+**0.1.252 combat event reduction (source-tested, live retest pending):** Player/Target `UNIT_FLAGS` now use non-forcing immediate and queued checks. Combat exit reconciles eligibility without unconditional native `UpdateAllAuras` on every unchanged aura container. Native state transitions, binding changes, explicit faction changes and failed-write recovery remain supported. The production-event regression is `tests/combat-transition-fastpath.lua`. This is not a live FPS claim.
 
 **0.1.250 90-second countdown (source-tested, live retest pending):** The original 60-second inclusive cap was extended to 90 seconds inclusive across fixed digit cells, capped native fallback and the lightweight preallocated secondary timers. The formatter tests cover 60, 61, 89.99, 90, the next representable instant above 90, and long durations under both float models. No new timer states, font or priority changes.
 
