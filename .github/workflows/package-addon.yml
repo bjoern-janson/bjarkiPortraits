@@ -2,7 +2,7 @@ name: Package addon
 
 on:
   push:
-    branches: [main, 'feat/secondary-portrait-p1', 'rescue/low-overhead-0.1.249']
+    branches: [main, 'feat/secondary-portrait-p1', 'rescue/low-overhead-0.1.249', 'rescue/combat-transitions-0.1.251']
   pull_request:
     branches: [main]
   workflow_dispatch:

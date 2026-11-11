@@ -1673,5 +1673,50 @@ test('overflow proves removal after a complete public rotation and ignores a sta
         if kind=='expired-old' then eq(s.reads-c,20,'one count per unchanged event');eq(indexed-n,20,'one row per unchanged event') end
     end
 end)
+test('player combat flags do not rebuild every native aura container',function()
+    local s=setup();local R=s.R
+    local refreshed,global,petWrites={}, {},0
+    local states={
+        target={_hostileUnit=true,_hostileRelationReadable=true,_assistable=false,_assistReadable=true},
+        focus={_hostileUnit=false,_hostileRelationReadable=true,_assistable=true,_assistReadable=true},
+    }
+    R.hosts={player={},target=states.target,focus=states.focus}
+    local observed={target=true,focus=false}
+    local assisted={target=false,focus=true}
+    R.HostileUnitState=function(unit)
+        if observed[unit]~=nil then return observed[unit],true end
+        return nil,false
+    end
+    UnitCanAssist=function(_,unit) return assisted[unit] end
+    R.Refresh=function(unit,force) refreshed[#refreshed+1]={unit,force==true} end
+    R.RefreshAll=function(force) global[#global+1]=force end
+    R.UpdateObservedPetPortraits=function()petWrites=petWrites+1 end
+    R.IsUnitEnabled=function()return true end
+    R.ApplyPresentation=function()end
+    local fire=installEvents(s)
+    fire('UNIT_FLAGS','player')
+    eq(#global,0,'combat-state flag never forces global native aura parses')
+    eq(#refreshed,1,'only own portrait refreshed for unchanged relationships')
+    eq(refreshed[1][1],'player','current player evidence reconciled')
+    eq(refreshed[1][2],false,'player flags do not force native group rebuild')
+    eq(petWrites,0,'unchanged flags do not rescan pet identity')
+    fire('UNIT_FLAGS','target')
+    eq(#refreshed,2,'target flags only refresh their own host')
+    eq(refreshed[2][2],false,'target flags avoid forced native reparsing')
+    observed.target=false;assisted.target=true
+    fire('UNIT_FLAGS','player')
+    eq(#global,0,'a changed relationship needs no blanket native force')
+    eq(#refreshed,4,'player plus one genuinely changed target refreshed')
+    eq(refreshed[4][1],'target','only changed target relation is invalidated')
+    eq(refreshed[4][2],false,'changed relation updates through native enable transitions')
+    eq(petWrites,1,'pet-family evidence updated on actual relation transition')
+    fire('UNIT_FLAGS','player')
+    eq(#refreshed,5,'settled repeated flags only refresh player')
+    fire('UNIT_FACTION','player')
+    eq(#global,1,'genuine faction change still refreshes all tracked native units')
+    eq(global[1],true,'faction changes retain the forceful secure parse')
+    eq(petWrites,2,'faction changes still re-evaluate pet identities')
+end)
+
 assert(#failures == 0, table.concat(failures, '\n'))
 print('bjarkiPortraits restoration: ' .. passed .. ' scenarios passed')

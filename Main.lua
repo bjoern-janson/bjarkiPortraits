@@ -344,15 +344,48 @@ local function installUnitStateEvents(unitA, unitB)
             queueRefresh(unit, event=="UNIT_PORTRAIT_UPDATE" and "native-portrait" or "unit-availability", snapshotNeeded[unit])
             return
         end
-        if unit == "player" and (event == "UNIT_FACTION" or event == "UNIT_FLAGS") then
-            -- Every host's exact filter permission depends on the player's
-            -- relation, so these player events invalidate all six hosts.
+        if unit == "player" and event == "UNIT_FACTION" then
+            -- Real player faction changes can alter relationships to every
+            -- tracked unit; preserve the comprehensive secure refresh.
             R.RefreshAll(true,true)
             R.UpdateObservedPetPortraits()
-            -- Player relation changes can unblock retained derived evidence too.
-            for _, token in ipairs(R.TRACKED_UNITS) do
-                if not queueRefresh(token,nil,snapshotNeeded[token]) then R.ApplyPresentation(token,true,false) end
+            for _,token in ipairs(R.TRACKED_UNITS) do
+                if not queueRefresh(token,nil,snapshotNeeded[token]) then
+                    R.ApplyPresentation(token,true,false)
+                end
             end
+        elseif unit == "player" and event == "UNIT_FLAGS" then
+            -- A PLAYER UNIT_FLAGS event also fires on ordinary combat-state
+            -- transitions. The old path force-refreshed ALL native aura
+            -- containers for EVERY unit, then queued a second full sweep.
+            -- Refresh the player's current evidence without native force.
+            -- Refresh other hosts ONLY if their relationship actually changed.
+            R.Refresh("player",false,nil,true)
+            local relationChanged=false
+            for _,token in ipairs(R.TRACKED_UNITS) do
+                if token~="player" then
+                    local host=R.hosts[token]
+                    if host then
+                        local hostile,hostileKnown=R.HostileUnitState(token)
+                        local assist,assistKnown=R.SafeBool(UnitCanAssist,"player",token,true,true)
+                        if host._hostileRelationReadable~=hostileKnown
+                            or (hostileKnown and host._hostileUnit~=hostile)
+                            or host._assistReadable~=assistKnown
+                            or (assistKnown and host._assistable~=assist) then
+                            -- Eligibility setters already reparse native groups
+                            -- when their enabled state changes. Avoid blanket
+                            -- UpdateAllAuras for unrelated units.
+                            R.Refresh(token,false,nil,true)
+                            if not queueRefresh(token,nil,snapshotNeeded[token]) then
+                                R.ApplyPresentation(token,true,false)
+                            end
+                            relationChanged=true
+                        end
+                    end
+                end
+            end
+            if relationChanged then R.UpdateObservedPetPortraits() end
+            return
         elseif event == "UNIT_AURA" then
             if R.NoteSecondaryAuraEvent then R.NoteSecondaryAuraEvent(unit, updateInfo) end
             if R.PublishAuraEvent then R.PublishAuraEvent(unit, updateInfo) end
@@ -394,7 +427,11 @@ local function installUnitStateEvents(unitA, unitB)
             queueRefresh(unit, event == "UNIT_FORM_CHANGED" and "stance-transition" or "power-type")
             return
         else
-            R.Refresh(unit,true,nil,true)
+            -- UNIT_FLAGS changes combat and threat flags, not aura
+            -- occurrences. Avoid forcing a full native aura rebuild on
+            -- each flag; genuine faction, connection, and binding events
+            -- retain the original force path.
+            R.Refresh(unit,event~="UNIT_FLAGS",nil,true)
             if not queueRefresh(unit,nil,snapshotNeeded[unit]) then R.ApplyPresentation(unit,true,false) end
         end
         -- Aura changes do not change pet identity/family. Reclassify only on
