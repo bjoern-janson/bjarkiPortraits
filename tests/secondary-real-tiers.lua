@@ -47,6 +47,15 @@ local function eq(a,b,label) assert(a==b,(label or 'mismatch')..': '..tostring(a
 -- Thorns 467 outranks Mark of the Wild 1126 on the current priority map.
 R.ReconcileSecondaryPortrait(host,true,true)
 local originalRace=host.racePortrait.texture
+-- Screenshot-inspired case: Water Shield is primary (SelfState 150),
+-- Draught of Water Breathing applied aura 7178 (30m) ranks second at 50.
+-- The older Shaman 131 is only 10m and does not cover this item effect.
+auras={aura(408510,501),aura(7178,502)}
+auras[2].duration,auras[2].expirationTime=1800,1900
+R.ReconcileSecondaryPortrait(host,true,true)
+eq(host._secondaryMode,'aura','water-breathing potion wins second instead of race')
+eq(host._secondaryAuraSpellID,7178,'potion aura ID selected, not item or Shaman spell')
+eq(host._secondaryAuraTier,'TravelUtility','Water Breathing remains priority 50 below Water Shield')
 auras={aura(467,11),aura(1126,12)}
 auras[2].duration,auras[2].expirationTime=nil,nil
 R.ReconcileSecondaryPortrait(host,true,true)

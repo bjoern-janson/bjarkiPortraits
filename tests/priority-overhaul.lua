@@ -334,7 +334,20 @@ for _,id in ipairs({24755,1229451,19685,19686}) do unique(id,"BoostedRest") end
 check(level("BoostedRest")==0,"absolute bottom tier includes passive harmful states")
 for _,id in ipairs({2383,2580,8387,8388}) do unique(id,"Gathering") end
 for _,id in ipairs({19883,5500,19885}) do unique(id,"Tracking") end
-for _,id in ipairs({1293681,6196,6197,126}) do unique(id,"BottomHelpful") end
+for _,id in ipairs({1293681,6196,6197,126,1326064}) do unique(id,"BottomHelpful") end
+for _,id in ipairs({131,7178}) do
+    unique(id,"TravelUtility")
+    check(R.CandidateFilters(tier("TravelUtility")).includeSpellIDs[id] == true,
+        "native exact water-breathing effect is rank 50: "..id)
+    check(R.HELPFUL_TIER_BY_SPELL[id] == tier("TravelUtility"),
+        "readable water-breathing effect ranks at 50: "..id)
+end
+check(not contains("buffs_travel_utility",5996),
+    "potion item ID must not masquerade as its applied aura")
+check(not owns("Consumables",7178),
+    "potion's actual water-breathing effect follows Water Breathing, not its item category")
+check(not owns("SelfState",7178),
+    "Water Breathing is a lower-priority utility than Water Shield")
 
 for _,obsolete in ipairs({
     "DivineProtection","RacialDefensive","ElementalShield",

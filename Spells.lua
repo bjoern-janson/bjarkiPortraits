@@ -1685,6 +1685,7 @@ PT.categories = {
     -- so this shares its numeric priority but uses the matching polarity.
     -- The *applied buff* is 1321323, not the item-use trigger 1321320.
     buffs_bottom = {
+        [1326064] = true, -- Vigilant: nighttime NPC/quest informational effect ("Ever-vigilant...")
         [429959] = true, -- Well-Rested: Cozy Sleeping Bag XP bonus, 1-3 stacks (2h)
         [1321323] = true, -- Shiny Silver Coin (+30 Fishing, 30 minutes)
         -- Passive viewpoint-only effects cannot compete with gameplay buffs.
@@ -1867,7 +1868,8 @@ PT.categories = {
     buffs_travel_utility = {
         [17775] = true, -- Air Bubbles: underwater breathing from bubble vents
         [18733] = true, -- Air Bubbles: short alternate water-breathing aura
-        [131] = true, -- Water Breathing
+        [131] = true, -- Water Breathing: Shaman spell, 10-minute applied aura
+        [7178] = true, -- Water Breathing: Draught of Water Breathing 30-minute applied potion aura
         [5697] = true, -- Unending Breath (Warlock)
         [546] = true,  -- Water Walking (Shaman)
         [1066] = true, -- Aquatic Form (Druid)

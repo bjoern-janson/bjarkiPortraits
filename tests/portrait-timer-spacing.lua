@@ -105,7 +105,8 @@ local d=duration();d.opaque=true
 cd:SetCooldownFromDurationObject(d,true)
 assert(R.ApplyPortraitTimer(cd));eq(cd.hiddenNumbers,true)
 for i=1,6 do local b=all[i];assert(b.enabled and b.label and b.duration==d);eq(b.zero,"");eq(b.expired,"");eq(b.label.textScale,1.25)end
-eq(text(1,9.99),"10.0","carry");eq(text(1,10),"10");eq(text(1,30),"30");eq(text(1,R.PORTRAIT_TIMER_HIDE_AT),"")
+eq(text(1,9.99),"10.0","carry");eq(text(1,10),"10");eq(text(1,30),"30");eq(text(1,31),"31")
+eq(text(1,59.99),"59");eq(text(1,60),"60");eq(text(1,R.PORTRAIT_TIMER_HIDE_AT),"")
 eq(all[3].label.point[4],0,"decimal point and single whole digit use the fixed center")
 assert(math.abs(all[5].label.point[4]+all[6].label.point[4]-.9)<1e-8,"two whole digits retain their compact placement")
 local nf,na,nb,nr,ns=count.font,count.anchor,count.bindings,count.reads,count.stock
@@ -145,8 +146,9 @@ for _,precision in ipairs({false,true})do
         local target=cooldown();local start=#all+1
         R.ApplyPortraitTimer(target,label(target),true);target:SetCooldownFromDurationObject(d)
         assert(R.ApplyPortraitTimer(target));local base=R.GetCountdownFormatter()
-        for i=1,30001 do local v=i/1000;eq(text(start,v),base:FormatNumber(v),"native equality "..v)end
-        eq(text(start,30),"30");eq(text(start,R.PORTRAIT_TIMER_HIDE_AT),"")
+        for i=1,60001 do local v=i/1000;eq(text(start,v),base:FormatNumber(v),"native equality "..v)end
+        eq(text(start,30),"30");eq(text(start,31),"31");eq(text(start,60),"60")
+        eq(text(start,R.PORTRAIT_TIMER_HIDE_AT),"")
     end
 end
 -- SetDurationBar registers a stable native duration receiver once. Its private
@@ -162,8 +164,9 @@ for i=badStart,badStart+5 do assert(not all[i].enabled)end
 denyHide=false
 assert(R.ApplyPortraitTimer(bad,badLabel,true))
 -- Repeated public-duration reuse keeps the native mutable object, including
--- the twenty-nine/thirty-second and decimal preference boundaries.
-for _,v in ipairs({0,.05,1.15,9.949,9.95,9.99,10,29.999,30,30.001,31,2880})do
+-- 30s remains visible; the real new cutoff is immediately past 60s.
+for _,v in ipairs({0,.05,1.15,9.949,9.95,9.99,10,29.999,30,30.001,
+    31,59.999,60,R.PORTRAIT_TIMER_HIDE_AT,61,2880})do
  eq(text(badStart,v),R.GetCountdownFormatter():FormatNumber(v))
 end
 print("portrait native timer cells: passed")

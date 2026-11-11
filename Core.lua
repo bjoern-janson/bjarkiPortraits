@@ -2,7 +2,7 @@ local addonName, BP = ...
 BP.Runtime = BP.Runtime or {}
 local R = BP.Runtime
 
-R.VERSION = "0.1.247"
+R.VERSION = "0.1.248"
 R.PREFIX = "|cff74c7ecbjarkiPortraits|r"
 -- Four native Blizzard party portraits share the same aura engine as player/pet.
 -- Avoid name-based frame discovery: PartyFrame pools/recycles member frames.
@@ -565,9 +565,13 @@ function R.ReadAuraField(aura, key)
     return value, true
 end
 
-R.PORTRAIT_TIMER_LIMIT=30
-local nextDouble=R.PORTRAIT_TIMER_LIMIT+2^-48
-local nextFloat=R.PORTRAIT_TIMER_LIMIT+2^-19
+-- 60 seconds remain visible; only values ABOVE 60 hide the digits.
+-- At 60, next representable double is 2^-47 away, not 2^-48
+-- (the latter rounds back to exactly 60 under IEEE-754 ties-to-even).
+-- Binary32's adjacent step at 60 is 2^-18, not the 30s step 2^-19.
+R.PORTRAIT_TIMER_LIMIT=60
+local nextDouble=R.PORTRAIT_TIMER_LIMIT+2^-47
+local nextFloat=R.PORTRAIT_TIMER_LIMIT+2^-18
 R.PORTRAIT_TIMER_HIDE_AT=nextDouble
 
 local function buildCountdownFormatter(key)
@@ -590,12 +594,14 @@ local function buildCountdownFormatter(key)
         local text=formatter:FormatNumber(value)
         return R.CanAccess(text) and text==expected
     end
-    if not renders(30,"30") or not renders(nextDouble,"") then
+    if not renders(R.PORTRAIT_TIMER_LIMIT,tostring(R.PORTRAIT_TIMER_LIMIT))
+        or not renders(nextDouble,"") then
         cutoff.threshold=nextFloat
         accepted=formatter:SetBreakpoints(rules)
         if not R.CanAccess(accepted) or accepted==false then return nil end
     end
-    if not renders(30,"30") or not renders(cutoff.threshold,"") or not renders(2880,"") then return nil end
+    if not renders(R.PORTRAIT_TIMER_LIMIT,tostring(R.PORTRAIT_TIMER_LIMIT))
+        or not renders(cutoff.threshold,"") or not renders(2880,"") then return nil end
     R.PORTRAIT_TIMER_HIDE_AT=cutoff.threshold
     return formatter
 end
@@ -667,7 +673,7 @@ function R.ApplySecondaryCountdownFont(cooldown, styleOnly, verify)
     return true,label
 end
 
-local formatterProbes={1.1,11,30,nextFloat,31,2880}
+local formatterProbes={1.1,11,30,59.99,60,nextFloat,61,2880}
 local function sameCountdownFormatter(active,wanted)
     if rawequal(active,wanted) then return true end
     local activeMethod=R.ReadAuraField(active,"FormatNumber")

@@ -34,6 +34,22 @@ equal(ambient.level, 4, "original ambient buff above tracking")
 equal(ambientHarmful.level, 4, "nearby harmful stays at ambient level four")
 equal(fallback.level, 5, "generic hostile fallback above the exact low lanes")
 equal(consumables.level, 81, "minor and Well Fed auras share Consumables priority")
+check(C.buffs_bottom[1326064] == true,
+    "Vigilant nighttime aura has exact bottom-helpful source membership")
+check(bottomHelpful.spellIDs[1326064] == true,
+    "Vigilant belongs at existing priority zero")
+check(R.HELPFUL_TIER_BY_SPELL[1326064] == bottomHelpful,
+    "Vigilant public ranking uses BottomHelpful")
+check(R.CandidateFilters(bottomHelpful).includeSpellIDs[1326064] == true,
+    "native secure bottom-helpful group includes Vigilant")
+check(R.NONCOMBAT_EXCLUDED_HELPFUL[1326064] == true,
+    "Vigilant cannot be promoted by generic important buff")
+check(R.CandidateFilters(R.TIER_BY_KEY.Important).excludeSpellIDs[1326064] == true,
+    "generic Important cannot promote Vigilant")
+check(R.CandidateFilters(R.TIER_BY_KEY.HostileHelpful).excludeSpellIDs[1326064] == true,
+    "hostile fallback cannot promote Vigilant")
+check(R.HELPFUL_TIER_BY_SPELL[426972] == nil,
+    "unrelated Warrior Vigilance is not added by the quest aura classification")
 check(C.buffs_bottom[429959] == true,
     "Cozy Sleeping Bag Well-Rested has exact bottom-helpful membership")
 check(bottomHelpful.spellIDs[429959] == true,

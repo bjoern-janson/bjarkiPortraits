@@ -58,14 +58,15 @@ equal(enabled.rules[2].format, "%.0f", "whole-second format intact")
 equal(enabled.rules[2].step, 1, "whole-second step unchanged")
 equal(enabled.rules[2].rounding, Enum.NumericRuleFormatRounding.Down,
     "existing round-down behavior remains")
-equal(enabled.rules[3].threshold,30+2^-48,"hide immediately above thirty on a double-precision clock")
+equal(enabled.rules[3].threshold,60+2^-47,"hide immediately above sixty on a double-precision clock")
 equal(enabled.rules[3].format, "", "long duration text remains hidden")
 for _, case in ipairs({
     {0.1, "0.1"}, {1.4, "1.4"}, {2.9, "2.9"},
     {3, "3.0"}, {4, "4.0"}, {4.9, "4.9"},
     {5, "5.0"}, {5.1, "5.1"}, {5.9, "5.9"},
     {9.9, "9.9"}, {10, "10"}, {10.1, "10"},
-    {12.9, "12"}, {29.99,"29"}, {30,"30"}, {30+2^-48,""}, {31,""}, {48*60,""},
+    {12.9, "12"}, {29.99,"29"}, {30,"30"}, {30.01,"30"},
+    {31,"31"}, {59.99,"59"}, {60,"60"}, {60+2^-47,""}, {61,""}, {48*60,""},
 }) do
     equal(render(enabled, case[1]), case[2],
         "native decimal-on boundary " .. tostring(case[1]))
@@ -147,14 +148,17 @@ check(disabled ~= enabled, "decimal-off mode has its own formatter")
 equal(#disabled.rules, 2, "decimal-off rule count unchanged")
 equal(disabled.rules[1].threshold, 0, "decimal-off whole seconds from zero")
 equal(disabled.rules[1].format, "%.0f", "decimal-off uses whole seconds")
-equal(disabled.rules[2].threshold,30+2^-48,"decimal-off uses the same visibility cap")
+equal(disabled.rules[2].threshold,60+2^-47,"decimal-off uses the same visibility cap")
 equal(render(disabled, 4.9), "4", "decimal-off leaves four whole seconds")
 equal(render(disabled, 5), "5", "decimal-off five whole seconds")
 equal(render(disabled, 9.9), "9", "decimal-off below ten whole seconds")
 equal(render(disabled, 10), "10", "decimal-off ten whole seconds")
 equal(render(disabled, 10.1), "10", "decimal-off above ten whole seconds")
 equal(render(disabled,30),"30","decimal-off includes exactly 30")
-equal(render(disabled,30+2^-48),"","decimal-off suppresses the next representable instant")
+equal(render(disabled,31),"31","decimal-off 31 seconds now visible")
+equal(render(disabled,59.99),"59","decimal-off 59 whole seconds visible")
+equal(render(disabled,60),"60","decimal-off includes exactly sixty")
+equal(render(disabled,60+2^-47),"","decimal-off suppresses the next representable instant")
 equal(render(disabled,2880),"","decimal-off suppresses 48m")
 local offFallback = makeCooldown(false)
 R.ApplyCountdownFormat(offFallback)
@@ -282,7 +286,7 @@ do
         "incomplete cells recover the capped stock formatter")
 
     -- A separate Lua handle may represent the formatter the widget accepted.
-    local function policy(_,t) return t<=30 and tostring(t) or "" end
+    local function policy(_,t) return t<=60 and tostring(t) or "" end
     base.FormatNumber=policy
     local proxy={
         SetCountdownFormatter=function(self,f) self.receipt={FormatNumber=f.FormatNumber} end,
@@ -292,7 +296,7 @@ do
     ok,backend=R.ApplyCountdownFormat(proxy,label)
     check(ok and backend=="formatter" and not proxy.hidden,"an equivalent capped handle remains visible")
     proxy.SetCountdownFormatter=function(self)
-        self.receipt={FormatNumber=function(_,t)return t>30 and "48m" or tostring(t) end}
+        self.receipt={FormatNumber=function(_,t)return t>60 and "48m" or tostring(t) end}
     end
     proxy.receipt=nil
     ok,backend=R.ApplyCountdownFormat(proxy,label,true)
