@@ -486,7 +486,9 @@ do
     eq(numeric,count-1,"normal safe update upgrades hidden strips after a new formatter epoch")
     eq(ribbons[1].numbersHidden,true,"a receiver that refuses the cap stays hidden")
     for i=2,count do eq(ribbons[i].numbersHidden,false,"accepted cap permits short numbers") end
-    eq(ribbons[2].installed:FormatNumber(30),"30","native second shows the last permitted whole second")
+    eq(ribbons[2].installed:FormatNumber(60),"60","native second preserves old sixty-second threshold")
+    eq(ribbons[2].installed:FormatNumber(90),"90","lightweight native second shows last permitted second")
+    eq(ribbons[2].installed:FormatNumber(91),"","native second suppresses durations after ninety")
     eq(ribbons[2].installed:FormatNumber(48*60),"","native second cannot display a 48-minute label")
     eq(attempts,1,"recovery shares one native formatter")
     ribbons[1].rejectNative=nil
