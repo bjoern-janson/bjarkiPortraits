@@ -78,6 +78,8 @@ The table follows the 62 lanes in [Priority.lua](../Priority.lua), sorted by des
 
 | Applied spell / category | Actual lane | Level | Why |
 | --- | --- | ---: | --- |
+| Draught of Water Breathing applied aura `7178`; Shaman Water Breathing `131` | `TravelUtility` | **50** | Same underwater breathing effect from different sources: potion lasts 30 minutes, Shaman spell 10 minutes. Both remain below Water Shield's `SelfState` 150; item `5996` is not an aura ID |
+| Vigilant nighttime effect `1326064` | `BottomHelpful` | **0** | Low-impact NPC informational buff, distinct from Warrior Vigilance `426972`; no new numeric tier |
 | Static Electricity `1294477` from Gahz'rilla Fang | `Thorns` | **120** | User-requested visual priority for the stacking +2% weapon proc damage buff; not the unrelated boss aura `366305` or old proc spell `3742` |
 | Daunting Growl `3146`; Decayed Strength `6951`; Curse of Weakness ranks and NPC variants | `Demoralizing` | **185** | Ordinary Strength/Agility, attack output or similar flat stat/output reductions, with existing Demo Shout/Roar/Screech |
 | Ice Claw `3130`; Thunder Clap attack cadence penalty | `StatusEffects` | **253** | Disrupts attack timing/combat flow; not an ordinary movement snare |

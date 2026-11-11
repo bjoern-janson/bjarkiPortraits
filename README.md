@@ -2,7 +2,7 @@
 
 Native-styled priority aura portraits for **WoW: Forever**. A high-priority observed aura or state can replace the normal Blizzard portrait; a smaller circle may show the next distinct eligible effect. The addon respects the client's protected-aura boundaries and does not guess hidden spell IDs.
 
-**0.1.247 for WoW: Forever.** Fixed-position timers retain the existing fonts, and native secondary construction resumes incomplete button initialization before showing the finished tree. Landed school interrupts can supply a portrait and countdown, with Target and Focus each following their current recipient. Start with the [code map](docs/CODE_MAP.md) for event paths and the [timer lifecycle](docs/TIMER_LIFECYCLE.md) for clock ownership and recovery.
+**0.1.248 for WoW: Forever.** Fixed-position timers retain the existing fonts, and native secondary construction resumes incomplete button initialization before showing the finished tree. Landed school interrupts can supply a portrait and countdown, with Target and Focus each following their current recipient. Start with the [code map](docs/CODE_MAP.md) for event paths and the [timer lifecycle](docs/TIMER_LIFECYCLE.md) for clock ownership and recovery.
 
 ## Install
 
@@ -37,7 +37,9 @@ The 30px full-size artwork matches a regular Blizzard buff icon; its Totem-style
 
 ### Countdown and priority examples
 
-Portrait countdowns retain fixed-position digits in the existing font: tenths below ten seconds when enabled, truncated whole seconds through thirty, and no number above thirty at the native formatter's supported precision. Native duration bindings drive the digits without Lua reading the current private countdown. If fixed cells cannot be used, the addon tries the same capped native formatter; if that cannot be installed, it hides the number while preserving the icon and swipe.
+Portrait countdowns retain fixed-position digits in the existing font: tenths below ten seconds when enabled, truncated whole seconds **through sixty (inclusive)**, and no number above sixty at the native formatter's supported precision. Native duration bindings drive the digits without Lua reading the current private countdown. If fixed cells cannot be used, the addon tries the same capped native formatter; if that cannot be installed, it hides the number while preserving the icon and swipe.
+
+Version .248 restores the 60-second numeric display window (including exactly 60) while retaining fixed digits, font styling, native duration bindings and fallback safety. The actual 30-minute Draught of Water Breathing buff (`7178`) now shares Travel Utility 50 with Shaman Water Breathing (`131`); the unrelated daytime/nighttime quest buff Vigilant (`1326064`) enters Bottom Helpful 0. No other priority levels changed.
 
 Version .246 spreads native secondary construction across deferred out-of-combat callbacks and avoids rewriting unchanged timer bindings during target-layout checks. A partially built secondary stays hidden until its full native group tree can be bound to the current recipient. Version .247 retains failed button initialization and already-created artwork, masks and clocks for a safe retry; completion requires every initializer to finish. These source repairs retain the timer work. Their effect on live responsiveness and rendering still needs confirmation. [Timer ownership and lifecycle](docs/TIMER_LIFECYCLE.md)
 
@@ -52,8 +54,9 @@ Numeric tiers indicate **portrait display priority**, not general spell strength
 | **185** | Demoralizing Shout/Roar/Screech; Decayed Strength (6951), Curse of Weakness and **Daunting Growl (3146)** |
 | **120** | Thorns, Fire Shield, Reflection Field and **Static Electricity (1294477)** from Gahz'rilla Fang |
 | **90** | Class buffs, major world buffs, Camp Benefits and verified mounted auras |
+| **50** | Travel Utility, including both 10-minute Shaman Water Breathing (`131`) and 30-minute Draught of Water Breathing (`7178`) |
 | **81** | Consumables, Well Fed and approved minor effects |
-| **0** | Informational bottom auras, including Well-Rested (429959) and harmful Boosted Rest (1229451), in separate polarity lanes |
+| **0** | Informational bottom auras, including Well-Rested (`429959`), nighttime **Vigilant (`1326064`)**, and harmful Boosted Rest (`1229451`), in separate polarity lanes |
 
 For **all 62 exact/semantic lanes**, see [Current priority reference](docs/PRIORITIES.md); `Priority.lua` and `Spells.lua` remain the actual runtime source of truth. Static Electricity was added to the existing Thorns tier without changing numeric priorities.
 
@@ -85,7 +88,7 @@ For a regression, run the read-only debug command **before** manually refreshing
 - [Known issues / verification status](KNOWN_ISSUES.md) — current open questions versus source-level repairs.
 - [Priority reference](docs/PRIORITIES.md) — numeric lane table from `Priority.lua`.
 - [Testing and debugging](docs/TESTING.md) — automated checks, in-game acceptance cases and release checks.
-- [0.1.247 verification record](docs/BUILD_VERIFICATION.md) — Lua engine results, package/source identity and limits of the offline evidence.
+- [Historical 0.1.247 verification record](docs/BUILD_VERIFICATION.md) — pinned source and package identity for the previous version. See [current CI runs](https://github.com/bjoern-janson/bjarkiPortraits/actions/workflows/package-addon.yml?query=branch%3Amain) for 0.1.248.
 - [Secondary portrait design history](docs/SECONDARY_PORTRAIT_PLAN.md) — chronological experiments, acceptance goals and source evidence.
 - [Historical README / release notes](docs/README_RELEASE_HISTORY.md), [legacy architecture](docs/ARCHITECTURE_HISTORY.md) and [earlier issue log](docs/KNOWN_ISSUES_HISTORY.md) — preserved provenance; **not current configuration guidance**.
 

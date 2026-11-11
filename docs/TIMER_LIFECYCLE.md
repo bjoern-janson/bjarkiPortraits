@@ -1,6 +1,6 @@
 # Portrait timer ownership and lifecycle
 
-This is the current **0.1.247** contract. It preserves the fixed-font timer work and explains the .246 deferred construction and .247 initializer recovery. For module/event navigation, see the [code map](CODE_MAP.md); for commands and acceptance checks, see [testing](TESTING.md).
+This is the current **0.1.248** contract. It preserves the fixed-font timer work and explains the .246 deferred construction and .247 initializer recovery. For module/event navigation, see the [code map](CODE_MAP.md); for commands and acceptance checks, see [testing](TESTING.md).
 
 ## Who owns the clock and the pixels
 
@@ -14,11 +14,11 @@ This is the current **0.1.247** contract. It preserves the fixed-font timer work
 
 The client owns the native aura duration and its updates. `PortraitTimerSpacing.lua` owns the addon-created glyph cells and their native `DurationTextBinding` receivers. `AuraEngine.lua`, `SecondaryPortrait.lua` and `NativeSecondProbe.lua` own the presenters that decide which clock belongs on which portrait. A visible native icon does not make its hidden identity or countdown readable to Lua.
 
-## Fixed cells and the 30-second policy
+## Fixed cells and the 60-second policy
 
 `R.ApplyCountdownFormat` tries fixed cells first, a capped native formatter second, and hidden numbers last. It never deliberately falls back to an uncapped stock number. Icon and swipe clocks remain separate from number visibility.
 
-`R.GetCountdownFormatter` uses tenths below ten seconds when `/bp decimals` is enabled, truncated whole seconds through thirty, then empty text. It checks public constants to select a cutoff just above 30 at the native API's supported precision. Native decimal rounding is preserved, including `10.0` just below the transition; it is not an addon approximation of remaining time.
+`R.GetCountdownFormatter` uses tenths below ten seconds when `/bp decimals` is enabled, truncated whole seconds through **sixty inclusive**, then empty text. It checks public constants to select a cutoff just above 60 at the native API's supported precision. At 60 seconds, the next binary64 value is `60+2^-47` and the next binary32 value is `60+2^-18`; using the previous 30-second increments would incorrectly suppress exactly 60. Native decimal rounding is preserved, including `10.0` just below the transition; it is not an addon approximation of remaining time.
 
 `R.ApplyPortraitTimer` prepares six fixed-position cells using the existing final label's font file, size, flags, effective/text scale, color and shadow. Secondary labels use `GameFontNormalSmall` through `R.ApplySecondaryCountdownFont`; primary labels keep their host-specific styling and placement. The decimal separator and single whole digit use the center cell; two-digit whole seconds use their own compact positions. Lua samples public constants to build/verify native glyph rules, and native bindings render the live clock. It does not read displayed text or the live private remaining value.
 

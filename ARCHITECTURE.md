@@ -1,6 +1,6 @@
 # bjarkiPortraits architecture
 
-This guide describes **0.1.247**. For event paths and their regression tests, start with the [code map](docs/CODE_MAP.md); for countdown and deferred native construction details, use the [timer lifecycle](docs/TIMER_LIFECYCLE.md). Earlier architecture decisions are preserved in the [history](docs/ARCHITECTURE_HISTORY.md).
+This guide describes **0.1.248**. For event paths and their regression tests, start with the [code map](docs/CODE_MAP.md); for countdown and deferred native construction details, use the [timer lifecycle](docs/TIMER_LIFECYCLE.md). Earlier architecture decisions are preserved in the [history](docs/ARCHITECTURE_HISTORY.md).
 
 ## Module loading
 
@@ -46,6 +46,8 @@ Both `bjarkiPortraits.toc` and `bjarkiPortraits_Camelot.toc` load **15 runtime m
 - Low-priority ID exclusions reduce promotion into broad semantic fallbacks. `SmallFriendlyHarmful` has `maxDuration=3599`, a deliberate protection against elevated hour-long Boosted Rest that also excludes some other long/permanent generic harmful auras.
 - See [docs/PRIORITIES.md](docs/PRIORITIES.md) for the entire numeric table; `Priority.lua` and `Spells.lua` are authoritative if documentation ever drifts.
 
+New exact-aura coverage (0.1.248): the 30-minute potion-applied `Water Breathing` spell `7178` shares `TravelUtility` **50** with the distinct 10-minute Shaman aura `131`. `Vigilant` nighttime quest aura `1326064` joins `BottomHelpful` **0**. Neither change adds a new tier or infers aura identity from an icon alone.
+
 Recent classification checkpoint: `Demoralizing` **185** includes Daunting Growl `3146`, Decayed Strength `6951`, Curse of Weakness, Demo Shout/Roar/Screech. `StatusEffects` **253** includes Ice Claw `3130` and attack/cast/healing disruption; `BaselineClass` **90** includes class/world/Camp Benefits/mount auras; `Consumables` **81** includes Well Fed; `BottomHelpful` **0** includes Cozy Sleeping Bag Well-Rested `429959`.
 
 ## Secondary portrait pipeline (experimental)
@@ -85,7 +87,7 @@ All three secondary renderers share that policy. A 2/64 symmetric source crop on
 
 ## Countdown and layout
 
-`Core.GetCountdownFormatter` gives one decimal strictly below 10 seconds when enabled, truncated whole seconds through 30, and empty text above 30 at the supported native numeric precision. It probes public constants to choose the first representable cutoff above 30. Native decimal rounding can produce `10.0` immediately below the ten-second transition; the fixed cells preserve that result. `/bp decimals` and `/bp swipe` retain their separate number/swipe preferences.
+`Core.GetCountdownFormatter` gives one decimal strictly below 10 seconds when enabled, truncated whole seconds through **60**, and empty text strictly above 60 at supported native numeric precision. The public 60-second cutoff uses the first representable increment at 60 (binary64 `2^-47` or binary32 `2^-18`); the former 30-second increments would round back to exactly 60 and incorrectly hide the boundary. Native decimal rounding can produce `10.0` immediately below the ten-second transition; the fixed cells preserve that result. `/bp decimals` and `/bp swipe` retain their separate number/swipe preferences.
 
 `PortraitTimerSpacing.lua` copies the final label's actual font, size, flags, scale, color and shadow into six fixed-position glyph cells. Each cell has a native `DurationTextBinding`; Lua builds its rules from public sample constants and does not read the live countdown. Native aura buttons supply their stable opaque duration through `SetDurationBar` and an addon-owned hidden StatusBar's `GetTimerDuration`. Readable projections and school interrupts instead reach the same cells through public cooldown setters. These are different clock acquisition paths, not interchangeable sources of aura identity.
 
