@@ -1,13 +1,13 @@
 # Portrait timer ownership and lifecycle
 
-This is the current **0.1.248** contract. It preserves the fixed-font timer work and explains the .246 deferred construction and .247 initializer recovery. For module/event navigation, see the [code map](CODE_MAP.md); for commands and acceptance checks, see [testing](TESTING.md).
+This is the **0.1.249 recovery** contract. The native preallocated second-aura clocks no longer use fixed six-cell bindings; the main and readable-secondary clocks still do. It preserves the fixed-font timer work and explains the .246 deferred construction and .247 initializer recovery. For module/event navigation, see the [code map](CODE_MAP.md); for commands and acceptance checks, see [testing](TESTING.md).
 
 ## Who owns the clock and the pixels
 
 | Presenter | Clock source | Addon responsibility |
 | --- | --- | --- |
 | Native primary aura button | Native aura duration owned and updated by the client | Configure its icon/cooldown receiver and attach the public duration-bar bridge. Do not inspect private aura fields. |
-| Native second aura button | The same native ownership, inside the secondary container | Configure fixed receiver artwork and timer presentation during construction; let native groups select and update occurrences. |
+| Native second aura button | Native aura duration inside the secondary container | Configure native cooldown artwork and the capped 60s native formatter. Do **not** install six extra glyph bindings or a hidden StatusBar bridge per preallocated native-secondary button. Native groups still select and update actual occurrences. |
 | Readable aura projection / public secondary badge | Verified current occurrence passed through the public cooldown setters | Bind the correct occurrence, clear a stale clock, and preserve recipient/election proof. |
 | School-interrupt presenter | Native duration object when accepted; otherwise corroborated public timing | `R.SetSchoolInterruptClock` installs that clock. If neither works, accept art-only presentation only after clearing old digits succeeds. |
 | Race, Ghost, stance/form or pet-family fallback | No invented aura duration | Show only supported artwork/state and clear prior timed presentation. |
@@ -22,7 +22,7 @@ The client owns the native aura duration and its updates. `PortraitTimerSpacing.
 
 `R.ApplyPortraitTimer` prepares six fixed-position cells using the existing final label's font file, size, flags, effective/text scale, color and shadow. Secondary labels use `GameFontNormalSmall` through `R.ApplySecondaryCountdownFont`; primary labels keep their host-specific styling and placement. The decimal separator and single whole digit use the center cell; two-digit whole seconds use their own compact positions. Lua samples public constants to build/verify native glyph rules, and native bindings render the live clock. It does not read displayed text or the live private remaining value.
 
-For native buttons, `R.AttachPortraitAuraClock` registers an addon-owned hidden StatusBar with `button:SetDurationBar(bar, {})`, then obtains the opaque duration object through `bar:GetTimerDuration()`. A separate synthetic public duration probe verifies that transport retains a mutable reference. The live aura duration is passed to bindings without calling its numeric getters. Private native clock updates can bypass public `Cooldown:SetCooldown` hooks, which is why those hooks alone are insufficient.
+For eligible native **primary** buttons (not the lightweight native SECOND fallback), `R.AttachPortraitAuraClock` registers an addon-owned hidden StatusBar with `button:SetDurationBar(bar, {})`, then obtains the opaque duration object through `bar:GetTimerDuration()`. A separate synthetic public duration probe verifies that transport retains a mutable reference. The live aura duration is passed to bindings without calling its numeric getters. Private native clock updates can bypass public `Cooldown:SetCooldown` hooks, which is why those hooks alone are insufficient.
 
 For public projections, hooks on `SetCooldownFromDurationObject`, `SetCooldown` and `Clear` update or revoke the cell binding. Numeric clock construction requires readable finite public values. On failure, the cell group is hidden/deactivated before ordinary capped formatting can return; this prevents mixed old/new digits. The same clock, formatter and style are reused when unchanged. Preference changes, explicit verification and a new formatter retry epoch can revisit failed or fallback presentation.
 

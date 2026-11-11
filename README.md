@@ -2,7 +2,7 @@
 
 Native-styled priority aura portraits for **WoW: Forever**. A high-priority observed aura or state can replace the normal Blizzard portrait; a smaller circle may show the next distinct eligible effect. The addon respects the client's protected-aura boundaries and does not guess hidden spell IDs.
 
-**0.1.248 for WoW: Forever.** Fixed-position timers retain the existing fonts, and native secondary construction resumes incomplete button initialization before showing the finished tree. Landed school interrupts can supply a portrait and countdown, with Target and Focus each following their current recipient. Start with the [code map](docs/CODE_MAP.md) for event paths and the [timer lifecycle](docs/TIMER_LIFECYCLE.md) for clock ownership and recovery.
+**0.1.249 low-overhead recovery build for WoW: Forever.** Fixed-position timers retain the existing fonts, and native secondary construction resumes incomplete button initialization before showing the finished tree. Landed school interrupts can supply a portrait and countdown, with Target and Focus each following their current recipient. Start with the [code map](docs/CODE_MAP.md) for event paths and the [timer lifecycle](docs/TIMER_LIFECYCLE.md) for clock ownership and recovery.
 
 ## Install
 
@@ -34,6 +34,12 @@ The remaining in-game checks include swapping Target and Focus during a lockout 
 | Target, Focus | `TOPLEFT (+10, +12)` | 50px | 41px | **30px** |
 
 The 30px full-size artwork matches a regular Blizzard buff icon; its Totem-style rim scales around the artwork rather than cropping it tightly. Version 0.1.223 additionally applies a slight 2/64 source-image inset to actual spell/form and confirmed secondary pet-family art to hide thin square icon edges. The local PetFrame retains its prior 3/64 crop; registered race atlases and race sprite-sheet tile coordinates are left untouched. `R.SecondaryCirclePlacement` and `R.SecondaryCircleGeometry` are the two layout authorities for readable icons, native second-aura clips and pet-family fallbacks. Native Blizzard spell artwork is retained. The masks and cooldowns follow the icon, not a larger invisible rectangle.
+
+### Performance recovery
+
+The 0.1.248 native secondary renderer can preallocate ten buttons in each of approximately 62 priority groups for Player, Target and Focus. Version **0.1.249** stops attaching six extra continuously updating fixed-digit bindings and a hidden duration-bar bridge **to every one of those backing buttons**. Instead, their native cooldowns retain Blizzard's verified **60-second-capped formatter** and the same default buff-duration font. This eliminates a potential **3,720 unnecessary glyph bindings per secondary host** without disabling any aura categories, removing native second portraits, or changing combat evidence.
+
+The fixed-position digit presentation stays active on **main portraits** and publicly elected secondary auras. On native hidden-identity secondaries, native single-text digits may shift slightly; that's a deliberate performance tradeoff. No new commands or user settings required. The [recovery guide](docs/PERFORMANCE_RECOVERY.md) records the source path and verification limits. **Main remains unchanged at 0.1.248**; this build is on a separate branch.
 
 ### Countdown and priority examples
 

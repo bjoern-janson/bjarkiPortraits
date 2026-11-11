@@ -1,6 +1,6 @@
 # Testing and debugging bjarkiPortraits
 
-The **0.1.248** source checkpoint has **35 Lua regression scripts**, **15 runtime modules**, and two manifests with the same load order. Each script loads the modules it exercises; a script can contain many assertions or ordering cases, so script count is not an assertion count.
+The **0.1.249 recovery** source checkpoint has **35 Lua regression scripts**, **15 runtime modules**, and two manifests with the same load order. Each script loads the modules it exercises; a script can contain many assertions or ordering cases, so script count is not an assertion count.
 
 ## Verify and package
 
@@ -41,6 +41,7 @@ The [GitHub Actions workflow](../.github/workflows/package-addon.yml) uses the s
 | Native second cells, ten-button preallocation, deferred setup, swallowed initializer errors, receipt reuse, pooling and retarget swaps | `tests/native-second-probe.lua` |
 | Circle/rim/mask sizing and pet family secondary | `tests/secondary-portrait.lua`, `tests/pet-secondary.lua`, `tests/pet-icon-crop.lua` |
 | Combat positive retention, form/stance/Ghost states | `tests/secondary-ghost-state.lua`, `tests/secondary-ghost-real-host.lua`, `tests/secondary-form-ranking.lua`, `tests/stance-state.lua` |
+| Native-secondary lightweight cap (no six bindings on preallocated hidden buttons), formatter-recovery avoidance and pooled reuse | `tests/native-second-probe.lua`, `tests/decimal-threshold.lua` |
 | Fixed-font cells, opaque native duration-bar bridge, no live clock/text reads, precision boundaries and setter recovery | `tests/portrait-timer-spacing.lua` |
 | Countdowns, event evidence and restoration | `tests/decimal-threshold.lua`, `tests/derived-evidence.lua`, `tests/pending-evidence-recovery.lua`, `tests/portrait-restoration.lua` |
 | Read-only secondary diagnostics | `tests/secondary-debug.lua` |

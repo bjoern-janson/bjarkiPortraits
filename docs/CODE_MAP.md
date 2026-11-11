@@ -1,6 +1,6 @@
 # bjarkiPortraits code map
 
-This guide follows version 0.1.248. The two manifests load the same Lua files in order. `Core.lua` creates `BP.Runtime`, usually called `R` inside a module, and `Main.lua` registers the events. [Standard manifest](../bjarkiPortraits.toc) · [Camelot manifest](../bjarkiPortraits_Camelot.toc)
+This recovery branch follows version 0.1.249. The two manifests load the same Lua files in order. `Core.lua` creates `BP.Runtime`, usually called `R` inside a module, and `Main.lua` registers the events. [Standard manifest](../bjarkiPortraits.toc) · [Camelot manifest](../bjarkiPortraits_Camelot.toc)
 
 Use this file as the entry index for a source or AI-assisted review. Resolve exact symbols with `rg -n -g '*.lua' "symbol" .`; file names and function names are more stable than copied line numbers. Current behavior lives in the Lua modules and tests. The [0.1.224 read-only audit](CODEX_READONLY_AUDIT.md) and dated design/release logs are historical snapshots, not the current task's permissions or runtime specification.
 
